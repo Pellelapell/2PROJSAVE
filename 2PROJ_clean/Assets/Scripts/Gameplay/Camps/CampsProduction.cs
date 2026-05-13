@@ -118,6 +118,17 @@ namespace SupKonQuest
             }
         }
 
+        // Spawn instantané sans coût ni queue (utilisé pour les bonus de région)
+        public void SpawnUnitInstant(UnitType type)
+        {
+            if (camp == null || camp.owner == null) return;
+            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
+            if (def == null) return;
+            GameObject prefab = GetPrefab(type);
+            if (prefab == null) return;
+            SpawnUnit(new QueuedUnit { type = type, definition = def, prefab = prefab });
+        }
+
         private GameObject GetPrefab(UnitType type)
         {
             foreach (UnitProductionEntry e in availableUnits)

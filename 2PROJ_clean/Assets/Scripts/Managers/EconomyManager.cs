@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SupKonQuest
@@ -9,10 +10,12 @@ namespace SupKonQuest
 
         private float timer;
         private GameManager gameManager;
+        private RegionManager regionManager;
 
         private void Start()
         {
             gameManager = FindFirstObjectByType<GameManager>();
+            regionManager = RegionManager.Instance;
         }
 
         private void Update()
@@ -31,9 +34,33 @@ namespace SupKonQuest
         {
             foreach (PlayerData player in gameManager.players)
             {
-                int income = player.ownedCamps.Count * moneyPerCamp;
-                player.AddMoney(income);
-                Debug.Log($"Player {player.playerId} receives {income} gold. Total = {player.money}");
+                if (player.eliminated) continue;
+
+                int campIncome = player.ownedCamps.Count * moneyPerCamp;
+                int regionBonus = regionManager != null ? regionManager.GetRegionBonusGold(player) : 0;
+                player.AddMoney(campIncome + regionBonus);
+
+                SpawnRegionBonusUnits(player);
+            }
+        }
+
+        private void SpawnRegionBonusUnits(PlayerData player)
+        {
+            if (regionManager == null) return;
+
+            List<Region> ownedRegions = regionManager.GetRegionsOwnedBy(player);
+            foreach (Region region in ownedRegions)
+            {
+                if (region.data == null || region.data.bonusUnitCount <= 0) continue;
+
+                Camp spawnCamp = regionManager.GetBonusSpawnCamp(region, player);
+                if (spawnCamp == null) continue;
+
+                CampProduction prod = spawnCamp.GetComponent<CampProduction>();
+                if (prod == null) continue;
+
+                for (int i = 0; i < region.data.bonusUnitCount; i++)
+                    prod.SpawnUnitInstant(region.data.bonusUnitType);
             }
         }
     }

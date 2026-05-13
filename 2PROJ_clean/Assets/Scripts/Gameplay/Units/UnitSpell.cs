@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SupKonQuest
 {
@@ -10,10 +12,16 @@ namespace SupKonQuest
         private float spellDurationTimer;
         private bool isActive;
 
+        // Heal : tick toutes les 0.5s pour éviter les problèmes de deltaTime
+        private float healTimer;
+
+        // Support : liste des unités buffées pour pouvoir retirer le buff proprement
+        private readonly List<UnitStats> buffedUnits = new List<UnitStats>();
+
         public bool IsActive => isActive;
         public bool IsOnCooldown => spellCooldownTimer > 0f;
-        public float CooldownProgress => 1f - Mathf.Clamp01(spellCooldownTimer / stats.spellCooldown);
-        public float DurationProgress => Mathf.Clamp01(spellDurationTimer / stats.spellDuration);
+        public float CooldownProgress => stats != null ? 1f - Mathf.Clamp01(spellCooldownTimer / stats.spellCooldown) : 0f;
+        public float DurationProgress => stats != null ? Mathf.Clamp01(spellDurationTimer / stats.spellDuration) : 0f;
 
         private void Awake()
         {
@@ -22,12 +30,21 @@ namespace SupKonQuest
 
         private void Update()
         {
-            if (!stats.hasActivable) return;
+            if (stats == null || !stats.hasActivable) return;
 
             if (isActive)
             {
                 spellDurationTimer -= Time.deltaTime;
-                ApplySpellEffect();
+
+                if (stats.unitType == UnitType.Heal)
+                {
+                    healTimer += Time.deltaTime;
+                    if (healTimer >= 0.5f)
+                    {
+                        healTimer = 0f;
+                        ApplyHealTick();
+                    }
+                }
 
                 if (spellDurationTimer <= 0f)
                     DeactivateSpell();
@@ -40,11 +57,15 @@ namespace SupKonQuest
 
         public bool TryActivate()
         {
-            if (!stats.hasActivable || isActive || spellCooldownTimer > 0f) return false;
+            if (stats == null || !stats.hasActivable || isActive || spellCooldownTimer > 0f) return false;
 
             isActive = true;
             spellDurationTimer = stats.spellDuration;
-            spellCooldownTimer = 0f;
+            healTimer = 0f;
+
+            if (stats.unitType == UnitType.Support)
+                ApplySupportBuff();
+
             return true;
         }
 
@@ -53,10 +74,16 @@ namespace SupKonQuest
             isActive = false;
             spellDurationTimer = 0f;
             spellCooldownTimer = stats.spellCooldown;
-            RemoveSpellEffect();
+
+            if (stats.unitType == UnitType.Support)
+                RemoveSupportBuff();
+
+            buffedUnits.Clear();
         }
 
-        private void ApplySpellEffect()
+        // ── Support ──────────────────────────────────────────────────
+
+        private void ApplySupportBuff()
         {
             Collider[] hits = Physics.OverlapSphere(transform.position, 5f);
             foreach (Collider hit in hits)
@@ -65,42 +92,44 @@ namespace SupKonQuest
                 UnitStats other = hit.GetComponent<UnitStats>();
                 if (other == null || other.ownerId != stats.ownerId) continue;
 
-                if (stats.unitType == UnitType.Heal)
-                {
-                    int healAmount = Mathf.RoundToInt(5f * Time.deltaTime);
-                    if (healAmount > 0) other.Heal(healAmount);
-                }
-                else if (stats.unitType == UnitType.Support)
-                {
-                    UnitMovement mov = hit.GetComponent<UnitMovement>();
-                    if (mov != null)
-                        hit.GetComponent<UnityEngine.AI.NavMeshAgent>().speed = other.moveSpeed * 1.5f;
+                other.attackSpeedMultiplier = 1.5f;
 
-                    UnitAttack atk = hit.GetComponent<UnitAttack>();
-                }
+                NavMeshAgent agent = hit.GetComponent<NavMeshAgent>();
+                if (agent != null) agent.speed = other.moveSpeed * 1.5f;
+
+                buffedUnits.Add(other);
             }
         }
 
-        private void RemoveSpellEffect()
+        private void RemoveSupportBuff()
         {
+            foreach (UnitStats unit in buffedUnits)
+            {
+                if (unit == null) continue;
+                unit.attackSpeedMultiplier = 1f;
+
+                NavMeshAgent agent = unit.GetComponent<NavMeshAgent>();
+                if (agent != null) agent.speed = unit.moveSpeed;
+            }
+        }
+
+        // ── Heal ─────────────────────────────────────────────────────
+
+        private void ApplyHealTick()
+        {
+            // 10 HP toutes les 0.5s = 20 HP/s
             Collider[] hits = Physics.OverlapSphere(transform.position, 5f);
             foreach (Collider hit in hits)
             {
-                if (hit.gameObject == gameObject) continue;
                 UnitStats other = hit.GetComponent<UnitStats>();
                 if (other == null || other.ownerId != stats.ownerId) continue;
-
-                if (stats.unitType == UnitType.Support)
-                {
-                    UnityEngine.AI.NavMeshAgent agent = hit.GetComponent<UnityEngine.AI.NavMeshAgent>();
-                    if (agent != null) agent.speed = other.moveSpeed;
-                }
+                other.Heal(10);
             }
         }
 
         private void OnDrawGizmosSelected()
         {
-            if (!isActive) return;
+            if (!isActive || stats == null) return;
             Gizmos.color = stats.unitType == UnitType.Heal ? Color.green : Color.cyan;
             Gizmos.DrawWireSphere(transform.position, 5f);
         }

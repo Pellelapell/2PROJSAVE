@@ -1,20 +1,37 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SupKonQuest;
 
 public class MainMenu : MonoBehaviour
 {
-    private int selectedMap = 0;   // 0=Classic, 1=FrozenPeaks, 2=Island
-    private int selectedAI = 1;    // number of AI opponents (1-3)
-    private int selectedDiff = 0;  // 0=Easy, 1=Medium, 2=Hard
+    private int selectedMap = 0;
+    private int selectedAI = 1;
+    private int selectedDiff = 0;
+    private int selectedLang = 0; // 0=FR, 1=EN, 2=ES
 
-    private readonly string[] mapNames = { "Classique", "Sommets Glacés", "Îles" };
-    private readonly string[] diffNames = { "Facile", "Moyen", "Difficile" };
+    private readonly string[] langCodes = { "fr", "en", "es" };
+    private readonly string[] langLabels = { "FR", "EN", "ES" };
 
     private GUIStyle titleStyle;
     private GUIStyle labelStyle;
     private GUIStyle buttonStyle;
     private GUIStyle selectedButtonStyle;
     private GUIStyle panelStyle;
+
+    private void Awake()
+    {
+        // Créer le LocalizationManager s'il n'existe pas encore
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            go.AddComponent<LocalizationManager>();
+        }
+
+        // Restaurer la langue sélectionnée
+        string savedLang = PlayerPrefs.GetString("Language", "fr");
+        for (int i = 0; i < langCodes.Length; i++)
+            if (langCodes[i] == savedLang) { selectedLang = i; break; }
+    }
 
     private void OnGUI()
     {
@@ -23,34 +40,50 @@ public class MainMenu : MonoBehaviour
         float sw = Screen.width;
         float sh = Screen.height;
 
-        // Background
+        // Fond
         GUI.color = new Color(0.08f, 0.08f, 0.15f);
         GUI.DrawTexture(new Rect(0, 0, sw, sh), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
-        // Title
-        GUI.Label(new Rect(0, sh * 0.08f, sw, 80f), "SupKonQuest", titleStyle);
+        // Titre
+        GUI.Label(new Rect(0, sh * 0.06f, sw, 80f), "SupKonQuest", titleStyle);
 
-        float panelW = 480f;
-        float panelH = 320f;
+        float panelW = 500f;
+        float panelH = 400f;
         float panelX = (sw - panelW) / 2f;
-        float panelY = sh * 0.22f;
+        float panelY = sh * 0.20f;
 
         GUI.Box(new Rect(panelX - 15, panelY - 15, panelW + 30, panelH + 30), "", panelStyle);
 
-        // Map selection
-        GUI.Label(new Rect(panelX, panelY, panelW, 28f), "Carte", labelStyle);
+        // Langue
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("language"), labelStyle);
         panelY += 32f;
-        for (int i = 0; i < mapNames.Length; i++)
+        for (int i = 0; i < langLabels.Length; i++)
+        {
+            GUIStyle style = selectedLang == i ? selectedButtonStyle : buttonStyle;
+            if (GUI.Button(new Rect(panelX + i * 80f, panelY, 72f, 34f), langLabels[i], style))
+            {
+                selectedLang = i;
+                LocalizationManager.Instance?.LoadLanguage(langCodes[i]);
+                titleStyle = null; // Reset pour forcer InitStyles (pas nécessaire ici mais propre)
+            }
+        }
+        panelY += 46f;
+
+        // Carte
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("map"), labelStyle);
+        panelY += 32f;
+        string[] mapKeys = { "map_classic", "map_frozen", "map_island" };
+        for (int i = 0; i < mapKeys.Length; i++)
         {
             GUIStyle style = selectedMap == i ? selectedButtonStyle : buttonStyle;
-            if (GUI.Button(new Rect(panelX + i * 162f, panelY, 155f, 38f), mapNames[i], style))
+            if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(mapKeys[i]), style))
                 selectedMap = i;
         }
         panelY += 50f;
 
-        // AI count
-        GUI.Label(new Rect(panelX, panelY, panelW, 28f), "Adversaires IA", labelStyle);
+        // Adversaires IA
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("opponents"), labelStyle);
         panelY += 32f;
         for (int i = 1; i <= 3; i++)
         {
@@ -60,35 +93,40 @@ public class MainMenu : MonoBehaviour
         }
         panelY += 50f;
 
-        // Difficulty
-        GUI.Label(new Rect(panelX, panelY, panelW, 28f), "Difficulté", labelStyle);
+        // Difficulté
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("difficulty"), labelStyle);
         panelY += 32f;
-        for (int i = 0; i < diffNames.Length; i++)
+        string[] diffKeys = { "diff_easy", "diff_medium", "diff_hard" };
+        for (int i = 0; i < diffKeys.Length; i++)
         {
             GUIStyle style = selectedDiff == i ? selectedButtonStyle : buttonStyle;
-            if (GUI.Button(new Rect(panelX + i * 162f, panelY, 155f, 38f), diffNames[i], style))
+            if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(diffKeys[i]), style))
                 selectedDiff = i;
         }
         panelY += 62f;
 
-        // Play button
+        // Jouer
         GUI.color = new Color(0.2f, 0.8f, 0.3f);
-        if (GUI.Button(new Rect((sw - 220f) / 2f, panelY, 220f, 54f), "JOUER", selectedButtonStyle))
+        if (GUI.Button(new Rect((sw - 220f) / 2f, panelY, 220f, 54f), L("play"), selectedButtonStyle))
             StartGame();
         GUI.color = Color.white;
 
-        // Quit button
-        if (GUI.Button(new Rect((sw - 130f) / 2f, panelY + 65f, 130f, 36f), "Quitter", buttonStyle))
+        // Quitter
+        if (GUI.Button(new Rect((sw - 130f) / 2f, panelY + 65f, 130f, 36f), L("quit"), buttonStyle))
             Application.Quit();
     }
+
+    private static string L(string key) => LocalizationManager.Get(key);
 
     private void StartGame()
     {
         PlayerPrefs.SetInt("MapType", selectedMap);
         PlayerPrefs.SetInt("AICount", selectedAI);
         PlayerPrefs.SetInt("AIDifficulty", selectedDiff);
+        PlayerPrefs.SetString("Language", langCodes[selectedLang]);
         PlayerPrefs.Save();
-        SceneManager.LoadScene("Proto_01");
+        string[] sceneNames = { "Classic", "Frozen_Peak", "Islands" };
+        SceneManager.LoadScene(sceneNames[selectedMap]);
     }
 
     private void InitStyles()

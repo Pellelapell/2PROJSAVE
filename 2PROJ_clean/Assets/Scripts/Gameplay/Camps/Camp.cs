@@ -18,14 +18,28 @@ namespace SupKonQuest
         public int maxHP = 300;
         public int currentHP = 300;
 
-        public void TakeDamage(int amount, int attackerId)
+        // attacker est l'unité qui inflige le coup fatal (peut être null si turret ou AOE indirect)
+        public void TakeDamage(int amount, UnitStats attacker)
         {
             currentHP = Mathf.Max(0, currentHP - amount);
 
             if (currentHP <= 0)
             {
-                PlayerData attacker = GameManager.Instance?.GetPlayerById(attackerId);
-                SetOwner(attacker);
+                // Mort mutuelle : si l'attaquant est mort en même temps → camp neutre
+                bool mutualDeath = attacker != null && attacker.currentHealth <= 0;
+                PlayerData newOwner = mutualDeath ? null : (attacker != null ? GameManager.Instance?.GetPlayerById(attacker.ownerId) : null);
+                SetOwner(newOwner);
+                currentHP = maxHP;
+            }
+        }
+
+        // Surcharge pour les dégâts de la tourelle (pas d'attaquant → jamais de capture par turret)
+        public void TakeDamageFromTurret(int amount)
+        {
+            currentHP = Mathf.Max(0, currentHP - amount);
+            if (currentHP <= 0)
+            {
+                SetOwner(null);
                 currentHP = maxHP;
             }
         }

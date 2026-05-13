@@ -87,6 +87,10 @@ public class HexGridGenerator : MonoBehaviour
 
         BuildNavMesh();
         PlaceCamps();
+
+        // Assigner les camps aux régions géographiques après génération
+        if (RegionManager.Instance != null)
+            RegionManager.Instance.AssignCampsToRegions();
     }
 
     // ── Camp Placement ───────────────────────────────────────────────
