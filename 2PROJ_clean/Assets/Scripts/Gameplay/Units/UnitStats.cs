@@ -20,6 +20,9 @@ namespace SupKonQuest
         public float detectRange = 6f;
         public float moveSpeed = 4f;
 
+        [Header("Buffs (runtime)")]
+        public float attackSpeedMultiplier = 1f;
+
         [Header("AOE")]
         public bool isAOE = false;
         public float aoeRadius = 2.5f;
@@ -60,6 +63,7 @@ namespace SupKonQuest
             hasActivable = def.hasActivable;
             spellDuration = def.spellDuration;
             spellCooldown = def.spellCooldown;
+            attackSpeedMultiplier = 1f;
         }
 
         private void Start()
@@ -90,8 +94,10 @@ namespace SupKonQuest
 
         private int ComputeReceivedDamage(int raw)
         {
+            // Heavy prend 30% moins de dégâts sauf contre Piercing (Anti-Armor)
             if (unitType == UnitType.Heavy && damageType != DamageType.Piercing)
                 return Mathf.RoundToInt(raw * 0.7f);
+            // Anti-Armor fait x2 contre Heavy
             return raw;
         }
 

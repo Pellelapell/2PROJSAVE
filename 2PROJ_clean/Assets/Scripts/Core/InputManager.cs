@@ -21,6 +21,9 @@ namespace SupKonQuest
 
         private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
 
+        // Groupes de sélection Ctrl+1-5 pour assigner, 1-5 pour rappeler
+        private readonly Dictionary<int, List<UnitMovement>> unitGroups = new Dictionary<int, List<UnitMovement>>();
+
         private bool isDragging;
         private Vector2 dragStartScreen;
 
@@ -28,6 +31,9 @@ namespace SupKonQuest
         {
             if (mainCamera == null)
                 mainCamera = Camera.main;
+
+            for (int i = 1; i <= 5; i++)
+                unitGroups[i] = new List<UnitMovement>();
         }
 
         private void Update()
@@ -35,7 +41,11 @@ namespace SupKonQuest
             HandleMouse();
             HandleRightClick();
             HandleSpellHotkey();
+            HandleGroupHotkeys();
+            HandleDisembarkHotkey();
         }
+
+        // ── Sélection souris ────────────────────────────────────────
 
         private void HandleMouse()
         {
@@ -115,14 +125,32 @@ namespace SupKonQuest
             RefreshSpellUI();
         }
 
+        // ── Clic droit : déplacer / embarquer ───────────────────────
+
         private void HandleRightClick()
         {
             if (!Input.GetMouseButtonDown(1) || selectedUnits.Count == 0) return;
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
+            // Clic droit sur un transport allié → embarquer
             if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
             {
+                TransportShip transport = hitUnit.collider.GetComponent<TransportShip>();
+                UnitStats transportStats = hitUnit.collider.GetComponent<UnitStats>();
+                if (transport != null && transportStats != null && transportStats.ownerId == localPlayerId)
+                {
+                    foreach (UnitMovement u in selectedUnits)
+                    {
+                        UnitStats us = u.GetComponent<UnitStats>();
+                        if (us != null && us.unitType != UnitType.Transport)
+                            transport.Embark(us);
+                    }
+                    ClearSelection();
+                    return;
+                }
+
+                // Clic droit sur une unité ennemie → attaquer
                 UnitStats target = hitUnit.collider.GetComponent<UnitStats>();
                 if (target != null && target.ownerId != localPlayerId)
                 {
@@ -131,17 +159,21 @@ namespace SupKonQuest
                 }
             }
 
+            // Clic droit sur le sol → déplacer
             if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, groundLayerMask))
             {
                 Vector3 rawPoint = hitGround.point;
                 Vector3 center = rawPoint;
                 if (NavMesh.SamplePosition(rawPoint + Vector3.up * 5f, out NavMeshHit navHit, 10f, NavMesh.AllAreas))
                     center = navHit.position;
+
                 int count = selectedUnits.Count;
                 for (int i = 0; i < count; i++)
                     selectedUnits[i].MoveTo(center + FormationOffset(i, count));
             }
         }
+
+        // ── Sorts ────────────────────────────────────────────────────
 
         private void HandleSpellHotkey()
         {
@@ -151,6 +183,74 @@ namespace SupKonQuest
             UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
             spell?.TryActivate();
         }
+
+        // ── Débarquement ─────────────────────────────────────────────
+
+        private void HandleDisembarkHotkey()
+        {
+            if (!Input.GetKeyDown(KeyCode.E)) return;
+            if (selectedUnits.Count != 1) return;
+
+            TransportShip transport = selectedUnits[0].GetComponent<TransportShip>();
+            if (transport == null || transport.IsEmpty) return;
+
+            // Débarquer au sol sous la souris si possible, sinon à la position du transport
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            Vector3 disembarkPos = selectedUnits[0].transform.position;
+            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
+                disembarkPos = hit.point;
+
+            transport.DisembarkAll(disembarkPos);
+        }
+
+        // ── Groupes Ctrl+1-5 ─────────────────────────────────────────
+
+        private void HandleGroupHotkeys()
+        {
+            bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+
+            for (int i = 0; i < 5; i++)
+            {
+                KeyCode key = (KeyCode)((int)KeyCode.Alpha1 + i);
+                if (!Input.GetKeyDown(key)) continue;
+
+                int groupId = i + 1;
+                if (ctrl)
+                    AssignGroup(groupId);
+                else
+                    RecallGroup(groupId);
+            }
+        }
+
+        private void AssignGroup(int groupId)
+        {
+            unitGroups[groupId].Clear();
+            foreach (UnitMovement unit in selectedUnits)
+                if (unit != null) unitGroups[groupId].Add(unit);
+        }
+
+        private void RecallGroup(int groupId)
+        {
+            if (!unitGroups.ContainsKey(groupId)) return;
+
+            ClearSelection();
+            campUIManager?.HideUI();
+
+            foreach (UnitMovement unit in unitGroups[groupId])
+            {
+                if (unit == null) continue;
+                UnitStats stats = unit.GetComponent<UnitStats>();
+                if (stats != null && stats.ownerId == localPlayerId)
+                    SelectUnit(unit);
+            }
+
+            // Nettoyer les entrées nulles du groupe
+            unitGroups[groupId].RemoveAll(u => u == null);
+
+            RefreshSpellUI();
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────
 
         private void RefreshSpellUI()
         {

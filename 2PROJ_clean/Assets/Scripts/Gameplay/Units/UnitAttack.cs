@@ -29,7 +29,6 @@ namespace SupKonQuest
 
             attackCooldown -= Time.deltaTime;
 
-            // Priorité : unité ennemie > camp ennemi
             if (currentUnitTarget == null || currentUnitTarget.currentHealth <= 0)
                 currentUnitTarget = FindClosestEnemyUnit();
 
@@ -59,7 +58,7 @@ namespace SupKonQuest
                 if (attackCooldown <= 0f)
                 {
                     PerformAttackOnUnit(currentUnitTarget);
-                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed);
+                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
                 }
             }
             else if (dist <= stats.detectRange)
@@ -92,8 +91,16 @@ namespace SupKonQuest
         private void PerformAttackOnUnit(UnitStats target)
         {
             if (target == null) return;
-            if (stats.isAOE) PerformAOEAttack(target.transform.position);
-            else target.TakeDamage(stats.attackDamage);
+
+            // Anti-Armor fait double dégâts contre Heavy
+            int damage = stats.attackDamage;
+            if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
+                damage *= 2;
+
+            if (stats.isAOE)
+                PerformAOEAttack(target.transform.position);
+            else
+                target.TakeDamage(damage);
         }
 
         private void PerformAOEAttack(Vector3 impactPoint)
@@ -120,8 +127,9 @@ namespace SupKonQuest
                 FaceTarget(currentCampTarget.transform);
                 if (attackCooldown <= 0f)
                 {
-                    currentCampTarget.TakeDamage(stats.attackDamage, stats.ownerId);
-                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed);
+                    // On passe 'stats' pour permettre la détection de mort mutuelle
+                    currentCampTarget.TakeDamage(stats.attackDamage, stats);
+                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
                 }
             }
             else if (dist <= stats.detectRange)
@@ -157,7 +165,7 @@ namespace SupKonQuest
             return camp.owner != null && camp.owner.playerId != stats.ownerId;
         }
 
-        // ── Shared helpers ──────────────────────────────────────────
+        // ── Helpers ─────────────────────────────────────────────────
 
         private void MoveToward(Vector3 destination)
         {
