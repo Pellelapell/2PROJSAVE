@@ -1,0 +1,213 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace SupKonQuest
+{
+    public class InputManager : MonoBehaviour
+    {
+        [Header("References")]
+        public Camera mainCamera;
+        public CampUIManager campUIManager;
+        public SpellUI spellUI;
+
+        [Header("Layers")]
+        public LayerMask unitLayerMask;
+        public LayerMask campLayerMask;
+        public LayerMask groundLayerMask;
+
+        [Header("Local Player")]
+        public int localPlayerId = 1;
+
+        private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
+
+        private bool isDragging;
+        private Vector2 dragStartScreen;
+
+        private void Start()
+        {
+            if (mainCamera == null)
+                mainCamera = Camera.main;
+        }
+
+        private void Update()
+        {
+            HandleMouse();
+            HandleRightClick();
+            HandleSpellHotkey();
+        }
+
+        private void HandleMouse()
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                dragStartScreen = Input.mousePosition;
+                isDragging = false;
+            }
+
+            if (Input.GetMouseButton(0))
+                if (Vector2.Distance(dragStartScreen, Input.mousePosition) > 5f)
+                    isDragging = true;
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                if (isDragging) EndDragSelection();
+                else SingleClick();
+                isDragging = false;
+            }
+        }
+
+        private void SingleClick()
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
+            {
+                UnitMovement unit = hitUnit.collider.GetComponent<UnitMovement>();
+                if (unit != null)
+                {
+                    UnitStats stats = unit.GetComponent<UnitStats>();
+                    if (stats != null && stats.ownerId == localPlayerId)
+                    {
+                        if (!Input.GetKey(KeyCode.LeftShift)) ClearSelection();
+                        SelectUnit(unit);
+                        campUIManager?.HideUI();
+                        RefreshSpellUI();
+                        return;
+                    }
+                }
+            }
+
+            if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
+            {
+                Camp camp = hitCamp.collider.GetComponent<Camp>();
+                if (camp != null && camp.owner != null && camp.owner.playerId == localPlayerId)
+                {
+                    ClearSelection();
+                    campUIManager?.SelectCamp(camp);
+                    spellUI?.HidePanel();
+                    return;
+                }
+            }
+
+            ClearSelection();
+            campUIManager?.HideUI();
+            spellUI?.HidePanel();
+        }
+
+        private void EndDragSelection()
+        {
+            ClearSelection();
+            campUIManager?.HideUI();
+
+            Rect selectionRect = GetScreenRect(dragStartScreen, Input.mousePosition);
+            UnitMovement[] allUnits = FindObjectsByType<UnitMovement>(FindObjectsSortMode.None);
+
+            foreach (UnitMovement unit in allUnits)
+            {
+                UnitStats stats = unit.GetComponent<UnitStats>();
+                if (stats == null || stats.ownerId != localPlayerId) continue;
+                Vector3 screenPos = mainCamera.WorldToScreenPoint(unit.transform.position);
+                if (screenPos.z > 0f && selectionRect.Contains(new Vector2(screenPos.x, screenPos.y)))
+                    SelectUnit(unit);
+            }
+
+            RefreshSpellUI();
+        }
+
+        private void HandleRightClick()
+        {
+            if (!Input.GetMouseButtonDown(1) || selectedUnits.Count == 0) return;
+
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
+            {
+                UnitStats target = hitUnit.collider.GetComponent<UnitStats>();
+                if (target != null && target.ownerId != localPlayerId)
+                {
+                    foreach (UnitMovement u in selectedUnits) u.MoveTo(hitUnit.point);
+                    return;
+                }
+            }
+
+            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, groundLayerMask))
+            {
+                Vector3 rawPoint = hitGround.point;
+                Vector3 center = rawPoint;
+                if (NavMesh.SamplePosition(rawPoint + Vector3.up * 5f, out NavMeshHit navHit, 10f, NavMesh.AllAreas))
+                    center = navHit.position;
+                int count = selectedUnits.Count;
+                for (int i = 0; i < count; i++)
+                    selectedUnits[i].MoveTo(center + FormationOffset(i, count));
+            }
+        }
+
+        private void HandleSpellHotkey()
+        {
+            if (!Input.GetKeyDown(KeyCode.Q)) return;
+            if (selectedUnits.Count != 1) return;
+
+            UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
+            spell?.TryActivate();
+        }
+
+        private void RefreshSpellUI()
+        {
+            if (spellUI == null) return;
+
+            if (selectedUnits.Count == 1)
+            {
+                UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
+                if (spell != null)
+                {
+                    spellUI.ShowForUnit(spell);
+                    return;
+                }
+            }
+
+            spellUI.HidePanel();
+        }
+
+        private void SelectUnit(UnitMovement unit)
+        {
+            if (unit == null || selectedUnits.Contains(unit)) return;
+            selectedUnits.Add(unit);
+            unit.SetSelected(true);
+        }
+
+        private void ClearSelection()
+        {
+            foreach (UnitMovement u in selectedUnits)
+                if (u != null) u.SetSelected(false);
+            selectedUnits.Clear();
+        }
+
+        private static Rect GetScreenRect(Vector2 a, Vector2 b)
+        {
+            return new Rect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+        }
+
+        private static Vector3 FormationOffset(int i, int count)
+        {
+            if (count == 1) return Vector3.zero;
+            float radius = 1.5f + count * 0.3f;
+            float angle = i * (360f / count) * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+        }
+
+        private void OnGUI()
+        {
+            if (!isDragging) return;
+            Rect rect = GetScreenRect(dragStartScreen, Input.mousePosition);
+            Rect guiRect = new Rect(rect.x, Screen.height - rect.y - rect.height, rect.width, rect.height);
+            Texture2D tex = new Texture2D(1, 1);
+            tex.SetPixel(0, 0, new Color(0.2f, 0.6f, 1f, 0.15f));
+            tex.Apply();
+            GUI.DrawTexture(guiRect, tex);
+            GUI.color = new Color(0.2f, 0.6f, 1f, 0.8f);
+            GUI.Box(guiRect, GUIContent.none);
+            GUI.color = Color.white;
+        }
+    }
+}
