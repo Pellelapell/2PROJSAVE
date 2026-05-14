@@ -73,7 +73,7 @@ namespace SupKonQuest
 
             if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
             {
-                UnitMovement unit = hitUnit.collider.GetComponent<UnitMovement>();
+                UnitMovement unit = hitUnit.collider.GetComponentInParent<UnitMovement>();
                 if (unit != null)
                 {
                     UnitStats stats = unit.GetComponent<UnitStats>();
@@ -136,8 +136,8 @@ namespace SupKonQuest
             // Clic droit sur un transport allié → embarquer
             if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
             {
-                TransportShip transport = hitUnit.collider.GetComponent<TransportShip>();
-                UnitStats transportStats = hitUnit.collider.GetComponent<UnitStats>();
+                TransportShip transport = hitUnit.collider.GetComponentInParent<TransportShip>();
+                UnitStats transportStats = hitUnit.collider.GetComponentInParent<UnitStats>();
                 if (transport != null && transportStats != null && transportStats.ownerId == localPlayerId)
                 {
                     foreach (UnitMovement u in selectedUnits)
@@ -151,7 +151,7 @@ namespace SupKonQuest
                 }
 
                 // Clic droit sur une unité ennemie → attaquer
-                UnitStats target = hitUnit.collider.GetComponent<UnitStats>();
+                UnitStats target = hitUnit.collider.GetComponentInParent<UnitStats>();
                 if (target != null && target.ownerId != localPlayerId)
                 {
                     foreach (UnitMovement u in selectedUnits) u.MoveTo(hitUnit.point);
@@ -160,13 +160,11 @@ namespace SupKonQuest
             }
 
             // Clic droit sur le sol → déplacer
-            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, groundLayerMask))
+            int ignoreMask = unitLayerMask | campLayerMask;
+            int allButUnits = ~ignoreMask;
+            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, allButUnits))
             {
-                Vector3 rawPoint = hitGround.point;
-                Vector3 center = rawPoint;
-                if (NavMesh.SamplePosition(rawPoint + Vector3.up * 5f, out NavMeshHit navHit, 10f, NavMesh.AllAreas))
-                    center = navHit.position;
-
+                Vector3 center = hitGround.point;
                 int count = selectedUnits.Count;
                 for (int i = 0; i < count; i++)
                     selectedUnits[i].MoveTo(center + FormationOffset(i, count));

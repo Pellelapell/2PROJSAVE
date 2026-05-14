@@ -167,7 +167,7 @@ namespace SupKonQuest
                 return;
             }
 
-            UnitType? currentType = selectedProduction.GetCurrentUnitType();
+            UnitType? currentType = selectedProduction.CurrentType();
 
             if (currentUnitText != null)
                 currentUnitText.text = currentType.HasValue ? "Production : " + currentType.Value : "Inactif";
@@ -176,7 +176,7 @@ namespace SupKonQuest
                 queueText.text = "File : " + selectedProduction.GetQueueCount();
 
             if (progressBarFill != null)
-                progressBarFill.fillAmount = selectedProduction.GetCurrentProgress01();
+                progressBarFill.fillAmount = selectedProduction.GetProgress01();
         }
 
         private void BindButton(Button btn, UnitType type)

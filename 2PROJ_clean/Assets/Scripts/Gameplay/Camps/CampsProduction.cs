@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SupKonQuest
 {
@@ -16,122 +17,148 @@ namespace SupKonQuest
         public Camp camp;
         public UnitDatabase unitDatabase;
 
-        [Header("Unites disponibles")]
+        [Header("Unités disponibles")]
         public List<UnitProductionEntry> availableUnits = new List<UnitProductionEntry>();
 
-        private struct QueuedUnit
+        // ── Queue ────────────────────────────────────────────────────
+
+        private class QueueEntry
         {
             public UnitType type;
-            public UnitDefinition definition;
+            public UnitDefinition def;
             public GameObject prefab;
+            public float timeLeft;
         }
 
-        private readonly Queue<QueuedUnit> productionQueue = new Queue<QueuedUnit>();
-        private QueuedUnit currentProduction;
-        private float currentProductionTimer;
-        private bool isProducing;
+        private readonly Queue<QueueEntry> queue = new Queue<QueueEntry>();
+        private QueueEntry current;
+
+        public int  GetQueueCount()    => queue.Count + (current != null ? 1 : 0);
+        public bool IsProducing()      => current != null;
+        public UnitType? CurrentType() => current?.type;
+
+        public float GetProgress01()
+        {
+            if (current == null || current.def == null) return 0f;
+            float buildTime = current.def.buildTime;
+            return buildTime <= 0f ? 1f : 1f - (current.timeLeft / buildTime);
+        }
+
+        // ── Init ─────────────────────────────────────────────────────
 
         private void Awake()
         {
-            if (camp == null)
-                camp = GetComponent<Camp>();
+            if (camp == null) camp = GetComponent<Camp>();
         }
+
+        // ── Update ───────────────────────────────────────────────────
 
         private void Update()
         {
-            if (!isProducing) return;
+            if (current == null) return;
 
-            currentProductionTimer -= Time.deltaTime;
-            if (currentProductionTimer <= 0f)
+            current.timeLeft -= Time.deltaTime;
+            if (current.timeLeft <= 0f)
             {
-                SpawnUnit(currentProduction);
-                StartNextProduction();
+                DoSpawn(current);
+                current = queue.Count > 0 ? queue.Dequeue() : null;
             }
         }
+
+        // ── API publique ─────────────────────────────────────────────
 
         public bool Produce(UnitType type)
         {
             if (camp == null || camp.owner == null) return false;
 
             UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
-            if (def == null) { Debug.LogWarning($"[CampProduction] Pas de definition pour {type}"); return false; }
+            if (def == null)
+            {
+                Debug.LogWarning($"[Production] Pas de définition pour {type}");
+                return false;
+            }
 
             GameObject prefab = GetPrefab(type);
-            if (prefab == null) { Debug.LogWarning($"[CampProduction] Pas de prefab pour {type}"); return false; }
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[Production] Pas de prefab pour {type}");
+                return false;
+            }
 
-            if (!camp.owner.SpendMoney(def.price)) { Debug.Log("[CampProduction] Pas assez d'argent"); return false; }
+            if (!camp.owner.SpendMoney(def.price))
+            {
+                Debug.Log("[Production] Pas assez d'argent");
+                return false;
+            }
 
-            productionQueue.Enqueue(new QueuedUnit { type = type, definition = def, prefab = prefab });
+            var entry = new QueueEntry { type = type, def = def, prefab = prefab, timeLeft = def.buildTime };
 
-            if (!isProducing) StartNextProduction();
+            if (current == null) current = entry;
+            else queue.Enqueue(entry);
+
             return true;
         }
 
-        public int GetQueueCount() => productionQueue.Count + (isProducing ? 1 : 0);
-        public bool IsProducing() => isProducing;
-        public UnitType? GetCurrentUnitType() => isProducing ? currentProduction.type : (UnitType?)null;
-
-        public float GetCurrentProgress01()
+        public void SpawnUnitInstant(UnitType type)
         {
-            if (!isProducing || currentProduction.definition == null) return 0f;
-            float buildTime = currentProduction.definition.buildTime;
-            return buildTime <= 0f ? 1f : 1f - (currentProductionTimer / buildTime);
+            if (camp == null || camp.owner == null) return;
+            UnitDefinition def = unitDatabase?.Get(type);
+            if (def == null) return;
+            GameObject prefab = GetPrefab(type);
+            if (prefab == null) return;
+            DoSpawn(new QueueEntry { type = type, def = def, prefab = prefab });
         }
 
-        private void StartNextProduction()
+        // ── Spawn ────────────────────────────────────────────────────
+
+        private void DoSpawn(QueueEntry entry)
         {
-            if (productionQueue.Count == 0) { isProducing = false; currentProduction = default; currentProductionTimer = 0f; return; }
-            currentProduction = productionQueue.Dequeue();
-            currentProductionTimer = currentProduction.definition != null ? currentProduction.definition.buildTime : 5f;
-            isProducing = true;
-        }
+            if (camp == null || camp.owner == null || entry.prefab == null) return;
 
-        private void SpawnUnit(QueuedUnit queued)
-        {
-            if (camp.owner == null || camp.spawnPoint == null || queued.prefab == null) return;
+            // Position de départ : le camp lui-même (on laisse UnitMovement.InitOnNavMesh gérer le placement)
+            Vector3 spawnPos = transform.position;
+            if (camp.spawnPoint != null)
+                spawnPos = camp.spawnPoint.position;
 
-            // Snap spawn position to NavMesh surface
-            Vector3 spawnPos = camp.spawnPoint.position;
-            if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out UnityEngine.AI.NavMeshHit hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
-                spawnPos = hit.position;
+            // Désactiver le NavMeshAgent avant l'instantiation pour éviter le placement automatique raté
+            GameObject unitObj = Instantiate(entry.prefab, spawnPos, Quaternion.identity);
 
-            GameObject unitObj = Instantiate(queued.prefab, spawnPos, Quaternion.identity);
-
+            // Configurer les stats
             UnitStats stats = unitObj.GetComponent<UnitStats>();
             if (stats != null)
             {
                 stats.ownerId = camp.owner.playerId;
-                stats.race = camp.owner.race;
-                stats.InitFromDefinition(queued.definition);
+                stats.race    = camp.owner.race;
+                stats.InitFromDefinition(entry.def);
             }
 
+            // Appliquer les visuels de race
             UnitVisuals visuals = unitObj.GetComponent<UnitVisuals>();
             if (visuals != null) visuals.ApplyRaceVisuals();
 
-            UnityEngine.AI.NavMeshAgent agent = unitObj.GetComponent<UnityEngine.AI.NavMeshAgent>();
-            if (agent != null)
+            // Déléguer le placement NavMesh à UnitMovement
+            UnitMovement mov = unitObj.GetComponent<UnitMovement>();
+            float speed = stats != null ? stats.moveSpeed : 3.5f;
+            if (mov != null)
+                mov.InitOnNavMesh(speed);
+            else
             {
-                if (stats != null) agent.speed = stats.moveSpeed;
-                // Force onto NavMesh if not already placed correctly
-                if (!agent.isOnNavMesh && UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out UnityEngine.AI.NavMeshHit warpHit, 10f, UnityEngine.AI.NavMesh.AllAreas))
-                    agent.Warp(warpHit.position);
+                // Fallback si UnitMovement absent
+                NavMeshAgent agent = unitObj.GetComponent<NavMeshAgent>();
+                if (agent != null)
+                {
+                    agent.enabled = false;
+                    if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 30f, NavMesh.AllAreas))
+                        unitObj.transform.position = hit.position;
+                    agent.enabled = true;
+                    agent.speed = speed;
+                }
             }
-        }
-
-        // Spawn instantané sans coût ni queue (utilisé pour les bonus de région)
-        public void SpawnUnitInstant(UnitType type)
-        {
-            if (camp == null || camp.owner == null) return;
-            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
-            if (def == null) return;
-            GameObject prefab = GetPrefab(type);
-            if (prefab == null) return;
-            SpawnUnit(new QueuedUnit { type = type, definition = def, prefab = prefab });
         }
 
         private GameObject GetPrefab(UnitType type)
         {
-            foreach (UnitProductionEntry e in availableUnits)
+            foreach (var e in availableUnits)
                 if (e.unitType == type) return e.prefab;
             return null;
         }

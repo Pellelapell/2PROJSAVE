@@ -14,11 +14,34 @@ namespace SupKonQuest
         [SerializeField] private float minY = 10f;
         [SerializeField] private float maxY = 50f;
 
-        [Header("Map Bounds")]
-        [SerializeField] private float minX = -100f;
-        [SerializeField] private float maxX = 100f;
-        [SerializeField] private float minZ = -100f;
-        [SerializeField] private float maxZ = 100f;
+        [Header("Map Bounds (auto si HexGridGenerator présent)")]
+        [SerializeField] private float padding = 5f;
+
+        private float minX, maxX, minZ, maxZ;
+
+        private void Start()
+        {
+            RefreshBounds();
+        }
+
+        // Appelable après régénération de la grille si besoin
+        public void RefreshBounds()
+        {
+            Bounds b = HexGridGenerator.MapBounds;
+
+            // Si la grille n'a pas encore été générée (bounds vide), garder la caméra libre
+            if (b.size == Vector3.zero)
+            {
+                minX = -1000f; maxX = 1000f;
+                minZ = -1000f; maxZ = 1000f;
+                return;
+            }
+
+            minX = b.min.x - padding;
+            maxX = b.max.x + padding;
+            minZ = b.min.z - padding;
+            maxZ = b.max.z + padding;
+        }
 
         private void Update()
         {
@@ -32,7 +55,7 @@ namespace SupKonQuest
             Vector3 move = Vector3.zero;
 
             float horizontal = Input.GetAxisRaw("Horizontal");
-            float vertical = Input.GetAxisRaw("Vertical");
+            float vertical   = Input.GetAxisRaw("Vertical");
 
             move += transform.right * horizontal;
             move += Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized * vertical;
@@ -54,11 +77,7 @@ namespace SupKonQuest
                 move += flatForward;
 
             if (move != Vector3.zero)
-            {
-                float currentSpeed = moveSpeed;
-
-                transform.position += move.normalized * currentSpeed * Time.deltaTime;
-            }
+                transform.position += move.normalized * moveSpeed * Time.deltaTime;
         }
 
         private void HandleZoom()

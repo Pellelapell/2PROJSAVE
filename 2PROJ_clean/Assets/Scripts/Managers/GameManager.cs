@@ -40,7 +40,12 @@ namespace SupKonQuest
 
         private void AssignCampsRandomly()
         {
-            List<Camp> pool = new List<Camp>(camps);
+            // Seuls les camps normaux sont distribuables aux joueurs
+            List<Camp> pool = new List<Camp>();
+            foreach (Camp c in camps)
+                if (c.campType == CampType.Normal) pool.Add(c);
+
+            // Mélange aléatoire
             for (int i = pool.Count - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
@@ -54,7 +59,7 @@ namespace SupKonQuest
                 for (int i = 0; i < campsPerPlayer && idx < pool.Count; i++, idx++)
                     pool[idx].SetOwner(player);
             }
-            // Remaining camps stay neutral
+            // Les camps restants et les NeutralSpecial restent neutres
         }
 
         public void NotifyCampCaptured(Camp camp, PlayerData previousOwner)
