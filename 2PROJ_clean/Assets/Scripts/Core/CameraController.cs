@@ -22,6 +22,25 @@ namespace SupKonQuest
         private void Start()
         {
             RefreshBounds();
+            CenterOnPlayerCamp();
+        }
+
+        private void CenterOnPlayerCamp()
+        {
+            if (GameManager.Instance == null) return;
+
+            // Trouver le joueur local (premier non-IA)
+            PlayerData localPlayer = null;
+            foreach (PlayerData p in GameManager.Instance.players)
+                if (!p.isAI) { localPlayer = p; break; }
+
+            if (localPlayer == null || localPlayer.ownedCamps.Count == 0) return;
+
+            Vector3 campPos = localPlayer.ownedCamps[0].transform.position;
+            Vector3 pos = transform.position;
+            pos.x = campPos.x;
+            pos.z = campPos.z;
+            transform.position = pos;
         }
 
         // Appelable après régénération de la grille si besoin

@@ -4,30 +4,34 @@ using SupKonQuest;
 
 public class MainMenu : MonoBehaviour
 {
-    private int selectedMap = 0;
-    private int selectedAI = 1;
-    private int selectedDiff = 0;
-    private int selectedLang = 0; // 0=FR, 1=EN, 2=ES
+    private enum MenuScreen { Title, Selection }
+    private MenuScreen current = MenuScreen.Title;
 
-    private readonly string[] langCodes = { "fr", "en", "es" };
+    private int selectedMap  = 0;
+    private int selectedAI   = 1;
+    private int selectedDiff = 0;
+    private int selectedLang = 0;
+
+    private readonly string[] langCodes  = { "fr", "en", "es" };
     private readonly string[] langLabels = { "FR", "EN", "ES" };
 
     private GUIStyle titleStyle;
+    private GUIStyle subtitleStyle;
     private GUIStyle labelStyle;
+    private GUIStyle mainBtnStyle;
     private GUIStyle buttonStyle;
     private GUIStyle selectedButtonStyle;
     private GUIStyle panelStyle;
+    private GUIStyle quitBtnStyle;
 
     private void Awake()
     {
-        // Créer le LocalizationManager s'il n'existe pas encore
         if (LocalizationManager.Instance == null)
         {
             GameObject go = new GameObject("LocalizationManager");
             go.AddComponent<LocalizationManager>();
         }
 
-        // Restaurer la langue sélectionnée
         string savedLang = PlayerPrefs.GetString("Language", "fr");
         for (int i = 0; i < langCodes.Length; i++)
             if (langCodes[i] == savedLang) { selectedLang = i; break; }
@@ -37,21 +41,59 @@ public class MainMenu : MonoBehaviour
     {
         InitStyles();
 
+        // Fond plein écran
+        GUI.color = new Color(0.08f, 0.08f, 0.15f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        switch (current)
+        {
+            case MenuScreen.Title:     DrawTitleScreen();     break;
+            case MenuScreen.Selection: DrawSelectionScreen(); break;
+        }
+    }
+
+    // ── Écran titre ──────────────────────────────────────────────────
+
+    private void DrawTitleScreen()
+    {
         float sw = Screen.width;
         float sh = Screen.height;
 
-        // Fond
-        GUI.color = new Color(0.08f, 0.08f, 0.15f);
-        GUI.DrawTexture(new Rect(0, 0, sw, sh), Texture2D.whiteTexture);
-        GUI.color = Color.white;
-
         // Titre
-        GUI.Label(new Rect(0, sh * 0.06f, sw, 80f), "SupKonQuest", titleStyle);
+        GUI.Label(new Rect(0, sh * 0.12f, sw, 90f), "SupKonQuest", titleStyle);
+        GUI.Label(new Rect(0, sh * 0.12f + 90f, sw, 30f), "Stratégie — Conquête — Tactique", subtitleStyle);
+
+        float btnW = 280f;
+        float btnH = 58f;
+        float btnX = (sw - btnW) * 0.5f;
+        float btnY = sh * 0.44f;
+        float gap  = 18f;
+
+        if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("play"), mainBtnStyle))
+            current = MenuScreen.Selection;
+
+        btnY += btnH + gap;
+
+        GUI.color = new Color(1f, 0.35f, 0.35f);
+        if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("quit"), quitBtnStyle))
+            Application.Quit();
+        GUI.color = Color.white;
+    }
+
+    // ── Écran sélection ──────────────────────────────────────────────
+
+    private void DrawSelectionScreen()
+    {
+        float sw = Screen.width;
+        float sh = Screen.height;
+
+        GUI.Label(new Rect(0, sh * 0.04f, sw, 70f), "SupKonQuest", titleStyle);
 
         float panelW = 500f;
-        float panelH = 400f;
+        float panelH = 430f;
         float panelX = (sw - panelW) / 2f;
-        float panelY = sh * 0.20f;
+        float panelY = sh * 0.18f;
 
         GUI.Box(new Rect(panelX - 15, panelY - 15, panelW + 30, panelH + 30), "", panelStyle);
 
@@ -65,7 +107,6 @@ public class MainMenu : MonoBehaviour
             {
                 selectedLang = i;
                 LocalizationManager.Instance?.LoadLanguage(langCodes[i]);
-                titleStyle = null; // Reset pour forcer InitStyles (pas nécessaire ici mais propre)
             }
         }
         panelY += 46f;
@@ -105,29 +146,36 @@ public class MainMenu : MonoBehaviour
         }
         panelY += 62f;
 
-        // Jouer
+        // Boutons Retour + Lancer
+        float bw = 200f;
+        float totalW = bw * 2f + 16f;
+        float startX = (sw - totalW) * 0.5f;
+
+        if (GUI.Button(new Rect(startX, panelY, bw, 50f), "← " + L("back"), buttonStyle))
+            current = MenuScreen.Title;
+
         GUI.color = new Color(0.2f, 0.8f, 0.3f);
-        if (GUI.Button(new Rect((sw - 220f) / 2f, panelY, 220f, 54f), L("play"), selectedButtonStyle))
+        if (GUI.Button(new Rect(startX + bw + 16f, panelY, bw, 50f), L("play") + " !", selectedButtonStyle))
             StartGame();
         GUI.color = Color.white;
-
-        // Quitter
-        if (GUI.Button(new Rect((sw - 130f) / 2f, panelY + 65f, 130f, 36f), L("quit"), buttonStyle))
-            Application.Quit();
     }
+
+    // ── Helpers ──────────────────────────────────────────────────────
 
     private static string L(string key) => LocalizationManager.Get(key);
 
     private void StartGame()
     {
-        PlayerPrefs.SetInt("MapType", selectedMap);
-        PlayerPrefs.SetInt("AICount", selectedAI);
+        PlayerPrefs.SetInt("MapType",      selectedMap);
+        PlayerPrefs.SetInt("AICount",      selectedAI);
         PlayerPrefs.SetInt("AIDifficulty", selectedDiff);
-        PlayerPrefs.SetString("Language", langCodes[selectedLang]);
+        PlayerPrefs.SetString("Language",  langCodes[selectedLang]);
         PlayerPrefs.Save();
         string[] sceneNames = { "Classic", "Frozen_Peak", "Islands" };
         SceneManager.LoadScene(sceneNames[selectedMap]);
     }
+
+    // ── Styles ───────────────────────────────────────────────────────
 
     private void InitStyles()
     {
@@ -135,30 +183,51 @@ public class MainMenu : MonoBehaviour
 
         titleStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 64,
+            fontSize  = 62,
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleCenter,
-            normal = { textColor = new Color(0.9f, 0.75f, 0.2f) }
+            normal    = { textColor = new Color(0.9f, 0.75f, 0.2f) }
+        };
+
+        subtitleStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize  = 14,
+            alignment = TextAnchor.MiddleCenter,
+            normal    = { textColor = new Color(0.55f, 0.55f, 0.65f) }
         };
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 16,
+            fontSize  = 16,
             fontStyle = FontStyle.Bold,
-            normal = { textColor = new Color(0.8f, 0.8f, 0.8f) }
+            normal    = { textColor = new Color(0.8f, 0.8f, 0.8f) }
+        };
+
+        mainBtnStyle = new GUIStyle(GUI.skin.button)
+        {
+            fontSize  = 18,
+            fontStyle = FontStyle.Bold,
+            normal    = { textColor = Color.white }
+        };
+
+        quitBtnStyle = new GUIStyle(GUI.skin.button)
+        {
+            fontSize  = 18,
+            fontStyle = FontStyle.Bold,
+            normal    = { textColor = Color.white }
         };
 
         buttonStyle = new GUIStyle(GUI.skin.button)
         {
             fontSize = 14,
-            normal = { textColor = Color.white }
+            normal   = { textColor = Color.white }
         };
 
         selectedButtonStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize = 14,
+            fontSize  = 14,
             fontStyle = FontStyle.Bold,
-            normal = { textColor = Color.yellow }
+            normal    = { textColor = Color.yellow }
         };
 
         panelStyle = new GUIStyle(GUI.skin.box)

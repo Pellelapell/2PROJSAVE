@@ -97,27 +97,25 @@ namespace SupKonQuest
             switch (selectedCamp.campType)
             {
                 case CampType.Normal:
-                    SetButtonActive(infantryButton, true);
-                    SetButtonActive(supportButton, true);
-                    SetButtonActive(healButton, true);
-                    SetButtonActive(rangeButton, true);
-                    SetButtonActive(heavyButton, true);
-                    SetButtonActive(antiArmorButton, true);
-                    SetButtonActive(mortarButton, true);
-                    break;
-
-                case CampType.Port:
-                    SetButtonActive(infantryButton, true);
-                    SetButtonActive(transportButton, true);
-                    SetButtonActive(frigateButton, true);
-                    SetButtonActive(destroyerButton, true);
+                    // Unités terrestres de base
+                    SetButtonActive(infantryButton,  true);
+                    SetButtonActive(rangeButton,     true);
+                    SetButtonActive(heavyButton,     true);
+                    SetButtonActive(healButton,      true);
                     break;
 
                 case CampType.NeutralSpecial:
-                    SetButtonActive(infantryButton, true);
-                    SetButtonActive(rangeButton, true);
-                    SetButtonActive(heavyButton, true);
-                    SetButtonActive(mortarButton, true);
+                    // Unités spéciales / tactiques
+                    SetButtonActive(antiArmorButton, true);
+                    SetButtonActive(mortarButton,    true);
+                    SetButtonActive(supportButton,   true);
+                    break;
+
+                case CampType.Port:
+                    // Unités navales uniquement
+                    SetButtonActive(transportButton, true);
+                    SetButtonActive(frigateButton,   true);
+                    SetButtonActive(destroyerButton, true);
                     break;
             }
         }

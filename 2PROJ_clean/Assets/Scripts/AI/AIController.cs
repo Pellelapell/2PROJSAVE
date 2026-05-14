@@ -132,17 +132,16 @@ namespace SupKonQuest
             float nearestScore = float.MaxValue;
             Vector3 refPos = player.ownedCamps[0].transform.position;
 
-            foreach (Camp camp in gameManager.camps)
+            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            foreach (Camp camp in allCamps)
             {
                 if (camp.owner == player) continue;
 
                 float dist = Vector3.Distance(camp.transform.position, refPos);
 
-                // Medium+ prefer neutral camps (easier targets)
                 if (difficultyLevel >= 1 && camp.isNeutral)
                     dist *= 0.7f;
 
-                // Hard AI prefers camps with fewer defenders
                 if (difficultyLevel == 2 && !camp.isNeutral)
                     dist *= 1.2f;
 

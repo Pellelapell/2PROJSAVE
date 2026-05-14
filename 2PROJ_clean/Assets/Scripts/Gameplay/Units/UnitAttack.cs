@@ -16,6 +16,7 @@ namespace SupKonQuest
 
         private UnitStats currentUnitTarget;
         private Camp currentCampTarget;
+        private bool manualCampTarget;
 
         private void Awake()
         {
@@ -38,7 +39,8 @@ namespace SupKonQuest
                 return;
             }
 
-            if (currentCampTarget == null || !IsEnemyCamp(currentCampTarget))
+            // Auto-découverte seulement si pas de cible manuelle
+            if (!manualCampTarget && (currentCampTarget == null || !IsEnemyCamp(currentCampTarget)))
                 currentCampTarget = FindClosestEnemyCamp();
 
             if (currentCampTarget != null)
@@ -92,18 +94,20 @@ namespace SupKonQuest
         {
             if (target == null) return;
 
-            // Anti-Armor fait double dégâts contre Heavy
             int damage = stats.attackDamage;
             if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
                 damage *= 2;
 
+            // +20% dégâts si l'unité combat dans une région lui appartenant
+            damage = Mathf.RoundToInt(damage * GetRegionDamageMultiplier());
+
             if (stats.isAOE)
-                PerformAOEAttack(target.transform.position);
+                PerformAOEAttack(target.transform.position, damage);
             else
                 target.TakeDamage(damage);
         }
 
-        private void PerformAOEAttack(Vector3 impactPoint)
+        private void PerformAOEAttack(Vector3 impactPoint, int baseDamage)
         {
             Collider[] hits = Physics.OverlapSphere(impactPoint, stats.aoeRadius, unitLayerMask);
             foreach (Collider hit in hits)
@@ -111,7 +115,7 @@ namespace SupKonQuest
                 UnitStats other = hit.GetComponent<UnitStats>();
                 if (other == null || other.ownerId == stats.ownerId || other.currentHealth <= 0) continue;
                 float dist = Vector3.Distance(impactPoint, other.transform.position);
-                other.TakeAOEDamage(stats.attackDamage, dist, stats.aoeRadius);
+                other.TakeAOEDamage(baseDamage, dist, stats.aoeRadius);
             }
         }
 
@@ -119,6 +123,14 @@ namespace SupKonQuest
 
         private void HandleCampTarget()
         {
+            // Annuler si le camp est devenu allié ou inexistant
+            if (currentCampTarget == null || !IsEnemyCamp(currentCampTarget))
+            {
+                currentCampTarget = null;
+                manualCampTarget  = false;
+                return;
+            }
+
             float dist = Vector3.Distance(transform.position, currentCampTarget.transform.position);
 
             if (dist <= stats.attackRange)
@@ -127,19 +139,27 @@ namespace SupKonQuest
                 FaceTarget(currentCampTarget.transform);
                 if (attackCooldown <= 0f)
                 {
-                    // On passe 'stats' pour permettre la détection de mort mutuelle
-                    currentCampTarget.TakeDamage(stats.attackDamage, stats);
+                    int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
+                    currentCampTarget.TakeDamage(damage, stats);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
                 }
             }
-            else if (dist <= stats.detectRange)
-            {
-                MoveToward(currentCampTarget.transform.position);
-            }
             else
             {
-                currentCampTarget = null;
+                // Cible manuelle : toujours avancer. Cible auto : limité au detectRange.
+                if (manualCampTarget || dist <= stats.detectRange)
+                    MoveToward(currentCampTarget.transform.position);
+                else
+                    currentCampTarget = null;
             }
+        }
+
+        // Ordre manuel depuis InputManager
+        public void SetCampTarget(Camp camp)
+        {
+            currentCampTarget = camp;
+            currentUnitTarget = null;
+            manualCampTarget  = camp != null;
         }
 
         private Camp FindClosestEnemyCamp()
@@ -165,18 +185,32 @@ namespace SupKonQuest
             return camp.owner != null && camp.owner.playerId != stats.ownerId;
         }
 
+        // ── Region bonus ─────────────────────────────────────────────
+
+        private float GetRegionDamageMultiplier()
+        {
+            if (RegionManager.Instance == null) return 1f;
+            return RegionManager.Instance.IsInOwnedRegion(transform.position, stats.ownerId) ? 1.2f : 1f;
+        }
+
         // ── Helpers ─────────────────────────────────────────────────
 
         private void MoveToward(Vector3 destination)
         {
             if (agent != null && agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
                 agent.SetDestination(destination);
+            }
         }
 
         private void StopMoving()
         {
             if (agent != null && agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
                 agent.ResetPath();
+            }
         }
 
         private void FaceTarget(Transform target)

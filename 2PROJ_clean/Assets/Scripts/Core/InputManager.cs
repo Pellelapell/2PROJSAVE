@@ -6,6 +6,8 @@ namespace SupKonQuest
 {
     public class InputManager : MonoBehaviour
     {
+        public static InputManager Instance { get; private set; }
+
         [Header("References")]
         public Camera mainCamera;
         public CampUIManager campUIManager;
@@ -19,13 +21,19 @@ namespace SupKonQuest
         [Header("Local Player")]
         public int localPlayerId = 1;
 
-        private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
+        // Unité unique sélectionnée — lue par HUDManager pour afficher les stats
+        public UnitStats SelectedUnitStats { get; private set; }
 
-        // Groupes de sélection Ctrl+1-5 pour assigner, 1-5 pour rappeler
+        private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
         private readonly Dictionary<int, List<UnitMovement>> unitGroups = new Dictionary<int, List<UnitMovement>>();
 
         private bool isDragging;
         private Vector2 dragStartScreen;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
 
         private void Start()
         {
@@ -125,7 +133,7 @@ namespace SupKonQuest
             RefreshSpellUI();
         }
 
-        // ── Clic droit : déplacer / embarquer ───────────────────────
+        // ── Clic droit : déplacer / embarquer / attaquer ────────────
 
         private void HandleRightClick()
         {
@@ -150,7 +158,7 @@ namespace SupKonQuest
                     return;
                 }
 
-                // Clic droit sur une unité ennemie → attaquer
+                // Clic droit sur une unité ennemie → se déplacer vers elle
                 UnitStats target = hitUnit.collider.GetComponentInParent<UnitStats>();
                 if (target != null && target.ownerId != localPlayerId)
                 {
@@ -159,10 +167,25 @@ namespace SupKonQuest
                 }
             }
 
-            // Clic droit sur le sol → déplacer
+            // Clic droit sur un camp ennemi/neutre → attaquer
+            if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
+            {
+                Camp camp = hitCamp.collider.GetComponent<Camp>();
+                if (camp != null && (camp.isNeutral || (camp.owner != null && camp.owner.playerId != localPlayerId)))
+                {
+                    foreach (UnitMovement u in selectedUnits)
+                    {
+                        u.MoveTo(camp.transform.position);
+                        UnitAttack atk = u.GetComponent<UnitAttack>();
+                        if (atk != null) atk.SetCampTarget(camp);
+                    }
+                    return;
+                }
+            }
+
+            // Clic droit sur le sol → déplacer en formation
             int ignoreMask = unitLayerMask | campLayerMask;
-            int allButUnits = ~ignoreMask;
-            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, allButUnits))
+            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, ~ignoreMask))
             {
                 Vector3 center = hitGround.point;
                 int count = selectedUnits.Count;
@@ -192,7 +215,6 @@ namespace SupKonQuest
             TransportShip transport = selectedUnits[0].GetComponent<TransportShip>();
             if (transport == null || transport.IsEmpty) return;
 
-            // Débarquer au sol sous la souris si possible, sinon à la position du transport
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             Vector3 disembarkPos = selectedUnits[0].transform.position;
             if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
@@ -213,10 +235,8 @@ namespace SupKonQuest
                 if (!Input.GetKeyDown(key)) continue;
 
                 int groupId = i + 1;
-                if (ctrl)
-                    AssignGroup(groupId);
-                else
-                    RecallGroup(groupId);
+                if (ctrl) AssignGroup(groupId);
+                else      RecallGroup(groupId);
             }
         }
 
@@ -242,9 +262,7 @@ namespace SupKonQuest
                     SelectUnit(unit);
             }
 
-            // Nettoyer les entrées nulles du groupe
             unitGroups[groupId].RemoveAll(u => u == null);
-
             RefreshSpellUI();
         }
 
@@ -257,13 +275,8 @@ namespace SupKonQuest
             if (selectedUnits.Count == 1)
             {
                 UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
-                if (spell != null)
-                {
-                    spellUI.ShowForUnit(spell);
-                    return;
-                }
+                if (spell != null) { spellUI.ShowForUnit(spell); return; }
             }
-
             spellUI.HidePanel();
         }
 
@@ -272,6 +285,7 @@ namespace SupKonQuest
             if (unit == null || selectedUnits.Contains(unit)) return;
             selectedUnits.Add(unit);
             unit.SetSelected(true);
+            SelectedUnitStats = selectedUnits.Count == 1 ? unit.GetComponent<UnitStats>() : null;
         }
 
         private void ClearSelection()
@@ -279,25 +293,24 @@ namespace SupKonQuest
             foreach (UnitMovement u in selectedUnits)
                 if (u != null) u.SetSelected(false);
             selectedUnits.Clear();
+            SelectedUnitStats = null;
         }
 
-        private static Rect GetScreenRect(Vector2 a, Vector2 b)
-        {
-            return new Rect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
-        }
+        private static Rect GetScreenRect(Vector2 a, Vector2 b) =>
+            new Rect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
 
         private static Vector3 FormationOffset(int i, int count)
         {
             if (count == 1) return Vector3.zero;
             float radius = 1.5f + count * 0.3f;
-            float angle = i * (360f / count) * Mathf.Deg2Rad;
+            float angle  = i * (360f / count) * Mathf.Deg2Rad;
             return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
         }
 
         private void OnGUI()
         {
             if (!isDragging) return;
-            Rect rect = GetScreenRect(dragStartScreen, Input.mousePosition);
+            Rect rect    = GetScreenRect(dragStartScreen, Input.mousePosition);
             Rect guiRect = new Rect(rect.x, Screen.height - rect.y - rect.height, rect.width, rect.height);
             Texture2D tex = new Texture2D(1, 1);
             tex.SetPixel(0, 0, new Color(0.2f, 0.6f, 1f, 0.15f));
