@@ -21,6 +21,9 @@ namespace SupKonQuest
 
         private void Start()
         {
+            // Forcer l'identité neutre — jamais sélectionnable par un joueur
+            if (stats != null) stats.ownerId = 0;
+
             // Neutraliser le NavMeshAgent : l'unité ne bouge pas
             NavMeshAgent agent = GetComponent<NavMeshAgent>();
             if (agent != null) agent.enabled = false;
@@ -28,6 +31,10 @@ namespace SupKonQuest
             // Désactiver l'IA d'attaque classique si présente
             UnitAttack regularAttack = GetComponent<UnitAttack>();
             if (regularAttack != null) regularAttack.enabled = false;
+
+            // Désactiver UnitMovement pour qu'elle ne soit pas sélectionnable
+            UnitMovement mov = GetComponent<UnitMovement>();
+            if (mov != null) mov.enabled = false;
         }
 
         private void Update()

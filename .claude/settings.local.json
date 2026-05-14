@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\\\\2PROJ_clean\\\\Assets\")"
+      "Bash(dir \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\\\\2PROJ_clean\\\\Assets\")",
+      "Bash(xargs grep -l \"NavMesh\\\\|agentType\")"
     ]
   }
 }

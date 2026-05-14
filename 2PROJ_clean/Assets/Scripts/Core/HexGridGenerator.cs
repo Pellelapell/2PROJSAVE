@@ -11,14 +11,10 @@ public class HexGridGenerator : MonoBehaviour
     public GameObject[] mountainPrefabs;
     public GameObject[] waterPrefabs;
 
-    [Header("Grid Size")]
-    public int width = 12;
+    [Header("Grid")]
+    public int width  = 12;
     public int height = 12;
-
-    [Header("Scale")]
     public float hexScale = 0.5f;
-
-    [Header("Spacing")]
     public float colSpacingFactor = 0.75f;
     public float rowSpacingFactor = 1f;
 
@@ -28,38 +24,67 @@ public class HexGridGenerator : MonoBehaviour
     [Header("Map Type")]
     public MapType mapType = MapType.Classic;
 
-    [Header("Camp Placement")]
+    [Header("Camps")]
     public GameObject normalCampPrefab;
     public GameObject neutralCampPrefab;
-    [Tooltip("Nombre de camps normaux à placer (doit être >= nb de joueurs x campsPerPlayer)")]
-    public int normalCampCount = 2;
-    [Tooltip("Nombre de camps neutres spéciaux à placer")]
+    public int normalCampCount  = 8;
     public int neutralCampCount = 3;
-    [Tooltip("Distance minimale entre deux camps")]
-    public float minCampDistance = 3f;
-    [Tooltip("Hauteur des camps au-dessus des tuiles")]
-    public float campYOffset = 1f;
+    [Tooltip("Distance min entre deux camps (en unités world)")]
+    public float minCampDistance = 5f;
+    [Tooltip("Hauteur au-dessus de la surface de la tuile")]
+    public float campYOffset = 0.2f;
 
+    // Tuiles walkables disponibles pour placer les camps
     private readonly List<HexTile> walkableTiles = new List<HexTile>();
 
-    void Start()
+    public static Bounds MapBounds { get; private set; }
+
+    private void Start()
     {
         if (walkablePrefabs == null || walkablePrefabs.Length == 0)
         {
-            Debug.LogError("Aucun prefab marchable assigné !");
+            Debug.LogError("[HexGrid] Aucun prefab walkable assigné !");
             return;
         }
 
         if (seed != 0) Random.InitState(seed);
 
-        GameObject temp = Instantiate(walkablePrefabs[0]);
-        Renderer r = temp.GetComponentInChildren<Renderer>();
-        float hexWidth = r.bounds.size.x * hexScale;
-        float hexDepth = r.bounds.size.z * hexScale;
-        DestroyImmediate(temp);
+        // 1. Mesurer un hex pour calculer l'espacement
+        float hexW, hexD;
+        MeasureHex(out hexW, out hexD);
 
-        float colSpacing = hexWidth * colSpacingFactor;
-        float rowSpacing = hexDepth * rowSpacingFactor;
+        // 2. Générer la grille
+        GenerateGrid(hexW, hexD);
+
+        // 3. Bake NavMesh
+        BuildNavMesh();
+
+        // 4. Placer les camps sur les tuiles walkables
+        PlaceCamps();
+
+        // 5. Assigner les camps aux régions
+        if (RegionManager.Instance != null)
+            RegionManager.Instance.AssignCampsToRegions();
+    }
+
+    // ── 1. Mesure ────────────────────────────────────────────────────
+
+    private void MeasureHex(out float hexW, out float hexD)
+    {
+        GameObject tmp = Instantiate(walkablePrefabs[0]);
+        tmp.transform.localScale = Vector3.one * hexScale;
+        Renderer r = tmp.GetComponentInChildren<Renderer>();
+        hexW = r != null ? r.bounds.size.x : hexScale;
+        hexD = r != null ? r.bounds.size.z : hexScale;
+        DestroyImmediate(tmp);
+    }
+
+    // ── 2. Grille ────────────────────────────────────────────────────
+
+    private void GenerateGrid(float hexW, float hexD)
+    {
+        float colSpacing = hexW * colSpacingFactor;
+        float rowSpacing = hexD * rowSpacingFactor;
 
         for (int x = 0; x < width; x++)
         {
@@ -67,163 +92,186 @@ public class HexGridGenerator : MonoBehaviour
             {
                 float xPos = x * colSpacing;
                 float zPos = z * rowSpacing + (x % 2 == 1 ? rowSpacing * 0.5f : 0f);
-                Vector3 pos = new Vector3(xPos, 0f, zPos);
 
                 (GameObject prefab, HexTerrain terrain) = PickTerrain();
-                if (terrain == HexTerrain.Water)
-                    pos.y = -0.05f;
-                GameObject instance = Instantiate(prefab, pos, Quaternion.identity, transform);
-                instance.transform.localScale = Vector3.one * hexScale;
 
-                HexTile tile = instance.AddComponent<HexTile>();
-                tile.terrain = terrain;
+                GameObject tile = Instantiate(prefab, new Vector3(xPos, 0f, zPos), Quaternion.identity, transform);
+                tile.transform.localScale = Vector3.one * hexScale;
+
+                HexTile ht = tile.AddComponent<HexTile>();
+                ht.terrain = terrain;
+
+                // Ajouter MeshCollider sur chaque mesh enfant (nécessaire pour NavMesh bake + raycast camps)
+                foreach (MeshFilter mf in tile.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (mf.sharedMesh == null) continue;
+                    MeshCollider mc = mf.gameObject.AddComponent<MeshCollider>();
+                    mc.sharedMesh = mf.sharedMesh;
+                }
+
+                // NavMesh modifier
+                NavMeshModifier mod = tile.AddComponent<NavMeshModifier>();
+                mod.overrideArea = true;
+                mod.area = terrain == HexTerrain.Walkable
+                    ? UnityEngine.AI.NavMesh.GetAreaFromName("Walkable")
+                    : UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
 
                 if (terrain == HexTerrain.Walkable)
-                    walkableTiles.Add(tile);
-
-                AssignNavMesh(instance, terrain);
+                    walkableTiles.Add(ht);
             }
         }
 
-        BuildNavMesh();
-        PlaceCamps();
-
-        // Assigner les camps aux régions géographiques après génération
-        if (RegionManager.Instance != null)
-            RegionManager.Instance.AssignCampsToRegions();
+        ComputeMapBounds(hexW, hexD);
     }
 
-    // ── Camp Placement ───────────────────────────────────────────────
-
-    void PlaceCamps()
+    private void ComputeMapBounds(float hexW, float hexD)
     {
-        if (walkableTiles.Count == 0) return;
+        float colSpacing = hexW * colSpacingFactor;
+        float rowSpacing = hexD * rowSpacingFactor;
 
-        List<HexTile> available = new List<HexTile>(walkableTiles);
-        List<Vector3> placed = new List<Vector3>();
+        float xMax = (width  - 1) * colSpacing + hexW;
+        float zMax = (height - 1) * rowSpacing + rowSpacing * 0.5f + hexD;
 
-        // Camps normaux : dispersion maximale
+        MapBounds = new Bounds(
+            new Vector3(xMax * 0.5f, 0f, zMax * 0.5f),
+            new Vector3(xMax, 0f, zMax)
+        );
+    }
+
+    // ── 3. NavMesh ───────────────────────────────────────────────────
+
+    private void BuildNavMesh()
+    {
+        NavMeshSurface surface = gameObject.AddComponent<NavMeshSurface>();
+        surface.collectObjects = CollectObjects.Children;
+        surface.BuildNavMesh();
+        Debug.Log("[HexGrid] NavMesh baked.");
+    }
+
+    // ── 4. Placement des camps ───────────────────────────────────────
+
+    private void PlaceCamps()
+    {
+        if (walkableTiles.Count == 0)
+        {
+            Debug.LogError("[HexGrid] Aucune tuile walkable !");
+            return;
+        }
+
+        List<HexTile> pool = new List<HexTile>(walkableTiles);
+        List<Vector3> usedPositions = new List<Vector3>();
+
+        // Camps normaux — dispersion max
+        int normalPlaced = 0;
         if (normalCampPrefab != null)
         {
-            for (int i = 0; i < normalCampCount && available.Count > 0; i++)
+            for (int i = 0; i < normalCampCount && pool.Count > 0; i++)
             {
-                HexTile tile = SelectMaxSpreadTile(available, placed);
-                Vector3 worldPos = tile.transform.position;
-                SpawnCamp(normalCampPrefab, worldPos, CampType.Normal, isNeutral: false);
-                placed.Add(worldPos);
-                RemoveNearby(available, worldPos, minCampDistance);
+                HexTile tile = PickSpreadTile(pool, usedPositions);
+                if (tile == null) break;
+
+                SpawnCamp(normalCampPrefab, tile, CampType.Normal);
+                usedPositions.Add(tile.transform.position);
+                RemoveTooClose(pool, tile.transform.position, minCampDistance);
+                normalPlaced++;
             }
         }
+        Debug.Log($"[HexGrid] {normalPlaced} camps normaux placés.");
 
-        // Camps neutres spéciaux : placement aléatoire
+        // Camps neutres spéciaux — éloignés des normaux
+        int neutralPlaced = 0;
         if (neutralCampPrefab != null)
         {
-            for (int i = 0; i < neutralCampCount && available.Count > 0; i++)
+            for (int i = 0; i < neutralCampCount && pool.Count > 0; i++)
             {
-                int idx = Random.Range(0, available.Count);
-                HexTile tile = available[idx];
-                Vector3 worldPos = tile.transform.position;
-                SpawnCamp(neutralCampPrefab, worldPos, CampType.NeutralSpecial, isNeutral: true);
-                placed.Add(worldPos);
-                RemoveNearby(available, worldPos, minCampDistance * 0.5f);
+                HexTile tile = PickSpreadTile(pool, usedPositions);
+                if (tile == null) break;
+
+                SpawnCamp(neutralCampPrefab, tile, CampType.NeutralSpecial);
+                usedPositions.Add(tile.transform.position);
+                RemoveTooClose(pool, tile.transform.position, minCampDistance * 0.5f);
+                neutralPlaced++;
             }
         }
+        Debug.Log($"[HexGrid] {neutralPlaced} camps neutres placés.");
     }
 
-    // Choisit la tuile qui maximise la distance minimale aux camps déjà placés
-    HexTile SelectMaxSpreadTile(List<HexTile> candidates, List<Vector3> placed)
+    private void SpawnCamp(GameObject prefab, HexTile tile, CampType type)
     {
-        if (placed.Count == 0)
-            return candidates[Random.Range(0, candidates.Count)];
+        // Lire le dessus réel du mesh via Renderer.bounds.max.y (pas besoin de collider)
+        Vector3 tileCenter = tile.transform.position;
+        float   surfaceY   = tileCenter.y;
 
-        HexTile best = candidates[0];
-        float bestMinDist = -1f;
+        Renderer r = tile.GetComponentInChildren<Renderer>();
+        if (r != null) surfaceY = r.bounds.max.y;
 
-        foreach (HexTile candidate in candidates)
+        Vector3 spawnPos = new Vector3(tileCenter.x, surfaceY + campYOffset, tileCenter.z);
+
+        GameObject obj = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+        Camp camp = obj.GetComponent<Camp>();
+        if (camp == null)
         {
-            Vector3 pos = candidate.transform.position;
-            float minDist = float.MaxValue;
-            foreach (Vector3 p in placed)
-                minDist = Mathf.Min(minDist, Vector3.Distance(pos, p));
+            Debug.LogError($"[HexGrid] Prefab '{prefab.name}' n'a pas de composant Camp !");
+            Destroy(obj);
+            return;
+        }
 
-            if (minDist > bestMinDist)
-            {
-                bestMinDist = minDist;
-                best = candidate;
-            }
+        camp.campType = type;
+        camp.isNeutral = true;
+        camp.owner     = null;
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    // Sélectionne la tuile la plus éloignée de toutes les positions déjà utilisées
+    private HexTile PickSpreadTile(List<HexTile> pool, List<Vector3> used)
+    {
+        if (pool.Count == 0) return null;
+        if (used.Count == 0) return pool[Random.Range(0, pool.Count)];
+
+        HexTile best     = pool[0];
+        float   bestDist = -1f;
+
+        foreach (HexTile t in pool)
+        {
+            float minDist = float.MaxValue;
+            foreach (Vector3 u in used)
+                minDist = Mathf.Min(minDist, Vector3.Distance(t.transform.position, u));
+
+            if (minDist > bestDist) { bestDist = minDist; best = t; }
         }
         return best;
     }
 
-    void RemoveNearby(List<HexTile> list, Vector3 center, float radius)
+    private void RemoveTooClose(List<HexTile> pool, Vector3 center, float radius)
     {
-        list.RemoveAll(t => Vector3.Distance(t.transform.position, center) < radius);
+        pool.RemoveAll(t => Vector3.Distance(t.transform.position, center) < radius);
     }
 
-    void SpawnCamp(GameObject prefab, Vector3 worldPos, CampType type, bool isNeutral)
+    private (GameObject, HexTerrain) PickTerrain()
     {
-        // Sample NavMesh to land on the actual tile surface (pivot may be at bottom)
-        Vector3 surfacePos = worldPos;
-        if (UnityEngine.AI.NavMesh.SamplePosition(worldPos + Vector3.up * 3f, out UnityEngine.AI.NavMeshHit hit, 6f, UnityEngine.AI.NavMesh.AllAreas))
-            surfacePos = hit.position;
-
-        GameObject campObj = Instantiate(prefab, surfacePos + Vector3.up * campYOffset, Quaternion.identity);
-        Camp camp = campObj.GetComponent<Camp>();
-        if (camp == null) return;
-
-        camp.campType = type;
-        camp.isNeutral = true; // stays neutral until GameManager assigns ownership
-        camp.owner = null;
-    }
-
-    // ── Terrain ──────────────────────────────────────────────────────
-
-    (GameObject, HexTerrain) PickTerrain()
-    {
-        int walkW, mountW, waterW;
-
+        int wW, mW, wWater;
         switch (mapType)
         {
-            case MapType.FrozenPeaks:
-                walkW = 50; mountW = 50; waterW = 0;
-                break;
-            case MapType.Island:
-                walkW = 20; mountW = 5; waterW = 75;
-                break;
-            default:
-                walkW = 65; mountW = 20; waterW = 15;
-                break;
+            case MapType.FrozenPeaks: wW = 50; mW = 50; wWater = 0;  break;
+            case MapType.Island:      wW = 20; mW = 5;  wWater = 75; break;
+            default:                  wW = 65; mW = 20; wWater = 15; break;
         }
 
-        int total = walkW + mountW + waterW;
-        int roll = Random.Range(0, total);
+        int total = wW + mW + wWater;
+        int roll  = Random.Range(0, total);
 
-        if (roll < walkW)
+        if (roll < wW)
             return (walkablePrefabs[Random.Range(0, walkablePrefabs.Length)], HexTerrain.Walkable);
 
-        roll -= walkW;
-        if (roll < mountW && mountainPrefabs != null && mountainPrefabs.Length > 0)
+        roll -= wW;
+        if (roll < mW && mountainPrefabs != null && mountainPrefabs.Length > 0)
             return (mountainPrefabs[Random.Range(0, mountainPrefabs.Length)], HexTerrain.Mountain);
 
         if (waterPrefabs != null && waterPrefabs.Length > 0)
             return (waterPrefabs[Random.Range(0, waterPrefabs.Length)], HexTerrain.Water);
 
         return (walkablePrefabs[Random.Range(0, walkablePrefabs.Length)], HexTerrain.Walkable);
-    }
-
-    void AssignNavMesh(GameObject hex, HexTerrain terrain)
-    {
-        NavMeshModifier modifier = hex.AddComponent<NavMeshModifier>();
-        modifier.overrideArea = true;
-        modifier.area = terrain == HexTerrain.Walkable
-            ? UnityEngine.AI.NavMesh.GetAreaFromName("Walkable")
-            : UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
-    }
-
-    void BuildNavMesh()
-    {
-        NavMeshSurface surface = gameObject.AddComponent<NavMeshSurface>();
-        surface.collectObjects = CollectObjects.Children;
-        surface.BuildNavMesh();
     }
 }
