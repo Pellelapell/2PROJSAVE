@@ -31,35 +31,38 @@ namespace SupKonQuest
 
         private void Start()
         {
-            if (camps == null || camps.Length == 0)
-                camps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            // Ne garder que les joueurs dont le GameObject est actif (set par GameBootstrap)
+            System.Collections.Generic.List<PlayerData> active = new System.Collections.Generic.List<PlayerData>();
+            foreach (PlayerData p in players)
+                if (p != null && p.gameObject.activeInHierarchy) active.Add(p);
+            players = active.ToArray();
 
-            AssignCampsRandomly();
+            AssignCampsByCorner();
             gameStarted = true;
         }
 
-        private void AssignCampsRandomly()
+        // Chaque joueur reçoit les camps du coin qui lui correspond (coin 0 → joueur 0, etc.)
+        private void AssignCampsByCorner()
         {
-            // Seuls les camps normaux sont distribuables aux joueurs
-            List<Camp> pool = new List<Camp>();
-            foreach (Camp c in camps)
-                if (c.campType == CampType.Normal) pool.Add(c);
+            List<Camp>[] corners = HexGridGenerator.CornerCamps;
 
-            // Mélange aléatoire
-            for (int i = pool.Count - 1; i > 0; i--)
+            if (corners == null)
             {
-                int j = Random.Range(0, i + 1);
-                (pool[i], pool[j]) = (pool[j], pool[i]);
+                Debug.LogWarning("[GameManager] CornerCamps null — aucun camp assigné.");
+                return;
             }
 
-            int idx = 0;
-            foreach (PlayerData player in players)
+            for (int i = 0; i < players.Length; i++)
             {
-                player.ownedCamps.Clear();
-                for (int i = 0; i < campsPerPlayer && idx < pool.Count; i++, idx++)
-                    pool[idx].SetOwner(player);
+                players[i].ownedCamps.Clear();
+
+                if (i >= corners.Length || corners[i] == null) continue;
+
+                foreach (Camp camp in corners[i])
+                    camp.SetOwner(players[i]);
+
+                Debug.Log($"[GameManager] {players[i].playerName} → {corners[i].Count} camp(s) coin {i}.");
             }
-            // Les camps restants et les NeutralSpecial restent neutres
         }
 
         public void NotifyCampCaptured(Camp camp, PlayerData previousOwner)

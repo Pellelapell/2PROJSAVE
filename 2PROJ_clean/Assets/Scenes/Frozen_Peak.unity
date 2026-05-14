@@ -1803,8 +1803,8 @@ MonoBehaviour:
   - {fileID: 3637096172939143290, guid: 253bd66f55ba3c64aa9825ea2896b609, type: 3}
   waterPrefabs:
   - {fileID: 2413447369293234240, guid: 3b042d658ba55d940a649b33c122fbca, type: 3}
-  width: 15
-  height: 20
+  width: 25
+  height: 40
   hexScale: 0.1
   colSpacingFactor: 0.75
   rowSpacingFactor: 1
@@ -1812,7 +1812,7 @@ MonoBehaviour:
   mapType: 1
   normalCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   neutralCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
-  normalCampCount: 2
+  campsPerCorner: 2
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
@@ -2065,6 +2065,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3c50b992000d3f4185bb2f24cca341c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  regionDataPool: []
+  regionsX: 3
+  regionsZ: 3
 --- !u!4 &637277694
 Transform:
   m_ObjectHideFlags: 0
