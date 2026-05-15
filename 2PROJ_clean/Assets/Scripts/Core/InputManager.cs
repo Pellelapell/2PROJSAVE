@@ -79,6 +79,18 @@ namespace SupKonQuest
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
+            // Mode placement de bâtiment (fantassin constructeur)
+            if (BuilderHUD.Instance != null && BuilderHUD.Instance.HasPendingBuild)
+            {
+                if (Physics.Raycast(ray, out RaycastHit hitTile, 1000f))
+                {
+                    HexTile tile = hitTile.collider.GetComponentInParent<HexTile>();
+                    if (tile != null) { BuilderHUD.Instance.TryPlaceOnTile(tile); return; }
+                }
+                BuilderHUD.Instance.CancelPending();
+                return;
+            }
+
             if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
             {
                 UnitMovement unit = hitUnit.collider.GetComponentInParent<UnitMovement>();
@@ -90,6 +102,7 @@ namespace SupKonQuest
                         if (!Input.GetKey(KeyCode.LeftShift)) ClearSelection();
                         SelectUnit(unit);
                         campUIManager?.HideUI();
+                        BuildUI.Instance?.Deselect();
                         RefreshSpellUI();
                         return;
                     }
@@ -103,13 +116,28 @@ namespace SupKonQuest
                 {
                     ClearSelection();
                     campUIManager?.SelectCamp(camp);
+                    BuildUI.Instance?.Deselect();
                     spellUI?.HidePanel();
+                    return;
+                }
+            }
+
+            // Clic sur une tuile walkable → panneau de construction
+            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f))
+            {
+                HexTile tile = hitGround.collider.GetComponentInParent<HexTile>();
+                if (tile != null && tile.terrain == HexTerrain.Walkable && !tile.isOccupied)
+                {
+                    ClearSelection();
+                    campUIManager?.HideUI();
+                    BuildUI.Instance?.SelectTile(tile);
                     return;
                 }
             }
 
             ClearSelection();
             campUIManager?.HideUI();
+            BuildUI.Instance?.Deselect();
             spellUI?.HidePanel();
         }
 
@@ -270,14 +298,32 @@ namespace SupKonQuest
 
         private void RefreshSpellUI()
         {
-            if (spellUI == null) return;
-
             if (selectedUnits.Count == 1)
             {
-                UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
-                if (spell != null) { spellUI.ShowForUnit(spell); return; }
+                UnitStats stats = selectedUnits[0].GetComponent<UnitStats>();
+
+                // Fantassin → panneau de construction
+                if (stats != null && stats.unitType == UnitType.Infantry)
+                {
+                    BuilderHUD.Instance?.ShowForUnit(stats);
+                    spellUI?.HidePanel();
+                    return;
+                }
+
+                // Autres unités → sort si disponible
+                BuilderHUD.Instance?.Hide();
+                if (spellUI != null)
+                {
+                    UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
+                    if (spell != null) { spellUI.ShowForUnit(spell); return; }
+                }
             }
-            spellUI.HidePanel();
+            else
+            {
+                BuilderHUD.Instance?.Hide();
+            }
+
+            spellUI?.HidePanel();
         }
 
         private void SelectUnit(UnitMovement unit)
@@ -294,6 +340,7 @@ namespace SupKonQuest
                 if (u != null) u.SetSelected(false);
             selectedUnits.Clear();
             SelectedUnitStats = null;
+            BuilderHUD.Instance?.Hide();
         }
 
         private static Rect GetScreenRect(Vector2 a, Vector2 b) =>

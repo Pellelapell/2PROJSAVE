@@ -13,6 +13,7 @@ namespace SupKonQuest
 
         [Header("Economy")]
         public int money = 150;
+        public int wood  = 0;
 
         [Header("State")]
         public bool eliminated = false;
@@ -33,6 +34,7 @@ namespace SupKonQuest
         }
 
         public void AddMoney(int amount) => money += amount;
+        public void AddWood(int amount)  => wood  += amount;
 
         public bool SpendMoney(int amount)
         {
@@ -40,5 +42,15 @@ namespace SupKonQuest
             money -= amount;
             return true;
         }
+
+        public bool SpendResources(int goldCost, int woodCost)
+        {
+            if (money < goldCost || wood < woodCost) return false;
+            money -= goldCost;
+            wood  -= woodCost;
+            return true;
+        }
+
+        public bool CanAfford(int goldCost, int woodCost) => money >= goldCost && wood >= woodCost;
     }
 }

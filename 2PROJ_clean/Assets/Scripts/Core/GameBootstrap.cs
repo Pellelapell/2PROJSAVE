@@ -21,6 +21,7 @@ namespace SupKonQuest
         {
             ApplyMapType();
             ApplyAIConfig();
+            ApplyPlayerRace();
         }
 
         private void ApplyMapType()
@@ -36,6 +37,27 @@ namespace SupKonQuest
                 2 => MapType.Island,
                 _ => MapType.Classic
             };
+        }
+
+        private void ApplyPlayerRace()
+        {
+            Race race = (Race)PlayerPrefs.GetInt("PlayerRace", 0);
+
+            // Trouver le joueur humain (non-IA) et lui appliquer la race + couleur
+            PlayerData[] allPlayers = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+            foreach (PlayerData p in allPlayers)
+            {
+                if (p.isAI) continue;
+                p.race = race;
+                p.playerColor = race switch
+                {
+                    Race.Human => new Color(0.3f, 0.5f, 1.0f),
+                    Race.Elf   => new Color(0.2f, 0.85f, 0.3f),
+                    Race.Demon => new Color(1.0f, 0.25f, 0.25f),
+                    _          => Color.white
+                };
+                break;
+            }
         }
 
         private void ApplyAIConfig()

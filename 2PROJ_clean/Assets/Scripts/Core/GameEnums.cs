@@ -18,7 +18,8 @@ namespace SupKonQuest
     {
         Normal,
         Port,
-        NeutralSpecial
+        NeutralSpecial,
+        Castle
     }
 
     public enum Race
@@ -26,6 +27,14 @@ namespace SupKonQuest
         Human,
         Demon,
         Elf
+    }
+
+    public enum BuildingType
+    {
+        Camp,
+        Sawmill,
+        Port,
+        Castle
     }
 
     public enum UnitType

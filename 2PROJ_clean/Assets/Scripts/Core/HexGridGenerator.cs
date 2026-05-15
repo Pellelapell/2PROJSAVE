@@ -37,7 +37,7 @@ public class HexGridGenerator : MonoBehaviour
     public GameObject normalCampPrefab;
     public GameObject neutralCampPrefab;
     [Tooltip("Camps placés dans chaque coin (un coin = un joueur)")]
-    public int campsPerCorner = 2;
+    public int campsPerCorner = 1;
     public int neutralCampCount = 8;
     [Tooltip("Distance min entre deux camps (en unités world)")]
     public float minCampDistance = 3f;
@@ -142,18 +142,62 @@ public class HexGridGenerator : MonoBehaviour
 
         HexTerrain[,] grid = new HexTerrain[width, height];
 
+        if (mapType == MapType.Island)
+        {
+            BuildIslandGrid(grid, ox, oz);
+        }
+        else
+        {
+            for (int x = 0; x < width; x++)
+                for (int z = 0; z < height; z++)
+                    grid[x, z] = SampleTerrain(x, z, ox, oz);
+
+            for (int p = 0; p < smoothingPasses; p++)
+                grid = SmoothPass(grid);
+
+            ForceCornerWalkable(grid);
+            BridgeCorners(grid);
+        }
+
+        // Centre toujours walkable (5ème joueur possible)
+        ForceCenterWalkable(grid);
+
+        return grid;
+    }
+
+    // ── Islands : majorité eau, archipels ────────────────────────────
+
+    private void BuildIslandGrid(HexTerrain[,] grid, float ox, float oz)
+    {
+        // Tout eau par défaut
         for (int x = 0; x < width; x++)
             for (int z = 0; z < height; z++)
-                grid[x, z] = SampleTerrain(x, z, ox, oz);
+                grid[x, z] = HexTerrain.Water;
+
+        // Deux couches de bruit pour des formes d'îles organiques
+        float scale1 = noiseScale * 2.2f;
+        float scale2 = noiseScale * 4.5f;
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < height; z++)
+            {
+                float v1 = Mathf.PerlinNoise((x + ox) * scale1, (z + oz) * scale1);
+                float v2 = Mathf.PerlinNoise((x + ox + 500f) * scale2, (z + oz + 500f) * scale2) * 0.35f;
+                float v  = v1 + v2;
+                // Seulement les pics → terres (~30% de la map)
+                if (v > 1.05f)      grid[x, z] = HexTerrain.Mountain;
+                else if (v > 0.88f) grid[x, z] = HexTerrain.Walkable;
+            }
+        }
 
         for (int p = 0; p < smoothingPasses; p++)
             grid = SmoothPass(grid);
 
+        // Coins garantis walkable (camps de départ)
         ForceCornerWalkable(grid);
-        ForceConnectivity(grid);   // couloirs coins → centre
-
-        return grid;
     }
+
+    // ── Classic / FrozenPeaks ────────────────────────────────────────
 
     private HexTerrain SampleTerrain(int x, int z, float ox, float oz)
     {
@@ -162,52 +206,44 @@ public class HexGridGenerator : MonoBehaviour
         switch (mapType)
         {
             case MapType.FrozenPeaks:
-                // ~80% walkable, 20% montagne
-                return v < 0.22f ? HexTerrain.Mountain : HexTerrain.Walkable;
-
-            case MapType.Island:
-                // ~80% walkable, eau aux extrêmes
-                if (v < 0.10f || v > 0.90f) return HexTerrain.Water;
-                return HexTerrain.Walkable;
+                // ~55% walkable, 45% montagne (pas d'eau)
+                return v > 0.44f ? HexTerrain.Walkable : HexTerrain.Mountain;
 
             default: // Classic
-                // ~78% walkable, obstacles rares
-                if (v < 0.10f) return HexTerrain.Water;
-                if (v < 0.22f) return HexTerrain.Mountain;
-                return HexTerrain.Walkable;
+                // ~55% walkable, ~20% montagne, ~25% eau
+                if (v > 0.45f) return HexTerrain.Walkable;
+                if (v > 0.32f) return HexTerrain.Mountain;
+                return HexTerrain.Water;
         }
     }
 
-    // Lissage cellulaire : agrandit les amas d'obstacles (pas de walkable)
+    // Lissage : chaque tuile prend le type majoritaire de ses voisins
     private HexTerrain[,] SmoothPass(HexTerrain[,] grid)
     {
         HexTerrain[,] next = new HexTerrain[width, height];
-
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < height; z++)
             {
-                int nonWalkable = 0, total = 0;
-
+                int wCnt = 0, mCnt = 0, waCnt = 0, total = 0;
                 foreach (Vector2Int nb in GetHexNeighbors(new Vector2Int(x, z)))
                 {
                     if (nb.x < 0 || nb.x >= width || nb.y < 0 || nb.y >= height) continue;
                     total++;
-                    if (grid[nb.x, nb.y] != HexTerrain.Walkable) nonWalkable++;
+                    switch (grid[nb.x, nb.y]) {
+                        case HexTerrain.Walkable: wCnt++;  break;
+                        case HexTerrain.Mountain: mCnt++;  break;
+                        case HexTerrain.Water:    waCnt++; break;
+                    }
                 }
-
                 if (total == 0) { next[x, z] = grid[x, z]; continue; }
 
-                // Un obstacle ne grossit que si la majorité des voisins sont obstacles
-                if (grid[x, z] != HexTerrain.Walkable && nonWalkable >= (total * 2 / 3))
-                    next[x, z] = grid[x, z];
-                else if (nonWalkable == 0)
-                    next[x, z] = HexTerrain.Walkable; // entouré de walkable → walkable
-                else
-                    next[x, z] = grid[x, z]; // sinon garder
+                if (wCnt  > total / 2) next[x, z] = HexTerrain.Walkable;
+                else if (mCnt  > total / 2) next[x, z] = HexTerrain.Mountain;
+                else if (waCnt > total / 2) next[x, z] = HexTerrain.Water;
+                else next[x, z] = grid[x, z];
             }
         }
-
         return next;
     }
 
@@ -224,10 +260,23 @@ public class HexGridGenerator : MonoBehaviour
         }
     }
 
-    // Trace un couloir walkable de chaque coin vers le centre
-    private void ForceConnectivity(HexTerrain[,] grid)
+    private void ForceCenterWalkable(HexTerrain[,] grid)
     {
-        Vector2Int center = new Vector2Int(width / 2, height / 2);
+        int cx = width  / 2;
+        int cz = height / 2;
+        int m  = Mathf.Clamp(cornerMargin, 1, Mathf.Min(width, height) / 4);
+        for (int dx = -m; dx <= m; dx++)
+        for (int dz = -m; dz <= m; dz++)
+        {
+            int nx = cx + dx, nz = cz + dz;
+            if (nx >= 0 && nx < width && nz >= 0 && nz < height)
+                grid[nx, nz] = HexTerrain.Walkable;
+        }
+    }
+
+    // Pont minimal uniquement si un coin est déconnecté du coin 0
+    private void BridgeCorners(HexTerrain[,] grid)
+    {
         Vector2Int[] corners =
         {
             new Vector2Int(0,         0),
@@ -235,8 +284,55 @@ public class HexGridGenerator : MonoBehaviour
             new Vector2Int(0,         height - 1),
             new Vector2Int(width - 1, height - 1),
         };
-        foreach (Vector2Int corner in corners)
-            CarvePath(grid, corner, center);
+
+        HashSet<Vector2Int> reachable = BFSWalkable(grid, corners[0]);
+
+        for (int i = 1; i < corners.Length; i++)
+        {
+            if (reachable.Contains(corners[i])) continue;
+
+            // Trouver la tuile walkable la plus proche du coin isolé
+            Vector2Int nearest = FindNearestInSet(reachable, corners[i]);
+            CarvePath(grid, corners[i], nearest);
+            reachable = BFSWalkable(grid, corners[0]);
+        }
+    }
+
+    private HashSet<Vector2Int> BFSWalkable(HexTerrain[,] grid, Vector2Int start)
+    {
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        if (start.x < 0 || start.x >= width || start.y < 0 || start.y >= height) return visited;
+        if (grid[start.x, start.y] != HexTerrain.Walkable) return visited;
+
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        queue.Enqueue(start);
+        visited.Add(start);
+
+        while (queue.Count > 0)
+        {
+            Vector2Int cur = queue.Dequeue();
+            foreach (Vector2Int nb in GetHexNeighbors(cur))
+            {
+                if (visited.Contains(nb)) continue;
+                if (nb.x < 0 || nb.x >= width || nb.y < 0 || nb.y >= height) continue;
+                if (grid[nb.x, nb.y] != HexTerrain.Walkable) continue;
+                visited.Add(nb);
+                queue.Enqueue(nb);
+            }
+        }
+        return visited;
+    }
+
+    private Vector2Int FindNearestInSet(HashSet<Vector2Int> set, Vector2Int target)
+    {
+        Vector2Int best = target;
+        float bestDist = float.MaxValue;
+        foreach (Vector2Int v in set)
+        {
+            float d = Vector2Int.Distance(v, target);
+            if (d < bestDist) { bestDist = d; best = v; }
+        }
+        return best;
     }
 
     private void CarvePath(HexTerrain[,] grid, Vector2Int from, Vector2Int to)
@@ -280,9 +376,16 @@ public class HexGridGenerator : MonoBehaviour
             if (kv.Value.terrain == HexTerrain.Walkable)
                 tileCoords[kv.Value] = kv.Key;
 
-        // BFS depuis la tuile walkable la plus centrale (meilleure graine)
-        Vector2Int gridCenter = new Vector2Int(width / 2, height / 2);
-        HexTile seedTile = ClosestWalkableTo(gridCenter);
+        if (mapType == MapType.Island)
+        {
+            // Islands : garder toutes les îles, supprimer seulement les tuiles isolées (1 seule)
+            RemoveSingletonIslands(tileCoords);
+            return;
+        }
+
+        // Autres maps : garder seulement le composant connexe principal (coin 0)
+        Vector2Int corner0 = new Vector2Int(0, 0);
+        HexTile seedTile = ClosestWalkableTo(corner0);
         if (seedTile == null) return;
 
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
@@ -304,21 +407,42 @@ public class HexGridGenerator : MonoBehaviour
             }
         }
 
-        // Convertir les tuiles non atteignables
         List<HexTile> isolated = new List<HexTile>();
         foreach (HexTile tile in walkableTiles)
             if (!visited.Contains(tileCoords[tile])) isolated.Add(tile);
 
-        foreach (HexTile tile in isolated)
+        ConvertToMountain(isolated);
+        if (isolated.Count > 0)
+            Debug.Log($"[HexGrid] {isolated.Count} tuile(s) isolée(s) converties.");
+    }
+
+    private void RemoveSingletonIslands(Dictionary<HexTile, Vector2Int> tileCoords)
+    {
+        // Trouver toutes les tuiles qui n'ont aucun voisin walkable → supprimer
+        List<HexTile> singletons = new List<HexTile>();
+        foreach (HexTile tile in walkableTiles)
+        {
+            Vector2Int coord = tileCoords[tile];
+            bool hasNeighbor = false;
+            foreach (Vector2Int nb in GetHexNeighbors(coord))
+            {
+                if (!tileMap.TryGetValue(nb, out HexTile nbTile)) continue;
+                if (nbTile.terrain == HexTerrain.Walkable) { hasNeighbor = true; break; }
+            }
+            if (!hasNeighbor) singletons.Add(tile);
+        }
+        ConvertToMountain(singletons);
+    }
+
+    private void ConvertToMountain(List<HexTile> tiles)
+    {
+        foreach (HexTile tile in tiles)
         {
             tile.terrain = HexTerrain.Mountain;
             NavMeshModifier mod = tile.GetComponent<NavMeshModifier>();
             if (mod != null) mod.area = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
             walkableTiles.Remove(tile);
         }
-
-        if (isolated.Count > 0)
-            Debug.Log($"[HexGrid] {isolated.Count} tuile(s) isolée(s) converties.");
     }
 
     private HexTile ClosestWalkableTo(Vector2Int target)

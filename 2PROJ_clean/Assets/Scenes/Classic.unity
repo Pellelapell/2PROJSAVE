@@ -466,9 +466,13 @@ MonoBehaviour:
   hexGridGenerator: {fileID: 534388193}
   gameManager: {fileID: 534388190}
   aiPlayers:
-  - {fileID: 0}
+  - {fileID: 1894584542}
+  - {fileID: 1217245577}
+  - {fileID: 1509194173}
   aiControllers:
-  - {fileID: 0}
+  - {fileID: 1894584541}
+  - {fileID: 1217245576}
+  - {fileID: 1509194175}
 --- !u!4 &102104146
 Transform:
   m_ObjectHideFlags: 0
@@ -1645,6 +1649,8 @@ MonoBehaviour:
   players:
   - {fileID: 1397515485}
   - {fileID: 1509194173}
+  - {fileID: 1894584542}
+  - {fileID: 1217245577}
   localPlayerId: 1
   camps: []
   campsPerPlayer: 2
@@ -1717,10 +1723,13 @@ MonoBehaviour:
   colSpacingFactor: 0.75
   rowSpacingFactor: 1
   seed: 0
+  noiseScale: 0.12
+  smoothingPasses: 2
+  cornerMargin: 2
   mapType: 0
   normalCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   neutralCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
-  normalCampCount: 2
+  campsPerCorner: 2
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
@@ -2347,6 +2356,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3c50b992000d3f4185bb2f24cca341c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  regionDataPool: []
+  regionsX: 3
+  regionsZ: 3
 --- !u!4 &972776957
 Transform:
   m_ObjectHideFlags: 0
@@ -2579,6 +2591,7 @@ MonoBehaviour:
   moveSpeed: 20
   edgeScrollSpeed: 20
   edgeSize: 15
+  dragSensitivity: 0.4
   zoomSpeed: 200
   minY: 2
   maxY: 50
@@ -2760,6 +2773,73 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 23.957083, y: 5.2216244, z: 1.8652848}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1217245575
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1217245578}
+  - component: {fileID: 1217245577}
+  - component: {fileID: 1217245576}
+  m_Layer: 0
+  m_Name: Player_2 (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1217245576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217245575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0049b52447d48d64593688af764ec29d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 1217245577}
+  difficultyLevel: 0
+--- !u!114 &1217245577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217245575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df3d78375ca5f44c98a9758aa1902f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 2
+  playerName: IA
+  race: 2
+  playerColor: {r: 0.040045023, g: 1, b: 0, a: 1}
+  money: 100
+  eliminated: 0
+  isAI: 1
+  ownedCamps: []
+--- !u!4 &1217245578
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217245575}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.9843348, y: -0.3130801, z: 2.2656755}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4279,6 +4359,73 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1067128968}
   m_LocalEulerAnglesHint: {x: 87.48, y: 0, z: 0}
+--- !u!1 &1894584540
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1894584543}
+  - component: {fileID: 1894584542}
+  - component: {fileID: 1894584541}
+  m_Layer: 0
+  m_Name: Player_2 (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1894584541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894584540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0049b52447d48d64593688af764ec29d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 1894584542}
+  difficultyLevel: 0
+--- !u!114 &1894584542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894584540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df3d78375ca5f44c98a9758aa1902f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerId: 2
+  playerName: IA
+  race: 0
+  playerColor: {r: 0.9427508, g: 1, b: 0, a: 1}
+  money: 100
+  eliminated: 0
+  isAI: 1
+  ownedCamps: []
+--- !u!4 &1894584543
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1894584540}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.9843348, y: -0.3130801, z: 2.2656755}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1953721653
 GameObject:
   m_ObjectHideFlags: 0
@@ -4981,3 +5128,5 @@ SceneRoots:
   - {fileID: 1101811651}
   - {fileID: 516118980}
   - {fileID: 2131913670}
+  - {fileID: 1894584543}
+  - {fileID: 1217245578}

@@ -25,9 +25,10 @@ namespace SupKonQuest
         private class QueueEntry
         {
             public UnitType type;
-            public UnitDefinition def;
+            public UnitDefinition def;   // peut être null → UnitDefaults utilisé
             public GameObject prefab;
             public float timeLeft;
+            public float buildTime;
         }
 
         private readonly Queue<QueueEntry> queue = new Queue<QueueEntry>();
@@ -39,9 +40,8 @@ namespace SupKonQuest
 
         public float GetProgress01()
         {
-            if (current == null || current.def == null) return 0f;
-            float buildTime = current.def.buildTime;
-            return buildTime <= 0f ? 1f : 1f - (current.timeLeft / buildTime);
+            if (current == null || current.buildTime <= 0f) return 0f;
+            return 1f - (current.timeLeft / current.buildTime);
         }
 
         // ── Init ─────────────────────────────────────────────────────
@@ -71,13 +71,6 @@ namespace SupKonQuest
         {
             if (camp == null || camp.owner == null) return false;
 
-            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
-            if (def == null)
-            {
-                Debug.LogWarning($"[Production] Pas de définition pour {type}");
-                return false;
-            }
-
             GameObject prefab = GetPrefab(type);
             if (prefab == null)
             {
@@ -85,13 +78,17 @@ namespace SupKonQuest
                 return false;
             }
 
-            if (!camp.owner.SpendMoney(def.price))
+            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
+            int price          = def != null ? def.price     : UnitDefaults.GetPrice(type);
+            float buildTime    = def != null ? def.buildTime : UnitDefaults.GetBuildTime(type);
+
+            if (!camp.owner.SpendMoney(price))
             {
                 Debug.Log("[Production] Pas assez d'argent");
                 return false;
             }
 
-            var entry = new QueueEntry { type = type, def = def, prefab = prefab, timeLeft = def.buildTime };
+            var entry = new QueueEntry { type = type, def = def, prefab = prefab, timeLeft = buildTime, buildTime = buildTime };
 
             if (current == null) current = entry;
             else queue.Enqueue(entry);
@@ -102,11 +99,11 @@ namespace SupKonQuest
         public void SpawnUnitInstant(UnitType type)
         {
             if (camp == null || camp.owner == null) return;
-            UnitDefinition def = unitDatabase?.Get(type);
-            if (def == null) return;
             GameObject prefab = GetPrefab(type);
             if (prefab == null) return;
-            DoSpawn(new QueueEntry { type = type, def = def, prefab = prefab });
+            UnitDefinition def = unitDatabase?.Get(type);
+            float buildTime    = def != null ? def.buildTime : UnitDefaults.GetBuildTime(type);
+            DoSpawn(new QueueEntry { type = type, def = def, prefab = prefab, buildTime = buildTime });
         }
 
         // ── Spawn ────────────────────────────────────────────────────
@@ -115,35 +112,39 @@ namespace SupKonQuest
         {
             if (camp == null || camp.owner == null || entry.prefab == null) return;
 
-            // Position de départ : le camp lui-même (on laisse UnitMovement.InitOnNavMesh gérer le placement)
             Vector3 spawnPos = transform.position;
             if (camp.spawnPoint != null)
                 spawnPos = camp.spawnPoint.position;
 
-            // Désactiver le NavMeshAgent avant l'instantiation pour éviter le placement automatique raté
             GameObject unitObj = Instantiate(entry.prefab, spawnPos, Quaternion.identity);
 
-            // Configurer les stats
             UnitStats stats = unitObj.GetComponent<UnitStats>();
             if (stats != null)
             {
                 stats.ownerId = camp.owner.playerId;
                 stats.race    = camp.owner.race;
-                stats.InitFromDefinition(entry.def);
+
+                if (entry.def != null)
+                    stats.InitFromDefinition(entry.def);
+                else
+                    UnitDefaults.Apply(stats, entry.type);
             }
 
-            // Appliquer les visuels de race
+            // Si le prefab a un NeutralUnitAI, il ne doit pas s'activer pour une unité joueur
+            NeutralUnitAI neutralAI = unitObj.GetComponent<NeutralUnitAI>();
+            if (neutralAI != null) neutralAI.enabled = false;
+
             UnitVisuals visuals = unitObj.GetComponent<UnitVisuals>();
             if (visuals != null) visuals.ApplyRaceVisuals();
 
-            // Déléguer le placement NavMesh à UnitMovement
             UnitMovement mov = unitObj.GetComponent<UnitMovement>();
             float speed = stats != null ? stats.moveSpeed : 3.5f;
             if (mov != null)
+            {
                 mov.InitOnNavMesh(speed);
+            }
             else
             {
-                // Fallback si UnitMovement absent
                 NavMeshAgent agent = unitObj.GetComponent<NavMeshAgent>();
                 if (agent != null)
                 {
