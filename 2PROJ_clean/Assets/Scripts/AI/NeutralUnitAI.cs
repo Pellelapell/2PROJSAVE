@@ -21,18 +21,18 @@ namespace SupKonQuest
 
         private void Start()
         {
+            // Si une unité joueur a ce composant par erreur (prefab partagé), s'auto-désactiver
+            if (stats != null && stats.ownerId != 0) { enabled = false; return; }
+
             // Forcer l'identité neutre — jamais sélectionnable par un joueur
             if (stats != null) stats.ownerId = 0;
 
-            // Neutraliser le NavMeshAgent : l'unité ne bouge pas
             NavMeshAgent agent = GetComponent<NavMeshAgent>();
             if (agent != null) agent.enabled = false;
 
-            // Désactiver l'IA d'attaque classique si présente
             UnitAttack regularAttack = GetComponent<UnitAttack>();
             if (regularAttack != null) regularAttack.enabled = false;
 
-            // Désactiver UnitMovement pour qu'elle ne soit pas sélectionnable
             UnitMovement mov = GetComponent<UnitMovement>();
             if (mov != null) mov.enabled = false;
         }

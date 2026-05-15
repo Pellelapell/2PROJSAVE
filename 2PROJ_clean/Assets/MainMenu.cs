@@ -11,6 +11,15 @@ public class MainMenu : MonoBehaviour
     private int selectedAI   = 1;
     private int selectedDiff = 0;
     private int selectedLang = 0;
+    private int selectedRace = 0; // 0=Human 1=Elf 2=Demon
+
+    private static readonly string[] raceLabels = { "Humain", "Elfe", "Démon" };
+    private static readonly Color[]  raceColors =
+    {
+        new Color(0.3f, 0.5f, 1.0f),  // Human  → bleu
+        new Color(0.2f, 0.85f, 0.3f), // Elf    → vert
+        new Color(1.0f, 0.25f, 0.25f) // Demon  → rouge
+    };
 
     private readonly string[] langCodes  = { "fr", "en", "es" };
     private readonly string[] langLabels = { "FR", "EN", "ES" };
@@ -91,7 +100,7 @@ public class MainMenu : MonoBehaviour
         GUI.Label(new Rect(0, sh * 0.04f, sw, 70f), "SupKonQuest", titleStyle);
 
         float panelW = 500f;
-        float panelH = 430f;
+        float panelH = 490f;
         float panelX = (sw - panelW) / 2f;
         float panelY = sh * 0.18f;
 
@@ -146,6 +155,19 @@ public class MainMenu : MonoBehaviour
         }
         panelY += 62f;
 
+        // Race
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), "Race", labelStyle);
+        panelY += 32f;
+        for (int i = 0; i < raceLabels.Length; i++)
+        {
+            Color raceCol = raceColors[i];
+            GUI.color = (i == selectedRace) ? raceCol : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
+            if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), raceLabels[i], selectedButtonStyle))
+                selectedRace = i;
+        }
+        GUI.color = Color.white;
+        panelY += 50f;
+
         // Boutons Retour + Lancer
         float bw = 200f;
         float totalW = bw * 2f + 16f;
@@ -169,6 +191,7 @@ public class MainMenu : MonoBehaviour
         PlayerPrefs.SetInt("MapType",      selectedMap);
         PlayerPrefs.SetInt("AICount",      selectedAI);
         PlayerPrefs.SetInt("AIDifficulty", selectedDiff);
+        PlayerPrefs.SetInt("PlayerRace",   selectedRace);
         PlayerPrefs.SetString("Language",  langCodes[selectedLang]);
         PlayerPrefs.Save();
         string[] sceneNames = { "Classic", "Frozen_Peak", "Islands" };

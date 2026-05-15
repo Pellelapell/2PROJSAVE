@@ -50,6 +50,7 @@ namespace SupKonQuest
             if (gameManager == null) return;
             InitStyles();
 
+            DrawTopBar();
             DrawLeaderboard();
             DrawUnitStats();
 
@@ -57,13 +58,50 @@ namespace SupKonQuest
                 DrawEndScreen();
         }
 
+        // ── Barre de ressources (local player) ───────────────────────
+
+        private void DrawTopBar()
+        {
+            PlayerData local = null;
+            foreach (PlayerData p in gameManager.players)
+                if (!p.isAI) { local = p; break; }
+            if (local == null) return;
+
+            float barH = 32f;
+            float barW = Screen.width * 0.5f;
+            float barX = (Screen.width - barW) * 0.5f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.7f);
+            GUI.DrawTexture(new Rect(barX - 8, 0, barW + 16, barH + 4), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            float cx = barX + 10f;
+
+            // Or
+            GUI.color = new Color(1f, 0.85f, 0.2f);
+            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"Or : {local.money}", titleStyle);
+            cx += 150f;
+
+            // Bois
+            GUI.color = new Color(0.5f, 0.9f, 0.3f);
+            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"Bois : {local.wood}", titleStyle);
+            cx += 150f;
+
+            // Camps
+            GUI.color = local.playerColor;
+            GUI.Label(new Rect(cx, 6f, 160f, 22f), $"Camps : {local.ownedCamps.Count}", titleStyle);
+
+            GUI.color = Color.white;
+        }
+
         // ── Classement ───────────────────────────────────────────────
 
         private void DrawLeaderboard()
         {
-            float panelHeight = HeaderHeight + gameManager.players.Length * RowHeight + Margin;
+            float rowH    = 40f;
+            float panelHeight = HeaderHeight + gameManager.players.Length * rowH + Margin;
             float x = Screen.width - PanelWidth - Margin;
-            float y = Margin;
+            float y = Margin + 40f; // décalé sous la top bar
 
             GUI.Box(new Rect(x - 5, y - 5, PanelWidth + 10, panelHeight), "", boxStyle);
             GUI.Label(new Rect(x, y, PanelWidth, HeaderHeight), L("hud_title"), titleStyle);
@@ -74,23 +112,15 @@ namespace SupKonQuest
                 Color prev = GUI.color;
                 GUI.color = player.eliminated ? new Color(0.5f, 0.5f, 0.5f) : player.playerColor;
 
-                int campIncome  = player.ownedCamps.Count * (economyManager != null ? economyManager.moneyPerCamp : 10);
-                int regionBonus = regionManager != null ? regionManager.GetRegionBonusGold(player) : 0;
-
                 string status = player.eliminated ? L("hud_eliminated")
                               : player.isAI       ? L("hud_ai")
                               :                     L("hud_you");
 
-                GUI.Label(new Rect(x, y,         PanelWidth, 22f), $"{player.playerName} {status}", titleStyle);
-                GUI.Label(new Rect(x, y + 22f,   PanelWidth, 18f), $"  {L("hud_camps")}: {player.ownedCamps.Count}  {L("hud_gold")}: {player.money}g", rowStyle);
-
-                string incomeStr = regionBonus > 0
-                    ? $"  +{campIncome}g (+{regionBonus} région)"
-                    : $"  +{campIncome}g";
-                GUI.Label(new Rect(x, y + 40f, PanelWidth, 18f), incomeStr, rowStyle);
+                GUI.Label(new Rect(x, y,       PanelWidth, 22f), $"{player.playerName}  {status}", titleStyle);
+                GUI.Label(new Rect(x, y + 20f, PanelWidth, 18f), $"  Camps : {player.ownedCamps.Count}", rowStyle);
 
                 GUI.color = prev;
-                y += RowHeight;
+                y += rowH;
             }
 
             if (regionManager != null)
