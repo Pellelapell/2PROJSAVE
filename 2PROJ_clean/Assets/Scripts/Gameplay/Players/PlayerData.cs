@@ -13,7 +13,7 @@ namespace SupKonQuest
 
         [Header("Economy")]
         public int money = 150;
-        public int wood  = 0;
+        public int wood  = 30;
 
         [Header("State")]
         public bool eliminated = false;

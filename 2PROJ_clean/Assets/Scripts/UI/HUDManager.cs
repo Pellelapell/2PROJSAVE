@@ -14,6 +14,7 @@ namespace SupKonQuest
         private GUIStyle rowStyle;
         private GUIStyle regionStyle;
         private GUIStyle endStyle;
+        private GUIStyle btnStyle;
 
         private bool showEndScreen;
         private bool localPlayerWon;
@@ -79,19 +80,28 @@ namespace SupKonQuest
 
             // Or
             GUI.color = new Color(1f, 0.85f, 0.2f);
-            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"Or : {local.money}", titleStyle);
+            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"{L("hud_gold")} : {local.money}", titleStyle);
             cx += 150f;
 
-            // Bois
             GUI.color = new Color(0.5f, 0.9f, 0.3f);
-            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"Bois : {local.wood}", titleStyle);
+            GUI.Label(new Rect(cx, 6f, 140f, 22f), $"{L("hud_wood")} : {local.wood}", titleStyle);
             cx += 150f;
 
-            // Camps
             GUI.color = local.playerColor;
-            GUI.Label(new Rect(cx, 6f, 160f, 22f), $"Camps : {local.ownedCamps.Count}", titleStyle);
+            GUI.Label(new Rect(cx, 6f, 160f, 22f), $"{L("hud_camps")} : {local.ownedCamps.Count}", titleStyle);
 
             GUI.color = Color.white;
+
+            // Bouton langue (coin haut-droit)
+            if (LocalizationManager.Instance != null)
+            {
+                string langLabel = LocalizationManager.Instance.CurrentLanguage == "fr" ? "EN" : "FR";
+                if (GUI.Button(new Rect(Screen.width - 52f, 4f, 44f, 24f), langLabel, titleStyle))
+                {
+                    string next = LocalizationManager.Instance.CurrentLanguage == "fr" ? "en" : "fr";
+                    LocalizationManager.Instance.LoadLanguage(next);
+                }
+            }
         }
 
         // ── Classement ───────────────────────────────────────────────
@@ -147,7 +157,7 @@ namespace SupKonQuest
             // Note sur le bonus de combat
             GUIStyle noteStyle = new GUIStyle(rowStyle) { fontSize = 10 };
             GUI.color = new Color(1f, 1f, 0.5f);
-            GUI.Label(new Rect(x, y, w, lineH), "  ★ Région alliée : +20% dégâts", noteStyle);
+            GUI.Label(new Rect(x, y, w, lineH), $"  {L("hud_region_bonus")}", noteStyle);
             GUI.color = Color.white;
             y += lineH;
 
@@ -159,7 +169,7 @@ namespace SupKonQuest
 
                 string label = owner != null
                     ? $"{region.GetDisplayName()} → {owner.playerName} (+{region.data?.bonusGold ?? 0}g)"
-                    : $"{region.GetDisplayName()} — libre";
+                    : $"{region.GetDisplayName()} — {L("hud_region_free")}";
 
                 GUI.Label(new Rect(x, y, w, lineH), label, regionStyle);
                 GUI.color = prev;
@@ -185,29 +195,30 @@ namespace SupKonQuest
             PlayerData owner = GameManager.Instance?.GetPlayerById(u.ownerId);
             Color prev = GUI.color;
             GUI.color = owner != null ? owner.playerColor : Color.white;
-            GUI.Label(new Rect(x, y, w, 22f), $"{u.unitType}  —  {(owner != null ? owner.playerName : "Neutre")}", titleStyle);
+            GUI.Label(new Rect(x, y, w, 22f), $"{UnitDefaults.GetName(u.unitType)}  —  {(owner != null ? owner.playerName : L("hud_neutral"))}", titleStyle);
             GUI.color = prev;
             y += 24f;
 
             // Barre de vie
             float ratio = u.maxHealth > 0 ? (float)u.currentHealth / u.maxHealth : 1f;
             GUI.color = new Color(0.15f, 0.15f, 0.15f, 0.9f);
-            GUI.DrawTexture(new Rect(x, y, w, 12f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(x, y, w, 20f), Texture2D.whiteTexture);
             GUI.color = Color.Lerp(Color.red, Color.green, ratio);
-            GUI.DrawTexture(new Rect(x, y, w * ratio, 12f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(x, y, w * ratio, 20f), Texture2D.whiteTexture);
             GUI.color = Color.white;
-            GUI.Label(new Rect(x, y, w, 12f), $"  {u.currentHealth} / {u.maxHealth}", rowStyle);
-            y += 16f;
+            GUI.Label(new Rect(x, y + 2f, w, 20f), $"  {u.currentHealth} / {u.maxHealth}", rowStyle);
+            y += 24f;
 
             // Stats
             GUI.color = Color.white;
-            GUI.Label(new Rect(x, y,       w * 0.5f, 18f), $"  Dégâts : {u.attackDamage}", rowStyle);
-            GUI.Label(new Rect(x + w*0.5f, y, w*0.5f, 18f), $"Vitesse : {u.moveSpeed:F1}", rowStyle);
+            GUI.Label(new Rect(x, y,       w * 0.5f, 18f), $"  {L("hud_damage")} : {u.attackDamage}", rowStyle);
+            GUI.Label(new Rect(x + w*0.5f, y, w*0.5f, 18f), $"{L("hud_speed")} : {u.moveSpeed:F1}", rowStyle);
             y += 18f;
-            GUI.Label(new Rect(x, y,       w * 0.5f, 18f), $"  Portée atk : {u.attackRange:F1}", rowStyle);
-            GUI.Label(new Rect(x + w*0.5f, y, w*0.5f, 18f), $"Atk/s : {u.attackSpeed:F1}", rowStyle);
+            GUI.Label(new Rect(x, y,       w * 0.5f, 18f), $"  {L("hud_range")} : {u.attackRange:F1}", rowStyle);
+            GUI.Label(new Rect(x + w*0.5f, y, w*0.5f, 18f), $"{L("hud_atkspeed")} : {u.attackSpeed:F1}", rowStyle);
             y += 18f;
-            GUI.Label(new Rect(x, y, w, 18f), $"  Type : {u.damageType}{(u.isAOE ? "  [AOE]" : "")}", rowStyle);
+            string dmgType = L("damage_" + u.damageType.ToString());
+            GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_type")} : {dmgType}{(u.isAOE ? "  [AOE]" : "")}", rowStyle);
             y += 18f;
 
             // Bonus région
@@ -215,7 +226,7 @@ namespace SupKonQuest
             if (inRegion)
             {
                 GUI.color = new Color(1f, 1f, 0.3f);
-                GUI.Label(new Rect(x, y, w, 18f), "  ★ Région alliée : +20% dégâts", rowStyle);
+                GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_region_bonus")}", rowStyle);
                 GUI.color = Color.white;
                 y += 18f;
             }
@@ -224,7 +235,26 @@ namespace SupKonQuest
             TransportShip ship = u.GetComponent<TransportShip>();
             if (ship != null)
             {
-                GUI.Label(new Rect(x, y, w, 18f), $"  {ship.GetPassengerLabel()}  |  [E] Débarquer", rowStyle);
+                GUI.Label(new Rect(x, y, w * 0.55f, 20f), $"  {ship.GetPassengerLabel()}", rowStyle);
+
+                if (!ship.IsEmpty)
+                {
+                    Vector3 landPos = FindNearLand(u.transform.position, 5f);
+                    bool landNear   = landPos != Vector3.zero;
+
+                    if (landNear)
+                    {
+                        if (GUI.Button(new Rect(x + w * 0.55f, y, w * 0.45f, 20f), L("disembark"), btnStyle))
+                            ship.DisembarkAll(landPos);
+                    }
+                    else
+                    {
+                        GUI.color = new Color(1f, 1f, 1f, 0.35f);
+                        GUI.Label(new Rect(x + w * 0.55f, y, w * 0.45f, 20f), L("disembark"), rowStyle);
+                        GUI.color = Color.white;
+                    }
+                }
+                y += 22f;
             }
         }
 
@@ -251,6 +281,18 @@ namespace SupKonQuest
         // ── Styles ───────────────────────────────────────────────────
 
         private static string L(string key) => LocalizationManager.Get(key);
+
+        private static Vector3 FindNearLand(Vector3 from, float range)
+        {
+            Collider[] hits = Physics.OverlapSphere(from, range);
+            foreach (Collider c in hits)
+            {
+                HexTile tile = c.GetComponentInParent<HexTile>();
+                if (tile != null && tile.terrain == HexTerrain.Walkable)
+                    return tile.transform.position;
+            }
+            return Vector3.zero;
+        }
 
         private void InitStyles()
         {
@@ -285,6 +327,12 @@ namespace SupKonQuest
                 fontSize  = 64,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
+            };
+
+            btnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize  = 11,
+                fontStyle = FontStyle.Bold
             };
         }
 

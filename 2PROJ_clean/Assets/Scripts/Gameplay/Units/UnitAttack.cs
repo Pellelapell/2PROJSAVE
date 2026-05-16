@@ -14,8 +14,9 @@ namespace SupKonQuest
         private UnitStats stats;
         private float attackCooldown;
 
-        private UnitStats currentUnitTarget;
-        private Camp currentCampTarget;
+        private UnitStats     currentUnitTarget;
+        private Camp          currentCampTarget;
+        private BuildingHealth currentBuildingTarget;
         private bool manualCampTarget;
 
         private void Awake()
@@ -43,8 +44,14 @@ namespace SupKonQuest
             if (!manualCampTarget && (currentCampTarget == null || !IsEnemyCamp(currentCampTarget)))
                 currentCampTarget = FindClosestEnemyCamp();
 
-            if (currentCampTarget != null)
-                HandleCampTarget();
+            if (currentCampTarget != null) { HandleCampTarget(); return; }
+
+            // Bâtiments ennemis (Scierie…)
+            if (currentBuildingTarget == null || currentBuildingTarget.currentHP <= 0)
+                currentBuildingTarget = FindClosestEnemyBuilding();
+
+            if (currentBuildingTarget != null)
+                HandleBuildingTarget();
         }
 
         // ── Unit targeting ──────────────────────────────────────────
@@ -162,6 +169,15 @@ namespace SupKonQuest
             manualCampTarget  = camp != null;
         }
 
+        // Appelé par UnitMovement.MoveTo — le joueur reprend la main
+        public void ClearTargets()
+        {
+            currentUnitTarget    = null;
+            currentCampTarget    = null;
+            currentBuildingTarget = null;
+            manualCampTarget     = false;
+        }
+
         private Camp FindClosestEnemyCamp()
         {
             Collider[] hits = Physics.OverlapSphere(transform.position, stats.detectRange, campLayerMask);
@@ -174,6 +190,53 @@ namespace SupKonQuest
                 if (camp == null || !IsEnemyCamp(camp)) continue;
                 float dist = Vector3.Distance(transform.position, camp.transform.position);
                 if (dist < closestDist) { closestDist = dist; closest = camp; }
+            }
+            return closest;
+        }
+
+        // ── Building targeting ──────────────────────────────────────
+
+        private void HandleBuildingTarget()
+        {
+            if (currentBuildingTarget == null || currentBuildingTarget.currentHP <= 0)
+            {
+                currentBuildingTarget = null;
+                return;
+            }
+
+            float dist = Vector3.Distance(transform.position, currentBuildingTarget.transform.position);
+
+            if (dist <= stats.attackRange)
+            {
+                StopMoving();
+                FaceTarget(currentBuildingTarget.transform);
+                if (attackCooldown <= 0f)
+                {
+                    int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
+                    currentBuildingTarget.TakeDamage(damage);
+                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+                }
+            }
+            else if (dist <= stats.detectRange)
+            {
+                MoveToward(currentBuildingTarget.transform.position);
+            }
+            else
+            {
+                currentBuildingTarget = null;
+            }
+        }
+
+        private BuildingHealth FindClosestEnemyBuilding()
+        {
+            BuildingHealth closest  = null;
+            float closestDist = stats.detectRange;
+
+            foreach (BuildingHealth bh in BuildingHealth.All)
+            {
+                if (bh == null || bh.ownerId == stats.ownerId || bh.ownerId < 0) continue;
+                float dist = Vector3.Distance(transform.position, bh.transform.position);
+                if (dist < closestDist) { closestDist = dist; closest = bh; }
             }
             return closest;
         }

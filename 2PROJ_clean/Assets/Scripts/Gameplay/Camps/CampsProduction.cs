@@ -78,9 +78,8 @@ namespace SupKonQuest
                 return false;
             }
 
-            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
-            int price          = def != null ? def.price     : UnitDefaults.GetPrice(type);
-            float buildTime    = def != null ? def.buildTime : UnitDefaults.GetBuildTime(type);
+            int price       = UnitDefaults.GetPrice(type);
+            float buildTime = UnitDefaults.GetBuildTime(type);
 
             if (!camp.owner.SpendMoney(price))
             {
@@ -88,7 +87,7 @@ namespace SupKonQuest
                 return false;
             }
 
-            var entry = new QueueEntry { type = type, def = def, prefab = prefab, timeLeft = buildTime, buildTime = buildTime };
+            var entry = new QueueEntry { type = type, def = null, prefab = prefab, timeLeft = buildTime, buildTime = buildTime };
 
             if (current == null) current = entry;
             else queue.Enqueue(entry);
@@ -101,9 +100,8 @@ namespace SupKonQuest
             if (camp == null || camp.owner == null) return;
             GameObject prefab = GetPrefab(type);
             if (prefab == null) return;
-            UnitDefinition def = unitDatabase?.Get(type);
-            float buildTime    = def != null ? def.buildTime : UnitDefaults.GetBuildTime(type);
-            DoSpawn(new QueueEntry { type = type, def = def, prefab = prefab, buildTime = buildTime });
+            float buildTime = UnitDefaults.GetBuildTime(type);
+            DoSpawn(new QueueEntry { type = type, def = null, prefab = prefab, buildTime = buildTime });
         }
 
         // ── Spawn ────────────────────────────────────────────────────
@@ -124,10 +122,7 @@ namespace SupKonQuest
                 stats.ownerId = camp.owner.playerId;
                 stats.race    = camp.owner.race;
 
-                if (entry.def != null)
-                    stats.InitFromDefinition(entry.def);
-                else
-                    UnitDefaults.Apply(stats, entry.type);
+                UnitDefaults.Apply(stats, entry.type);
             }
 
             // Si le prefab a un NeutralUnitAI, il ne doit pas s'activer pour une unité joueur

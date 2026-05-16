@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 77718075950593998}
   - component: {fileID: 8457152886457965826}
   m_Layer: 3
-  m_Name: "Unit_Fr\xE9gate"
+  m_Name: Unit_Frigate
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

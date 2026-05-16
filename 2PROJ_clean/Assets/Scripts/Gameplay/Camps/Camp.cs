@@ -72,6 +72,17 @@ namespace SupKonQuest
             GameManager.Instance?.NotifyCampCaptured(this, previousOwner);
         }
 
+        public void SetSpawnPosition(Vector3 worldPos)
+        {
+            if (spawnPoint == null)
+            {
+                GameObject go = new GameObject("SpawnPoint");
+                go.transform.SetParent(transform);
+                spawnPoint = go.transform;
+            }
+            spawnPoint.position = worldPos;
+        }
+
         private void UpdateCampVisual()
         {
             Renderer rend = GetComponentInChildren<Renderer>();
