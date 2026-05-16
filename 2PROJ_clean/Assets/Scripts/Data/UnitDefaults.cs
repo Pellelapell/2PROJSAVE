@@ -54,6 +54,11 @@ namespace SupKonQuest
 
         public static int    GetPrice    (UnitType type) => Data.TryGetValue(type, out Def d) ? d.price     : 50;
         public static float  GetBuildTime(UnitType type) => Data.TryGetValue(type, out Def d) ? d.buildTime : 3f;
-        public static string GetName     (UnitType type) => Data.TryGetValue(type, out Def d) ? d.displayName : type.ToString();
+        public static string GetName(UnitType type)
+        {
+            string localized = LocalizationManager.Get("unit_" + type.ToString().ToLower());
+            if (localized != "unit_" + type.ToString().ToLower()) return localized;
+            return Data.TryGetValue(type, out Def d) ? d.displayName : type.ToString();
+        }
     }
 }

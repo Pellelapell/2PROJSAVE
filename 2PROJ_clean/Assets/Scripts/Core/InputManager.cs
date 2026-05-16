@@ -77,14 +77,36 @@ namespace SupKonQuest
 
         private void SingleClick()
         {
+            // Bloquer si la souris est sur le panel BuilderHUD (évite de clear la sélection)
+            if (BuilderHUD.Instance != null && BuilderHUD.Instance.IsMouseOverPanel) return;
+
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+
+            // Mode sélection du spawn point de camp
+            if (campUIManager != null && campUIManager.IsPickingSpawnPoint)
+            {
+                RaycastHit[] spawnHits = Physics.RaycastAll(ray, 1000f);
+                foreach (RaycastHit h in spawnHits)
+                {
+                    HexTile tile = h.collider.GetComponentInParent<HexTile>();
+                    if (tile != null && tile.terrain == HexTerrain.Walkable)
+                    {
+                        campUIManager.ConfirmSpawnPoint(tile.transform.position);
+                        return;
+                    }
+                }
+                campUIManager.CancelPickingSpawnPoint();
+                return;
+            }
 
             // Mode placement de bâtiment (fantassin constructeur)
             if (BuilderHUD.Instance != null && BuilderHUD.Instance.HasPendingBuild)
             {
-                if (Physics.Raycast(ray, out RaycastHit hitTile, 1000f))
+                // RaycastAll pour traverser unités/camps et trouver la tuile derrière
+                RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
+                foreach (RaycastHit h in hits)
                 {
-                    HexTile tile = hitTile.collider.GetComponentInParent<HexTile>();
+                    HexTile tile = h.collider.GetComponentInParent<HexTile>();
                     if (tile != null) { BuilderHUD.Instance.TryPlaceOnTile(tile); return; }
                 }
                 BuilderHUD.Instance.CancelPending();
@@ -102,7 +124,7 @@ namespace SupKonQuest
                         if (!Input.GetKey(KeyCode.LeftShift)) ClearSelection();
                         SelectUnit(unit);
                         campUIManager?.HideUI();
-                        BuildUI.Instance?.Deselect();
+    
                         RefreshSpellUI();
                         return;
                     }
@@ -116,28 +138,14 @@ namespace SupKonQuest
                 {
                     ClearSelection();
                     campUIManager?.SelectCamp(camp);
-                    BuildUI.Instance?.Deselect();
-                    spellUI?.HidePanel();
-                    return;
-                }
-            }
 
-            // Clic sur une tuile walkable → panneau de construction
-            if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f))
-            {
-                HexTile tile = hitGround.collider.GetComponentInParent<HexTile>();
-                if (tile != null && tile.terrain == HexTerrain.Walkable && !tile.isOccupied)
-                {
-                    ClearSelection();
-                    campUIManager?.HideUI();
-                    BuildUI.Instance?.SelectTile(tile);
+                    spellUI?.HidePanel();
                     return;
                 }
             }
 
             ClearSelection();
             campUIManager?.HideUI();
-            BuildUI.Instance?.Deselect();
             spellUI?.HidePanel();
         }
 
@@ -329,15 +337,38 @@ namespace SupKonQuest
         private void SelectUnit(UnitMovement unit)
         {
             if (unit == null || selectedUnits.Contains(unit)) return;
+
+            UnitStats stats = unit.GetComponent<UnitStats>();
+            if (stats != null) stats.OnDeath += HandleSelectedUnitDeath;
+
             selectedUnits.Add(unit);
             unit.SetSelected(true);
-            SelectedUnitStats = selectedUnits.Count == 1 ? unit.GetComponent<UnitStats>() : null;
+            SelectedUnitStats = selectedUnits.Count == 1 ? stats : null;
+        }
+
+        private void HandleSelectedUnitDeath(UnitStats dead)
+        {
+            dead.OnDeath -= HandleSelectedUnitDeath;
+
+            UnitMovement mov = dead.GetComponent<UnitMovement>();
+            selectedUnits.Remove(mov);
+
+            SelectedUnitStats = selectedUnits.Count == 1
+                ? selectedUnits[0]?.GetComponent<UnitStats>()
+                : null;
+
+            RefreshSpellUI();
         }
 
         private void ClearSelection()
         {
             foreach (UnitMovement u in selectedUnits)
-                if (u != null) u.SetSelected(false);
+            {
+                if (u == null) continue;
+                u.SetSelected(false);
+                UnitStats s = u.GetComponent<UnitStats>();
+                if (s != null) s.OnDeath -= HandleSelectedUnitDeath;
+            }
             selectedUnits.Clear();
             SelectedUnitStats = null;
             BuilderHUD.Instance?.Hide();

@@ -26,7 +26,7 @@ namespace SupKonQuest
         public float castleBuildTime  = 40f;
 
         [Header("Production scierie")]
-        public int sawmillWoodPerTick = 20;
+        public int sawmillWoodPerTick = 5;
 
         [Header("Rayon de construction autour d'un camp allié")]
         public float buildRadius = 12f;
@@ -67,7 +67,6 @@ namespace SupKonQuest
             if (tile == null || tile.isOccupied) return false;
             if (tile.terrain == HexTerrain.Water)    return false;
             if (tile.terrain == HexTerrain.Mountain) return false;
-            if (!InOwnedTerritory(tile, owner)) return false;
             if (type == BuildingType.Port && !HasWaterNeighbor(tile)) return false;
             return owner.CanAfford(GoldCost(type), WoodCost(type));
         }
@@ -113,6 +112,9 @@ namespace SupKonQuest
 
             GameObject obj = Instantiate(prefab, pos, Quaternion.identity);
 
+            // Teinter tous les renderers aux couleurs du propriétaire
+            ApplyOwnerColor(obj, site.owner.playerColor);
+
             switch (site.type)
             {
                 case BuildingType.Camp:
@@ -132,7 +134,21 @@ namespace SupKonQuest
                 case BuildingType.Sawmill:
                     Sawmill saw = obj.GetComponent<Sawmill>();
                     if (saw != null) { saw.owner = site.owner; saw.woodPerTick = sawmillWoodPerTick; }
+                    BuildingHealth bh = obj.GetComponent<BuildingHealth>() ?? obj.AddComponent<BuildingHealth>();
+                    bh.ownerId   = site.owner.playerId;
+                    bh.maxHP     = 150;
+                    bh.currentHP = 150;
                     break;
+            }
+        }
+
+        private static void ApplyOwnerColor(GameObject obj, Color color)
+        {
+            foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
+            {
+                // Créer une instance du matériau pour ne pas modifier l'asset partagé
+                Material mat = rend.material;
+                mat.color = color;
             }
         }
 

@@ -89,15 +89,16 @@ namespace SupKonQuest
             foreach (Collider hit in hits)
             {
                 if (hit.gameObject == gameObject) continue;
-                UnitStats other = hit.GetComponent<UnitStats>();
+                UnitStats other = hit.GetComponentInParent<UnitStats>();
                 if (other == null || other.ownerId != stats.ownerId) continue;
 
                 other.attackSpeedMultiplier = 1.5f;
 
-                NavMeshAgent agent = hit.GetComponent<NavMeshAgent>();
+                NavMeshAgent agent = hit.GetComponentInParent<NavMeshAgent>();
                 if (agent != null) agent.speed = other.moveSpeed * 1.5f;
 
-                buffedUnits.Add(other);
+                if (!buffedUnits.Contains(other))
+                    buffedUnits.Add(other);
             }
         }
 
@@ -121,7 +122,7 @@ namespace SupKonQuest
             Collider[] hits = Physics.OverlapSphere(transform.position, 5f);
             foreach (Collider hit in hits)
             {
-                UnitStats other = hit.GetComponent<UnitStats>();
+                UnitStats other = hit.GetComponentInParent<UnitStats>();
                 if (other == null || other.ownerId != stats.ownerId) continue;
                 other.Heal(10);
             }

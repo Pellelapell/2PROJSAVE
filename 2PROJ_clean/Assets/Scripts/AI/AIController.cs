@@ -14,10 +14,12 @@ namespace SupKonQuest
         private float thinkTimer;
         private GameManager gameManager;
 
-        private static readonly int[]   attackThreshold = { 4, 3, 2 };
-        private static readonly int[]   maxQueue        = { 2, 3, 4 };
-        private static readonly int[]   maxUnits        = { 8, 14, 20 };
-        private static readonly float[] thinkDelay      = { 4f, 2.5f, 1.5f };
+        // ── Paramètres par difficulté ────────────────────────────────
+        // 0=Facile  1=Moyen  2=Difficile
+        private static readonly int[]   attackThreshold = { 5, 3, 2 };
+        private static readonly int[]   maxQueue        = { 1, 3, 5 };
+        private static readonly int[]   maxUnits        = { 6, 14, 22 };
+        private static readonly float[] thinkDelay      = { 5f, 2.5f, 1.2f };
 
         private void Start()
         {
@@ -33,8 +35,13 @@ namespace SupKonQuest
             if (thinkTimer > 0f) return;
             thinkTimer = thinkDelay[difficultyLevel];
 
-            TryBuildSawmill();
-            TryBuildCastle();
+            // Facile : pas de bâtiments, attaque naïve
+            // Moyen  : scierie seulement
+            // Difficile : tout construit
+            if (difficultyLevel >= 1) TryBuildSawmill();
+            if (difficultyLevel >= 2) TryBuildCastle();
+            if (difficultyLevel >= 2) TryBuildPort();
+
             ProduceUnits();
             GiveOrders();
         }
@@ -45,36 +52,71 @@ namespace SupKonQuest
         {
             if (BuildingManager.Instance == null) return;
 
-            int sawCount = CountOwnedSawmills();
-            int maxSaws  = 1 + difficultyLevel;
-            if (sawCount >= maxSaws) return;
+            int maxSaws = difficultyLevel; // moyen=1, difficile=2
+            if (CountOwnedSawmills() >= maxSaws) return;
 
             foreach (Camp camp in player.ownedCamps)
             {
-                HexTile tile = FindFreeTileNear(camp.transform.position, 6f);
+                HexTile tile = FindFreeTileNear(camp.transform.position, 8f, false);
                 if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Sawmill, player))
+                {
+                    SendInfantryTo(tile.transform.position);
                     return;
+                }
             }
         }
 
         private void TryBuildCastle()
         {
-            if (difficultyLevel < 2) return;
             if (BuildingManager.Instance == null) return;
-
-            // Max 1 château, nécessite au moins 2 camps d'abord
             if (player.ownedCamps.Count < 2) return;
-            int castleCount = 0;
+
             foreach (Camp c in player.ownedCamps)
-                if (c.campType == CampType.Castle) castleCount++;
-            if (castleCount >= 1) return;
+                if (c.campType == CampType.Castle) return; // déjà un château
 
             foreach (Camp camp in player.ownedCamps)
             {
-                HexTile tile = FindFreeTileNear(camp.transform.position, 6f);
+                HexTile tile = FindFreeTileNear(camp.transform.position, 8f, false);
                 if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Castle, player))
+                {
+                    SendInfantryTo(tile.transform.position);
                     return;
+                }
             }
+        }
+
+        private void TryBuildPort()
+        {
+            if (BuildingManager.Instance == null) return;
+
+            foreach (Camp c in player.ownedCamps)
+                if (c.campType == CampType.Port) return; // déjà un port
+
+            // Chercher une case côtière dans un grand rayon
+            foreach (Camp camp in player.ownedCamps)
+            {
+                HexTile tile = FindFreeTileNear(camp.transform.position, 20f, requireWaterNeighbor: true);
+                if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Port, player))
+                {
+                    SendInfantryTo(tile.transform.position);
+                    return;
+                }
+            }
+        }
+
+        private void SendInfantryTo(Vector3 pos)
+        {
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            float best = float.MaxValue;
+            UnitMovement bestMov = null;
+
+            foreach (UnitStats us in all)
+            {
+                if (us.ownerId != player.playerId || us.unitType != UnitType.Infantry) continue;
+                float d = Vector3.Distance(us.transform.position, pos);
+                if (d < best) { best = d; bestMov = us.GetComponent<UnitMovement>(); }
+            }
+            bestMov?.MoveTo(pos);
         }
 
         private int CountOwnedSawmills()
@@ -85,16 +127,28 @@ namespace SupKonQuest
             return count;
         }
 
-        private HexTile FindFreeTileNear(Vector3 center, float radius)
+        private HexTile FindFreeTileNear(Vector3 center, float radius, bool requireWaterNeighbor)
         {
             Collider[] hits = Physics.OverlapSphere(center, radius);
             foreach (Collider c in hits)
             {
                 HexTile t = c.GetComponentInParent<HexTile>();
-                if (t != null && !t.isOccupied && t.terrain == HexTerrain.Walkable)
-                    return t;
+                if (t == null || t.isOccupied || t.terrain != HexTerrain.Walkable) continue;
+                if (requireWaterNeighbor && !HasWaterNeighbor(t)) continue;
+                return t;
             }
             return null;
+        }
+
+        private static bool HasWaterNeighbor(HexTile tile)
+        {
+            Collider[] hits = Physics.OverlapSphere(tile.transform.position, 3f);
+            foreach (Collider c in hits)
+            {
+                HexTile nb = c.GetComponentInParent<HexTile>();
+                if (nb != null && nb != tile && nb.terrain == HexTerrain.Water) return true;
+            }
+            return false;
         }
 
         // ── Production d'unités ───────────────────────────────────────
@@ -115,7 +169,12 @@ namespace SupKonQuest
 
         private UnitType ChooseUnit(Camp camp)
         {
-            if (camp.campType == CampType.Port) return UnitType.Frigate;
+            if (camp.campType == CampType.Port)
+            {
+                // Difficile : mix naval ; sinon juste frégate
+                if (difficultyLevel < 2) return UnitType.Frigate;
+                return Random.value < 0.6f ? UnitType.Frigate : UnitType.Destroyer;
+            }
 
             if (camp.campType == CampType.Castle)
             {
@@ -125,21 +184,31 @@ namespace SupKonQuest
                 return UnitType.Support;
             }
 
-            if (difficultyLevel == 0) return UnitType.Infantry;
-
-            float rv = Random.value;
-            if (difficultyLevel == 1)
+            // Camp normal
+            if (difficultyLevel == 0)
             {
-                if (rv < 0.5f)  return UnitType.Infantry;
-                if (rv < 0.75f) return UnitType.Range;
-                return UnitType.Heavy;
+                // Facile : seulement infanterie avec erreurs fréquentes
+                return Random.value < 0.15f ? UnitType.Range : UnitType.Infantry;
             }
 
-            if (rv < 0.35f) return UnitType.Infantry;
-            if (rv < 0.55f) return UnitType.Range;
-            if (rv < 0.70f) return UnitType.Heavy;
-            if (rv < 0.85f) return UnitType.AntiArmor;
-            return UnitType.Mortar;
+            if (difficultyLevel == 1)
+            {
+                float rv = Random.value;
+                if (rv < 0.45f) return UnitType.Infantry;
+                if (rv < 0.70f) return UnitType.Range;
+                if (rv < 0.85f) return UnitType.Heavy;
+                return UnitType.Heal;
+            }
+
+            // Difficile : mix complet
+            float r2 = Random.value;
+            if (r2 < 0.25f) return UnitType.Infantry;
+            if (r2 < 0.45f) return UnitType.Range;
+            if (r2 < 0.60f) return UnitType.Heavy;
+            if (r2 < 0.72f) return UnitType.AntiArmor;
+            if (r2 < 0.82f) return UnitType.Mortar;
+            if (r2 < 0.90f) return UnitType.Heal;
+            return UnitType.Support;
         }
 
         // ── Ordres d'attaque ──────────────────────────────────────────
@@ -152,11 +221,16 @@ namespace SupKonQuest
             List<UnitMovement> myUnits = GetMyUnits();
             if (myUnits.Count < attackThreshold[difficultyLevel]) return;
 
+            // Difficile : garde un défenseur par camp
             if (difficultyLevel == 2 && player.ownedCamps.Count > 0)
             {
                 myUnits = FilterDefenders(myUnits);
                 if (myUnits.Count == 0) return;
             }
+
+            // Facile : chance de cibler aléatoirement (joue mal)
+            if (difficultyLevel == 0 && Random.value < 0.3f)
+                target = FindRandomEnemyCamp();
 
             Vector3 dest  = target.transform.position;
             int count = myUnits.Count;
@@ -212,12 +286,23 @@ namespace SupKonQuest
 
                 float dist = Vector3.Distance(camp.transform.position, refPos);
 
-                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.7f;
-                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.2f;
+                // Moyen+ préfère les camps neutres (plus facile à capturer)
+                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.6f;
+                // Difficile : priorise moins les camps ennemis forts (prudence)
+                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.3f;
 
                 if (dist < nearestScore) { nearestScore = dist; nearest = camp; }
             }
             return nearest;
+        }
+
+        private Camp FindRandomEnemyCamp()
+        {
+            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            List<Camp> enemies = new List<Camp>();
+            foreach (Camp c in allCamps)
+                if (c.owner != player) enemies.Add(c);
+            return enemies.Count > 0 ? enemies[Random.Range(0, enemies.Count)] : null;
         }
 
         private Camp FindNearestOwnCamp(Vector3 pos)

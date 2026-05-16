@@ -1476,6 +1476,7 @@ MonoBehaviour:
   race: 0
   playerColor: {r: 0.9427508, g: 1, b: 0, a: 1}
   money: 100
+  wood: 0
   eliminated: 0
   isAI: 1
   ownedCamps: []
@@ -1812,7 +1813,7 @@ MonoBehaviour:
   - {fileID: 1369144271}
   localPlayerId: 1
   camps: []
-  campsPerPlayer: 2
+  campsPerPlayer: 1
   gameStarted: 0
   gameOver: 0
 --- !u!4 &534388191
@@ -1892,6 +1893,8 @@ MonoBehaviour:
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
+  neutralGuardPrefab: {fileID: 0}
+  guardsPerNeutralCamp: 1
 --- !u!114 &534388194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2444,7 +2447,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   incomeInterval: 5
+  baseGoldPerTick: 3
   moneyPerCamp: 10
+  baseWoodPerTick: 3
 --- !u!4 &788588135
 Transform:
   m_ObjectHideFlags: 0
@@ -2889,6 +2894,94 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1098097215}
   m_CullTransparentMesh: 1
+--- !u!1 &1189708552
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1189708556}
+  - component: {fileID: 1189708555}
+  - component: {fileID: 1189708554}
+  - component: {fileID: 1189708553}
+  m_Layer: 0
+  m_Name: BuildingManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1189708553
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189708552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cabe4c1c6d1ada64fbfcab488ea50d65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  campPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
+  sawmillPrefab: {fileID: 3044618288830488966, guid: ec59bdcb272931148a4f61896d995484, type: 3}
+  portPrefab: {fileID: 3044618288830488966, guid: caf4c5e5abc0095449a6777faf5574e1, type: 3}
+  castlePrefab: {fileID: 3044618288830488966, guid: 503a0cdd98f35a64da0c6668d587cbc9, type: 3}
+  campGold: 150
+  campWood: 50
+  sawmillGold: 80
+  sawmillWood: 30
+  portGold: 200
+  portWood: 80
+  castleGold: 400
+  castleWood: 200
+  campBuildTime: 15
+  sawmillBuildTime: 8
+  portBuildTime: 20
+  castleBuildTime: 40
+  sawmillWoodPerTick: 20
+  buildRadius: 12
+--- !u!114 &1189708554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189708552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab9ea95b19e691f418e81ceb558de22e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1189708555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189708552}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3da528b4827f01541856ff6ff3a4211f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1189708556
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189708552}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 28.631506, y: 7.220536, z: 12.187761}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1369144269
 GameObject:
   m_ObjectHideFlags: 0
@@ -2938,6 +3031,7 @@ MonoBehaviour:
   race: 2
   playerColor: {r: 0.040045023, g: 1, b: 0, a: 1}
   money: 100
+  wood: 0
   eliminated: 0
   isAI: 1
   ownedCamps: []
@@ -3047,6 +3141,7 @@ MonoBehaviour:
   race: 2
   playerColor: {r: 0, g: 0.049380064, b: 1, a: 1}
   money: 100
+  wood: 30
   eliminated: 0
   isAI: 0
   ownedCamps: []
@@ -3476,6 +3571,7 @@ MonoBehaviour:
   race: 1
   playerColor: {r: 1, g: 0, b: 0, a: 1}
   money: 100
+  wood: 0
   eliminated: 0
   isAI: 1
   ownedCamps: []
@@ -5081,3 +5177,4 @@ SceneRoots:
   - {fileID: 600272949}
   - {fileID: 90473547}
   - {fileID: 204523527}
+  - {fileID: 1189708556}

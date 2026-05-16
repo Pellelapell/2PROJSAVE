@@ -48,21 +48,21 @@ namespace SupKonQuest
         {
             if (def == null) return;
             unitType = def.unitType;
-            price = def.price;
-            maxHealth = def.maxHP;
-            currentHealth = def.maxHP;
-            attackDamage = def.damage;
-            attackSpeed = def.attackSpeed;
-            attackRange = def.range;
-            detectRange = def.range * 1.5f;
-            moveSpeed = def.moveSpeed;
-            damageType = def.damageType;
-            isAOE = def.isAOE;
-            aoeRadius = def.aoeRadius;
-            aoeFalloff = def.aoeFalloff;
-            hasActivable = def.hasActivable;
-            spellDuration = def.spellDuration;
-            spellCooldown = def.spellCooldown;
+            // N'écraser que les valeurs > 0 dans le SO — si un champ est oublié (0),
+            // UnitDefaults.Apply() aura déjà mis une valeur correcte.
+            if (def.price > 0)       price       = def.price;
+            if (def.maxHP > 0)     { maxHealth   = def.maxHP; currentHealth = def.maxHP; }
+            if (def.damage > 0)      attackDamage = def.damage;
+            if (def.attackSpeed > 0f) attackSpeed = def.attackSpeed;
+            if (def.range > 0f)    { attackRange  = def.range; detectRange = def.range * 1.5f; }
+            if (def.moveSpeed > 0f)  moveSpeed    = def.moveSpeed;
+            damageType        = def.damageType;
+            isAOE             = def.isAOE;
+            aoeRadius         = def.aoeRadius;
+            aoeFalloff        = def.aoeFalloff;
+            hasActivable      = def.hasActivable;
+            spellDuration     = def.spellDuration;
+            spellCooldown     = def.spellCooldown;
             attackSpeedMultiplier = 1f;
         }
 

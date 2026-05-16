@@ -32,10 +32,17 @@ namespace SupKonQuest
         public Button frigateButton;
         public Button destroyerButton;
 
-        // Château reuses antiArmorButton, mortarButton, supportButton — no new buttons needed
+        [Header("Spawn Point")]
+        public Button spawnPointButton;
 
         private Camp selectedCamp;
         private CampProduction selectedProduction;
+        private bool isPickingSpawnPoint;
+
+        public bool IsPickingSpawnPoint => isPickingSpawnPoint;
+
+        private GUIStyle hintStyle;
+        private GUIStyle panelStyle;
 
         private void Start()
         {
@@ -51,15 +58,22 @@ namespace SupKonQuest
             BindButton(transportButton, UnitType.Transport);
             BindButton(frigateButton,   UnitType.Frigate);
             BindButton(destroyerButton, UnitType.Destroyer);
+
+            if (spawnPointButton != null)
+                spawnPointButton.onClick.AddListener(StartPickingSpawnPoint);
         }
 
         private void Update()
         {
             RefreshProductionInfo();
+
+            if (isPickingSpawnPoint && Input.GetKeyDown(KeyCode.Escape))
+                CancelPickingSpawnPoint();
         }
 
         public void SelectCamp(Camp camp)
         {
+            isPickingSpawnPoint = false;
             selectedCamp = camp;
             selectedProduction = camp != null ? camp.GetComponent<CampProduction>() : null;
 
@@ -78,9 +92,63 @@ namespace SupKonQuest
 
         public void HideUI()
         {
+            isPickingSpawnPoint = false;
             selectedCamp = null;
             selectedProduction = null;
             if (panel != null) panel.SetActive(false);
+        }
+
+        // ── Spawn point picking ───────────────────────────────────────
+
+        public void StartPickingSpawnPoint()
+        {
+            if (selectedCamp == null) return;
+            isPickingSpawnPoint = true;
+        }
+
+        public void CancelPickingSpawnPoint()
+        {
+            isPickingSpawnPoint = false;
+        }
+
+        public void ConfirmSpawnPoint(Vector3 worldPos)
+        {
+            if (selectedCamp != null)
+                selectedCamp.SetSpawnPosition(worldPos);
+            isPickingSpawnPoint = false;
+        }
+
+        private void OnGUI()
+        {
+            if (!isPickingSpawnPoint) return;
+
+            InitGuiStyles();
+
+            const float w = 360f, h = 44f;
+            float x = (Screen.width  - w) * 0.5f;
+            float y = Screen.height - h - 10f;
+
+            GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
+            GUI.color = new Color(0.4f, 0.95f, 1f);
+            GUI.Label(new Rect(x + 6, y + 4f, w - 80f, 22f), LocalizationManager.Get("spawn_pick_hint"), hintStyle);
+            GUI.color = Color.white;
+            if (GUI.Button(new Rect(x + w - 74f, y + 8f, 70f, 24f), LocalizationManager.Get("builder_cancel"), hintStyle))
+                CancelPickingSpawnPoint();
+        }
+
+        private void InitGuiStyles()
+        {
+            if (hintStyle != null) return;
+            hintStyle  = new GUIStyle(GUI.skin.label)  { fontSize = 13, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
+            panelStyle = new GUIStyle(GUI.skin.box)    { normal   = { background = MakeTex(new Color(0.05f, 0.05f, 0.12f, 0.95f)) } };
+        }
+
+        private static Texture2D MakeTex(Color col)
+        {
+            Texture2D t = new Texture2D(1, 1);
+            t.SetPixel(0, 0, col);
+            t.Apply();
+            return t;
         }
 
         private void RefreshButtons()
@@ -102,8 +170,7 @@ namespace SupKonQuest
                 case CampType.Normal:
                     SetButtonActive(infantryButton, true);
                     SetButtonActive(rangeButton,    true);
-                    SetButtonActive(heavyButton,    true);
-                    SetButtonActive(healButton,     true);
+                    SetButtonActive(supportButton,  true);
                     break;
 
                 case CampType.NeutralSpecial:
@@ -121,7 +188,8 @@ namespace SupKonQuest
                 case CampType.Castle:
                     SetButtonActive(antiArmorButton, true);
                     SetButtonActive(mortarButton,    true);
-                    SetButtonActive(supportButton,   true);
+                    SetButtonActive(healButton,      true);
+                    SetButtonActive(heavyButton,     true);
                     break;
             }
         }
@@ -137,22 +205,9 @@ namespace SupKonQuest
         {
             if (btn == null) return;
 
-            UnitType type = GetUnitTypeFromButton(btn);
-
-            string name;
-            int price;
-
-            UnitDefinition def = unitDatabase != null ? unitDatabase.Get(type) : null;
-            if (def != null)
-            {
-                name  = def.displayName;
-                price = def.price;
-            }
-            else
-            {
-                name  = UnitDefaults.GetName(type);
-                price = UnitDefaults.GetPrice(type);
-            }
+            UnitType type  = GetUnitTypeFromButton(btn);
+            string name    = UnitDefaults.GetName(type);
+            int price      = UnitDefaults.GetPrice(type);
 
             TMP_Text label = btn.GetComponentInChildren<TMP_Text>();
             if (label != null)
