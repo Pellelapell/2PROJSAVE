@@ -44,6 +44,8 @@ public class MainMenu : MonoBehaviour
         string savedLang = PlayerPrefs.GetString("Language", "fr");
         for (int i = 0; i < langCodes.Length; i++)
             if (langCodes[i] == savedLang) { selectedLang = i; break; }
+
+        AudioManager.Instance?.PlayMenuMusic();
     }
 
     private void OnGUI()
@@ -80,13 +82,19 @@ public class MainMenu : MonoBehaviour
         float gap  = 18f;
 
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("play"), mainBtnStyle))
+        {
+            AudioManager.Instance?.PlayClick();
             current = MenuScreen.Selection;
+        }
 
         btnY += btnH + gap;
 
         GUI.color = new Color(1f, 0.35f, 0.35f);
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("quit"), quitBtnStyle))
+        {    
+            AudioManager.Instance?.PlayClick();
             Application.Quit();
+        }
         GUI.color = Color.white;
     }
 
@@ -114,6 +122,7 @@ public class MainMenu : MonoBehaviour
             GUIStyle style = selectedLang == i ? selectedButtonStyle : buttonStyle;
             if (GUI.Button(new Rect(panelX + i * 80f, panelY, 72f, 34f), langLabels[i], style))
             {
+                AudioManager.Instance?.PlayClick();
                 selectedLang = i;
                 LocalizationManager.Instance?.LoadLanguage(langCodes[i]);
             }
@@ -128,7 +137,9 @@ public class MainMenu : MonoBehaviour
         {
             GUIStyle style = selectedMap == i ? selectedButtonStyle : buttonStyle;
             if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(mapKeys[i]), style))
+            {   AudioManager.Instance?.PlayClick();
                 selectedMap = i;
+            }
         }
         panelY += 50f;
 
@@ -139,7 +150,10 @@ public class MainMenu : MonoBehaviour
         {
             GUIStyle style = selectedAI == i ? selectedButtonStyle : buttonStyle;
             if (GUI.Button(new Rect(panelX + (i - 1) * 100f, panelY, 90f, 38f), i.ToString(), style))
+            {
+                AudioManager.Instance?.PlayClick();
                 selectedAI = i;
+            }
         }
         panelY += 50f;
 
@@ -151,7 +165,10 @@ public class MainMenu : MonoBehaviour
         {
             GUIStyle style = selectedDiff == i ? selectedButtonStyle : buttonStyle;
             if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(diffKeys[i]), style))
+            {
+                AudioManager.Instance?.PlayClick();
                 selectedDiff = i;
+            }
         }
         panelY += 62f;
 
@@ -163,6 +180,7 @@ public class MainMenu : MonoBehaviour
             Color raceCol = raceColors[i];
             GUI.color = (i == selectedRace) ? raceCol : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
             if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), raceLabels[i], selectedButtonStyle))
+                AudioManager.Instance?.PlayClick();
                 selectedRace = i;
         }
         GUI.color = Color.white;
@@ -174,11 +192,17 @@ public class MainMenu : MonoBehaviour
         float startX = (sw - totalW) * 0.5f;
 
         if (GUI.Button(new Rect(startX, panelY, bw, 50f), "← " + L("back"), buttonStyle))
+        {
+            AudioManager.Instance?.PlayClick();
             current = MenuScreen.Title;
+        }
 
         GUI.color = new Color(0.2f, 0.8f, 0.3f);
         if (GUI.Button(new Rect(startX + bw + 16f, panelY, bw, 50f), L("play") + " !", selectedButtonStyle))
+        {
+            AudioManager.Instance?.PlayClick();
             StartGame();
+        }
         GUI.color = Color.white;
     }
 
@@ -195,6 +219,7 @@ public class MainMenu : MonoBehaviour
         PlayerPrefs.SetString("Language",  langCodes[selectedLang]);
         PlayerPrefs.Save();
         string[] sceneNames = { "Classic", "Frozen_Peak", "Islands" };
+        AudioManager.Instance?.PlayGameMusic();
         SceneManager.LoadScene(sceneNames[selectedMap]);
     }
 
