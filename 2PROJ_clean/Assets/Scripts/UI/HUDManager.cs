@@ -168,7 +168,7 @@ namespace SupKonQuest
                 GUI.color = owner != null ? owner.playerColor : new Color(0.6f, 0.6f, 0.6f);
 
                 string label = owner != null
-                    ? $"{region.GetDisplayName()} → {owner.playerName} (+{region.data?.bonusGold ?? 0}g)"
+                    ? $"{region.GetDisplayName()} → {owner.playerName} (+{region.GetBonusGold()}g)"
                     : $"{region.GetDisplayName()} — {L("hud_region_free")}";
 
                 GUI.Label(new Rect(x, y, w, lineH), label, regionStyle);

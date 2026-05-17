@@ -48,7 +48,11 @@ namespace SupKonQuest
         public void MoveTo(Vector3 destination)
         {
             if (IsLocked) return;
+            MoveToForced(destination);
+        }
 
+        public void MoveToForced(Vector3 destination)
+        {
             pendingDestination = destination;
             hasPending = true;
 
