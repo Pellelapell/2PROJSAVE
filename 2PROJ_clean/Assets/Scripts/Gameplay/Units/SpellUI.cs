@@ -38,14 +38,15 @@ namespace SupKonQuest
             else
             {
                 cooldownOverlay.fillAmount = 0f;
-                cooldownText.text = "Prêt";
+                cooldownText.text = "Prï¿½t";
                 spellButton.interactable = true;
             }
         }
 
         public void ShowForUnit(UnitSpell spell)
         {
-            if (spell == null || !spell.GetComponent<UnitStats>().hasActivable)
+            UnitStats stats = spell != null ? spell.GetComponentInParent<UnitStats>() : null;
+            if (stats == null || !stats.hasActivable)
             {
                 HidePanel();
                 return;
@@ -54,8 +55,9 @@ namespace SupKonQuest
             trackedSpell = spell;
             spellPanel.SetActive(true);
 
-            UnitStats stats = spell.GetComponent<UnitStats>();
-            spellLabel.text = stats.unitType == UnitType.Heal ? "Soin" : "Boost";
+            spellLabel.text = stats.unitType == UnitType.Heal
+                ? LocalizationManager.Get("unit_heal")
+                : LocalizationManager.Get("unit_support");
 
             spellButton.onClick.RemoveAllListeners();
             spellButton.onClick.AddListener(() => trackedSpell.TryActivate());

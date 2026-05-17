@@ -88,23 +88,10 @@ namespace SupKonQuest
         {
             if (activeSiteTile == null || builderUnit == null) return;
 
-            // Builder mort → libérer
-            if (builderUnit.gameObject == null) { ReleaseBuilder(); return; }
+            // Builder mort → annuler chantier
+            if (builderUnit.gameObject == null) { CancelAndRelease(); return; }
 
-            // Arrivé sur le chantier → verrouiller
-            if (!builderLocked)
-            {
-                float dist = Vector3.Distance(builderUnit.transform.position, activeSiteTile.transform.position);
-                if (dist < 2f)
-                {
-                    builderUnit.GetComponent<UnitMovement>()?.Stop();
-                    UnitMovement mov = builderUnit.GetComponent<UnitMovement>();
-                    if (mov != null) mov.IsLocked = true;
-                    builderLocked = true;
-                }
-            }
-
-            // Construction terminée → libérer
+            // Construction terminée → libérer sans annuler
             if (BuildingManager.Instance == null || BuildingManager.Instance.GetProgress01(activeSiteTile) < 0f)
                 ReleaseBuilder();
         }
@@ -119,6 +106,13 @@ namespace SupKonQuest
             builderUnit    = null;
             activeSiteTile = null;
             builderLocked  = false;
+        }
+
+        private void CancelAndRelease()
+        {
+            if (activeSiteTile != null)
+                BuildingManager.Instance?.CancelBuild(activeSiteTile);
+            ReleaseBuilder();
         }
 
         private void LateUpdate()
@@ -154,9 +148,14 @@ namespace SupKonQuest
             if (built)
             {
                 UnitMovement mov = trackedUnit.GetComponent<UnitMovement>();
-                mov?.MoveTo(tile.transform.position);
+                if (mov != null)
+                {
+                    mov.MoveToForced(tile.transform.position);
+                    mov.IsLocked = true;
+                }
                 builderUnit    = trackedUnit;
                 activeSiteTile = tile;
+                builderLocked  = true;
                 pendingType    = null;
             }
             return built;

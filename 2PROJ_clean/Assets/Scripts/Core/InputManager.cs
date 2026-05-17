@@ -322,7 +322,7 @@ namespace SupKonQuest
                 BuilderHUD.Instance?.Hide();
                 if (spellUI != null)
                 {
-                    UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
+                    UnitSpell spell = selectedUnits[0].GetComponentInChildren<UnitSpell>();
                     if (spell != null) { spellUI.ShowForUnit(spell); return; }
                 }
             }

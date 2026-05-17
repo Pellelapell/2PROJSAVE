@@ -98,6 +98,18 @@ namespace SupKonQuest
             return false;
         }
 
+        public bool CancelBuild(HexTile tile)
+        {
+            for (int i = 0; i < queue.Count; i++)
+            {
+                if (queue[i].tile != tile) continue;
+                queue[i].tile.isOccupied = false;
+                queue.RemoveAt(i);
+                return true;
+            }
+            return false;
+        }
+
         // ── Complétion ────────────────────────────────────────────────
 
         private void Complete(Site site)

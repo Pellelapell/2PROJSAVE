@@ -132,6 +132,10 @@ namespace SupKonQuest
             UnitVisuals visuals = unitObj.GetComponent<UnitVisuals>();
             if (visuals != null) visuals.ApplyRaceVisuals();
 
+            // Auto-add UnitSpell for units with activable spells
+            if (stats != null && stats.hasActivable && unitObj.GetComponent<UnitSpell>() == null)
+                unitObj.AddComponent<UnitSpell>();
+
             UnitMovement mov = unitObj.GetComponent<UnitMovement>();
             float speed = stats != null ? stats.moveSpeed : 3.5f;
             if (mov != null)

@@ -14,8 +14,10 @@ namespace SupKonQuest
         public Vector3 center = Vector3.zero;
         public Vector3 size = new Vector3(10f, 100f, 10f);
 
-        // Rempli automatiquement par RegionManager après génération des camps
+        // Rempli automatiquement par RegionManager
         [HideInInspector] public List<Camp> camps = new List<Camp>();
+        [HideInInspector] public string nameKey = "region_default";
+        [HideInInspector] public int defaultBonusGold = 10;
 
         public bool ContainsPoint(Vector3 point)
         {
@@ -43,7 +45,14 @@ namespace SupKonQuest
             return true;
         }
 
-        public string GetDisplayName() => LocalizationManager.Get(data != null ? data.regionNameKey : "region_default");
+        public string GetDisplayName()
+        {
+            string key = (data != null && !string.IsNullOrEmpty(data.regionNameKey))
+                ? data.regionNameKey : nameKey;
+            return LocalizationManager.Get(key);
+        }
+
+        public int GetBonusGold() => (data != null && data.bonusGold > 0) ? data.bonusGold : defaultBonusGold;
 
         private void OnDrawGizmosSelected()
         {
