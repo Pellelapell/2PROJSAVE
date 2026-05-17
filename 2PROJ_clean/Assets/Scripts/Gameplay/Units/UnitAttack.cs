@@ -101,6 +101,8 @@ namespace SupKonQuest
         {
             if (target == null) return;
 
+            AudioManager.Instance?.PlayAttack();
+
             int damage = stats.attackDamage;
             if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
                 damage *= 2;
