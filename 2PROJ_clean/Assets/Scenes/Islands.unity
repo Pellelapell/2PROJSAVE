@@ -1092,6 +1092,8 @@ MonoBehaviour:
   center: {x: 30, y: 0, z: 50}
   size: {x: 60, y: 100, z: 100}
   camps: []
+  nameKey: region_default
+  defaultBonusGold: 10
 --- !u!4 &310203993
 Transform:
   m_ObjectHideFlags: 0
@@ -1739,6 +1741,7 @@ MonoBehaviour:
   transportButton: {fileID: 204842272}
   frigateButton: {fileID: 992172644}
   destroyerButton: {fileID: 1410976549}
+  spawnPointButton: {fileID: 0}
 --- !u!114 &534388193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2114,6 +2117,8 @@ MonoBehaviour:
   center: {x: 90, y: 0, z: 50}
   size: {x: 60, y: 100, z: 100}
   camps: []
+  nameKey: region_default
+  defaultBonusGold: 10
 --- !u!4 &666988622
 Transform:
   m_ObjectHideFlags: 0
@@ -2953,7 +2958,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 1879543408}
   campUIManager: {fileID: 534388192}
-  spellUI: {fileID: 0}
+  spellUI: {fileID: 118261569}
   unitLayerMask:
     serializedVersion: 2
     m_Bits: 8
@@ -3890,6 +3895,8 @@ MonoBehaviour:
   center: {x: 90, y: 0, z: 150}
   size: {x: 60, y: 100, z: 100}
   camps: []
+  nameKey: region_default
+  defaultBonusGold: 10
 --- !u!4 &1705828708
 Transform:
   m_ObjectHideFlags: 0
@@ -4507,6 +4514,8 @@ MonoBehaviour:
   center: {x: 30, y: 0, z: 150}
   size: {x: 60, y: 100, z: 100}
   camps: []
+  nameKey: region_default
+  defaultBonusGold: 10
 --- !u!4 &1946447052
 Transform:
   m_ObjectHideFlags: 0
