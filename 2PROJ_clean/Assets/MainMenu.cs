@@ -11,13 +11,13 @@ public class MainMenu : MonoBehaviour
     private int selectedAI   = 1;
     private int selectedDiff = 0;
     private int selectedLang = 0;
-    private int selectedRace = 0; // 0=Human 1=Elf 2=Demon
+    private int selectedRace = 0;
 
     private static readonly Color[] raceColors =
     {
-        new Color(0.3f, 0.5f, 1.0f),  // Human  → bleu
-        new Color(0.2f, 0.85f, 0.3f), // Elf    → vert
-        new Color(1.0f, 0.25f, 0.25f) // Demon  → rouge
+        new Color(0.3f, 0.5f, 1.0f),
+        new Color(0.2f, 0.85f, 0.3f),
+        new Color(1.0f, 0.25f, 0.25f)
     };
 
     private readonly string[] langCodes  = { "fr", "en", "es" };
@@ -26,6 +26,8 @@ public class MainMenu : MonoBehaviour
     // Options (volume 0–1)
     private float musicVolume = 1f;
     private float sfxVolume   = 1f;
+
+    private Texture2D backgroundTexture;
 
     private GUIStyle titleStyle;
     private GUIStyle subtitleStyle;
@@ -39,6 +41,9 @@ public class MainMenu : MonoBehaviour
 
     private void Awake()
     {
+        // Charge l'image depuis Assets/Resources/
+        backgroundTexture = Resources.Load<Texture2D>("background-principal");
+
         if (LocalizationManager.Instance == null)
         {
             GameObject go = new GameObject("LocalizationManager");
@@ -60,8 +65,13 @@ public class MainMenu : MonoBehaviour
     {
         InitStyles();
 
-        // Fond plein écran
-        GUI.color = new Color(0.08f, 0.08f, 0.15f);
+        // 1. Image de fond plein écran
+        if (backgroundTexture != null)
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height),
+                            backgroundTexture, ScaleMode.ScaleAndCrop);
+
+        // 2. Overlay sombre pour lisibilité
+        GUI.color = new Color(0f, 0f, 0f, 0.55f);
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
@@ -73,15 +83,20 @@ public class MainMenu : MonoBehaviour
         }
     }
 
-    // ── Écran titre ──────────────────────────────────────────────────
-
     private void DrawTitleScreen()
     {
         float sw = Screen.width;
         float sh = Screen.height;
 
+        // Ombre derrière le titre pour lisibilité
+        GUI.color = new Color(0f, 0f, 0f, 0.6f);
+        GUI.DrawTexture(new Rect(0, sh * 0.08f, sw, 140f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+
         GUI.Label(new Rect(0, sh * 0.12f, sw, 90f), "SupKonQuest", titleStyle);
-        GUI.Label(new Rect(0, sh * 0.12f + 90f, sw, 30f), "Stratégie — Conquête — Tactique", subtitleStyle);
+        GUI.Label(new Rect(0, sh * 0.12f + 90f, sw, 30f),
+                  "Stratégie — Conquête — Tactique", subtitleStyle);
 
         float btnW = 280f;
         float btnH = 58f;
@@ -114,12 +129,15 @@ public class MainMenu : MonoBehaviour
         GUI.color = Color.white;
     }
 
-    // ── Écran sélection ──────────────────────────────────────────────
-
     private void DrawSelectionScreen()
     {
         float sw = Screen.width;
         float sh = Screen.height;
+
+        // Ombre derrière le titre
+        GUI.color = new Color(0f, 0f, 0f, 0.6f);
+        GUI.DrawTexture(new Rect(0, sh * 0.02f, sw, 80f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
 
         GUI.Label(new Rect(0, sh * 0.04f, sw, 70f), "SupKonQuest", titleStyle);
 
@@ -196,7 +214,9 @@ public class MainMenu : MonoBehaviour
         for (int i = 0; i < raceKeys.Length; i++)
         {
             Color raceCol = raceColors[i];
-            GUI.color = (i == selectedRace) ? raceCol : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
+            GUI.color = (i == selectedRace)
+                ? raceCol
+                : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
             if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(raceKeys[i]), selectedButtonStyle))
             {
                 AudioManager.Instance?.PlayClick();
@@ -207,7 +227,7 @@ public class MainMenu : MonoBehaviour
         panelY += 50f;
 
         // Boutons Retour + Lancer
-        float bw = 200f;
+        float bw     = 200f;
         float totalW = bw * 2f + 16f;
         float startX = (sw - totalW) * 0.5f;
 
@@ -218,7 +238,8 @@ public class MainMenu : MonoBehaviour
         }
 
         GUI.color = new Color(0.2f, 0.8f, 0.3f);
-        if (GUI.Button(new Rect(startX + bw + 16f, panelY, bw, 50f), L("play") + " !", selectedButtonStyle))
+        if (GUI.Button(new Rect(startX + bw + 16f, panelY, bw, 50f),
+                       L("play") + " !", selectedButtonStyle))
         {
             AudioManager.Instance?.PlayClick();
             StartGame();
@@ -278,6 +299,7 @@ public class MainMenu : MonoBehaviour
 
     // ── Helpers ──────────────────────────────────────────────────────
 
+
     private static string L(string key) => LocalizationManager.Get(key);
 
     private void StartGame()
@@ -293,8 +315,6 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene(sceneNames[selectedMap]);
     }
 
-    // ── Styles ───────────────────────────────────────────────────────
-
     private void InitStyles()
     {
         if (titleStyle != null) return;
@@ -304,21 +324,22 @@ public class MainMenu : MonoBehaviour
             fontSize  = 62,
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleCenter,
-            normal    = { textColor = new Color(0.9f, 0.75f, 0.2f) }
+            normal    = { textColor = new Color(1f, 0.85f, 0.2f) }
         };
 
         subtitleStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize  = 14,
+            fontSize  = 16,
+            fontStyle = FontStyle.Italic,
             alignment = TextAnchor.MiddleCenter,
-            normal    = { textColor = new Color(0.55f, 0.55f, 0.65f) }
+            normal    = { textColor = new Color(1f, 1f, 1f) }
         };
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize  = 16,
+            fontSize  = 18,
             fontStyle = FontStyle.Bold,
-            normal    = { textColor = new Color(0.8f, 0.8f, 0.8f) }
+            normal    = { textColor = new Color(1f, 0.85f, 0.2f) }
         };
 
         sliderLabelStyle = new GUIStyle(GUI.skin.label)
@@ -329,34 +350,35 @@ public class MainMenu : MonoBehaviour
 
         mainBtnStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize  = 18,
+            fontSize  = 22,
             fontStyle = FontStyle.Bold,
-            normal    = { textColor = Color.white }
+            normal    = { textColor = new Color(1f, 0.85f, 0.2f) }
         };
 
         quitBtnStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize  = 18,
+            fontSize  = 22,
             fontStyle = FontStyle.Bold,
             normal    = { textColor = Color.white }
         };
 
         buttonStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize = 14,
-            normal   = { textColor = Color.white }
+            fontSize  = 15,
+            fontStyle = FontStyle.Bold,
+            normal    = { textColor = new Color(0.85f, 0.85f, 0.85f) }
         };
 
         selectedButtonStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize  = 14,
+            fontSize  = 15,
             fontStyle = FontStyle.Bold,
-            normal    = { textColor = Color.yellow }
+            normal    = { textColor = new Color(1f, 0.85f, 0.1f) }
         };
 
         panelStyle = new GUIStyle(GUI.skin.box)
         {
-            normal = { background = MakeTex(1, 1, new Color(0.15f, 0.15f, 0.25f, 0.9f)) }
+            normal = { background = MakeTex(1, 1, new Color(0.05f, 0.03f, 0.0f, 0.92f)) }
         };
     }
 
