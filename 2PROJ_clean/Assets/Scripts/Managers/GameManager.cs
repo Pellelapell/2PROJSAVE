@@ -9,7 +9,8 @@ namespace SupKonQuest
         public static GameManager Instance { get; private set; }
 
         [Header("Players")]
-        public PlayerData[] players;
+        public PlayerData[] players;          // assigné dans l'éditeur, ne pas modifier à runtime
+        [System.NonSerialized] public PlayerData[] activePlayers; // liste filtrée à runtime
         public int localPlayerId = 1;
 
         [Header("Camps")]
@@ -31,11 +32,11 @@ namespace SupKonQuest
 
         private void Start()
         {
-            // Ne garder que les joueurs dont le GameObject est actif (set par GameBootstrap)
-            System.Collections.Generic.List<PlayerData> active = new System.Collections.Generic.List<PlayerData>();
+            // Filtrer dans activePlayers sans toucher au tableau sérialisé (évite ObjectDisposedException éditeur)
+            var active = new System.Collections.Generic.List<PlayerData>();
             foreach (PlayerData p in players)
                 if (p != null && p.gameObject.activeInHierarchy) active.Add(p);
-            players = active.ToArray();
+            activePlayers = active.ToArray();
 
             AssignCampsByCorner();
             gameStarted = true;
@@ -52,16 +53,16 @@ namespace SupKonQuest
                 return;
             }
 
-            for (int i = 0; i < players.Length; i++)
+            for (int i = 0; i < activePlayers.Length; i++)
             {
-                players[i].ownedCamps.Clear();
+                activePlayers[i].ownedCamps.Clear();
 
                 if (i >= corners.Length || corners[i] == null) continue;
 
                 foreach (Camp camp in corners[i])
-                    camp.SetOwner(players[i]);
+                    camp.SetOwner(activePlayers[i]);
 
-                Debug.Log($"[GameManager] {players[i].playerName} → {corners[i].Count} camp(s) coin {i}.");
+                Debug.Log($"[GameManager] {activePlayers[i].playerName} → {corners[i].Count} camp(s) coin {i}.");
             }
         }
 
@@ -91,7 +92,7 @@ namespace SupKonQuest
         private void CheckWinCondition()
         {
             List<PlayerData> alive = new List<PlayerData>();
-            foreach (PlayerData p in players)
+            foreach (PlayerData p in activePlayers)
                 if (!p.eliminated) alive.Add(p);
 
             if (alive.Count == 1)
@@ -103,7 +104,7 @@ namespace SupKonQuest
 
         public PlayerData GetPlayerById(int id)
         {
-            foreach (PlayerData player in players)
+            foreach (PlayerData player in activePlayers)
                 if (player.playerId == id) return player;
             return null;
         }

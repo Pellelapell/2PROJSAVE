@@ -4,9 +4,6 @@ using UnityEngine.AI;
 
 namespace SupKonQuest
 {
-    // Composant à ajouter sur le prefab Transport (UnitType.Transport).
-    // Permet d'embarquer des unités alliées et de les déplacer sur l'eau.
-    // Si le transport coule, les passagers sont détruits.
     [RequireComponent(typeof(UnitStats))]
     [RequireComponent(typeof(NavMeshAgent))]
     public class TransportShip : MonoBehaviour
@@ -14,8 +11,16 @@ namespace SupKonQuest
         [Header("Transport")]
         public int capacity = 6;
 
+        [Header("Auto-embark")]
+        [Tooltip("Rayon de détection pour l'embarquement automatique (m)")]
+        public float autoEmbarkRadius = 1.8f;
+
+        // Événement déclenché à la mort : liste des noms des unités perdues
+        public static event System.Action<List<string>> OnShipSunkWithPassengers;
+
         private readonly List<UnitStats> passengers = new List<UnitStats>();
         private UnitStats stats;
+        private NavMeshAgent agent;
 
         public int PassengerCount => passengers.Count;
         public bool IsFull => passengers.Count >= capacity;
@@ -24,6 +29,7 @@ namespace SupKonQuest
         private void Awake()
         {
             stats = GetComponent<UnitStats>();
+            agent = GetComponent<NavMeshAgent>();
         }
 
         private void Start()
@@ -36,6 +42,30 @@ namespace SupKonQuest
             if (stats != null) stats.OnDeath -= OnShipSunk;
         }
 
+        private void Update()
+        {
+            if (!IsFull && agent != null && agent.velocity.sqrMagnitude > 0.01f)
+                AutoEmbarkNeighbors();
+        }
+
+        // Embarquement automatique quand le transport passe près d'unités alliées terrestres
+        private void AutoEmbarkNeighbors()
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, autoEmbarkRadius);
+            foreach (Collider c in hits)
+            {
+                if (IsFull) break;
+                UnitStats unit = c.GetComponentInParent<UnitStats>();
+                if (unit == null || unit == stats) continue;
+                if (unit.ownerId != stats.ownerId) continue;
+                if (unit.unitType == UnitType.Transport ||
+                    unit.unitType == UnitType.Frigate   ||
+                    unit.unitType == UnitType.Destroyer) continue;
+                if (passengers.Contains(unit)) continue;
+                Embark(unit);
+            }
+        }
+
         // Appel depuis InputManager quand le joueur droit-clique sur ce transport avec des unités sélectionnées
         public bool Embark(UnitStats unit)
         {
@@ -44,8 +74,6 @@ namespace SupKonQuest
             if (passengers.Contains(unit)) return false;
 
             passengers.Add(unit);
-
-            // Cacher l'unité sans la détruire
             unit.gameObject.SetActive(false);
 
             NavMeshAgent unitAgent = unit.GetComponent<NavMeshAgent>();
@@ -54,14 +82,13 @@ namespace SupKonQuest
             return true;
         }
 
-        // Appel depuis InputManager quand le joueur presse E (ou droit-clique au sol depuis le transport)
+        // Débarquement sur une position walkable
         public void DisembarkAll(Vector3 targetPosition)
         {
             foreach (UnitStats unit in passengers)
             {
                 if (unit == null) continue;
 
-                // Placer l'unité autour du point de débarquement
                 Vector3 offset = Random.insideUnitSphere * 2f;
                 offset.y = 0f;
                 Vector3 spawnPos = targetPosition + offset;
@@ -82,16 +109,20 @@ namespace SupKonQuest
 
         private void OnShipSunk(UnitStats _)
         {
-            // Tous les passagers périssent avec le bateau
+            // Collecter les noms avant destruction
+            var names = new List<string>();
             foreach (UnitStats unit in passengers)
             {
-                if (unit != null)
-                    Destroy(unit.gameObject);
+                if (unit == null) continue;
+                names.Add(UnitDefaults.GetName(unit.unitType));
+                Destroy(unit.gameObject);
             }
             passengers.Clear();
+
+            if (names.Count > 0)
+                OnShipSunkWithPassengers?.Invoke(names);
         }
 
-        // Retourne un string pour l'UI : "Passagers : 3/6"
         public string GetPassengerLabel()
         {
             return $"{LocalizationManager.Get("transport_passengers")} : {passengers.Count}/{capacity}";

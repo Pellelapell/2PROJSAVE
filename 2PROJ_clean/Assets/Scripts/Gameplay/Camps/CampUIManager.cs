@@ -229,6 +229,8 @@ namespace SupKonQuest
             return UnitType.Infantry;
         }
 
+        private static string L(string key) => LocalizationManager.Get(key);
+
         private void RefreshProductionInfo()
         {
             if (selectedProduction == null)
@@ -243,11 +245,11 @@ namespace SupKonQuest
 
             if (currentUnitText != null)
                 currentUnitText.text = currentType.HasValue
-                    ? "Production : " + UnitDefaults.GetName(currentType.Value)
-                    : "Inactif";
+                    ? $"{L("hud_producing")} : {UnitDefaults.GetName(currentType.Value)}"
+                    : L("hud_idle");
 
             if (queueText != null)
-                queueText.text = "File : " + selectedProduction.GetQueueCount();
+                queueText.text = $"{L("hud_queue")} : {selectedProduction.GetQueueCount()}";
 
             if (progressBarFill != null)
                 progressBarFill.fillAmount = selectedProduction.GetProgress01();

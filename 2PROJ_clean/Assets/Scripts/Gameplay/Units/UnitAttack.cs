@@ -58,11 +58,12 @@ namespace SupKonQuest
 
         private void HandleUnitTarget()
         {
+            bool playerMoving = GetComponent<UnitMovement>()?.HasPlayerMoveOrder ?? false;
             float dist = Vector3.Distance(transform.position, currentUnitTarget.transform.position);
 
             if (dist <= stats.attackRange)
             {
-                StopMoving();
+                if (!playerMoving) StopMoving(); // ne pas interrompre un déplacement manuel
                 FaceTarget(currentUnitTarget.transform);
                 if (attackCooldown <= 0f)
                 {
@@ -72,7 +73,7 @@ namespace SupKonQuest
             }
             else if (dist <= stats.detectRange)
             {
-                MoveToward(currentUnitTarget.transform.position);
+                if (!playerMoving) MoveToward(currentUnitTarget.transform.position); // ne pas rediriger si ordre manuel
             }
             else
             {
@@ -140,11 +141,12 @@ namespace SupKonQuest
                 return;
             }
 
+            bool playerMoving = GetComponent<UnitMovement>()?.HasPlayerMoveOrder ?? false;
             float dist = Vector3.Distance(transform.position, currentCampTarget.transform.position);
 
             if (dist <= stats.attackRange)
             {
-                StopMoving();
+                if (!playerMoving) StopMoving();
                 FaceTarget(currentCampTarget.transform);
                 if (attackCooldown <= 0f)
                 {
@@ -155,10 +157,9 @@ namespace SupKonQuest
             }
             else
             {
-                // Cible manuelle : toujours avancer. Cible auto : limité au detectRange.
-                if (manualCampTarget || dist <= stats.detectRange)
+                if (!playerMoving && (manualCampTarget || dist <= stats.detectRange))
                     MoveToward(currentCampTarget.transform.position);
-                else
+                else if (!manualCampTarget)
                     currentCampTarget = null;
             }
         }

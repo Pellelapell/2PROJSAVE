@@ -2,10 +2,15 @@
   "entries": [
     {"key": "play", "value": "PLAY"},
     {"key": "quit", "value": "Quit"},
+    {"key": "back", "value": "Back"},
     {"key": "map", "value": "Map"},
     {"key": "opponents", "value": "AI Opponents"},
     {"key": "difficulty", "value": "Difficulty"},
     {"key": "language", "value": "Language"},
+    {"key": "race", "value": "Race"},
+    {"key": "race_human", "value": "Human"},
+    {"key": "race_elf", "value": "Elf"},
+    {"key": "race_demon", "value": "Demon"},
     {"key": "map_classic", "value": "Classic"},
     {"key": "map_frozen", "value": "Frozen Peaks"},
     {"key": "map_island", "value": "Islands"},
@@ -38,6 +43,8 @@
     {"key": "replay", "value": "Play Again"},
     {"key": "main_menu", "value": "Main Menu"},
     {"key": "transport_passengers", "value": "Passengers"},
+    {"key": "transport_sunk", "value": "Transport sunk!"},
+    {"key": "transport_lost_units", "value": "Lost units"},
     {"key": "spell_q", "value": "Spell [Q]"},
     {"key": "spell_active", "value": "Active"},
     {"key": "spell_cooldown", "value": "Cooldown"},
@@ -52,6 +59,7 @@
     {"key": "region_coast", "value": "Coast"},
     {"key": "group_assigned", "value": "Group {0} assigned"},
     {"key": "disembark", "value": "Disembark [E]"},
+    {"key": "disembark_refused", "value": "No accessible tile (range 5)"},
     {"key": "building_camp", "value": "Camp"},
     {"key": "building_sawmill", "value": "Sawmill"},
     {"key": "building_port", "value": "Port"},
@@ -81,6 +89,11 @@
     {"key": "damage_Magical", "value": "Magical"},
     {"key": "damage_Healing", "value": "Healing"},
     {"key": "damage_Siege", "value": "Siege"},
-    {"key": "spawn_pick_hint", "value": "Click an adjacent tile to set the spawn point"}
+    {"key": "spawn_pick_hint", "value": "Click an adjacent tile to set the spawn point"},
+    {"key": "options", "value": "Options"},
+    {"key": "options_music", "value": "Music"},
+    {"key": "options_sfx", "value": "SFX"},
+    {"key": "options_close", "value": "Resume"},
+    {"key": "options_menu", "value": "Main Menu"}
   ]
 }

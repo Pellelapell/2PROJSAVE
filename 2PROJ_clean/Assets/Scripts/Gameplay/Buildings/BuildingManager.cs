@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SupKonQuest
 {
@@ -14,7 +15,7 @@ namespace SupKonQuest
         public GameObject castlePrefab;
 
         [Header("Coûts (Or / Bois)")]
-        public int campGold    = 150; public int campWood    = 50;
+        public int campGold    = 250; public int campWood    = 80;
         public int sawmillGold = 80;  public int sawmillWood = 30;
         public int portGold    = 200; public int portWood    = 80;
         public int castleGold  = 400; public int castleWood  = 200;
@@ -68,7 +69,29 @@ namespace SupKonQuest
             if (tile.terrain == HexTerrain.Water)    return false;
             if (tile.terrain == HexTerrain.Mountain) return false;
             if (type == BuildingType.Port && !HasWaterNeighbor(tile)) return false;
+            if (!IsTileReachable(tile, owner)) return false;
             return owner.CanAfford(GoldCost(type), WoodCost(type));
+        }
+
+        // Vérifie qu'un chemin terrestre NavMesh existe depuis au moins un camp du joueur.
+        // Empêche de construire sur une île inaccessible.
+        private static bool IsTileReachable(HexTile tile, PlayerData owner)
+        {
+            int walkableMask = 1 << NavMesh.GetAreaFromName("Walkable");
+            if (walkableMask <= 0) return true; // area inconnue → pas de blocage
+
+            if (!NavMesh.SamplePosition(tile.transform.position, out NavMeshHit targetHit, 5f, walkableMask))
+                return false;
+
+            NavMeshPath path = new NavMeshPath();
+            foreach (Camp camp in owner.ownedCamps)
+            {
+                if (!NavMesh.SamplePosition(camp.transform.position, out NavMeshHit startHit, 5f, walkableMask))
+                    continue;
+                NavMesh.CalculatePath(startHit.position, targetHit.position, walkableMask, path);
+                if (path.status == NavMeshPathStatus.PathComplete) return true;
+            }
+            return false;
         }
 
         public bool TryBuild(HexTile tile, BuildingType type, PlayerData owner)
@@ -183,6 +206,42 @@ namespace SupKonQuest
                 if (nb != null && nb != tile && nb.terrain == HexTerrain.Water) return true;
             }
             return false;
+        }
+
+        // BFS sur les tuiles walkable connectées — retourne la taille de l'île.
+        // On utilise un large rayon de voisinage : les tuiles eau bloquent naturellement la BFS.
+        public static int CountIslandSize(Vector3 origin)
+        {
+            var visited = new HashSet<HexTile>();
+            var queue   = new Queue<HexTile>();
+
+            // Rayon généreux pour trouver la tuile de départ
+            Collider[] seed = Physics.OverlapSphere(origin, 8f);
+            foreach (Collider c in seed)
+            {
+                HexTile t = c.GetComponentInParent<HexTile>();
+                if (t != null && t.terrain == HexTerrain.Walkable)
+                {
+                    visited.Add(t);
+                    queue.Enqueue(t);
+                    break;
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                HexTile cur = queue.Dequeue();
+                // Rayon large : les tuiles eau sont filtrées, donc la BFS reste sur l'île
+                Collider[] neighbors = Physics.OverlapSphere(cur.transform.position, 10f);
+                foreach (Collider c in neighbors)
+                {
+                    HexTile nb = c.GetComponentInParent<HexTile>();
+                    if (nb != null && nb.terrain == HexTerrain.Walkable && visited.Add(nb))
+                        queue.Enqueue(nb);
+                }
+            }
+
+            return visited.Count;
         }
 
         private int GoldCost(BuildingType t)

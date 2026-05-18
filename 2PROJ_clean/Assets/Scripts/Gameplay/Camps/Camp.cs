@@ -68,8 +68,25 @@ namespace SupKonQuest
             if (owner != null && !owner.ownedCamps.Contains(this))
                 owner.ownedCamps.Add(this);
 
+            // Détruire les gardes neutres proches quand le camp change de main
+            if (newOwner != null)
+                DestroyNearbyNeutralGuards();
+
             UpdateCampVisual();
             GameManager.Instance?.NotifyCampCaptured(this, previousOwner);
+        }
+
+        private void DestroyNearbyNeutralGuards()
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, 8f);
+            foreach (Collider c in hits)
+            {
+                NeutralUnitAI guard = c.GetComponentInParent<NeutralUnitAI>();
+                if (guard == null) continue;
+                UnitStats gs = guard.GetComponent<UnitStats>();
+                if (gs != null && gs.ownerId == 0)
+                    Destroy(guard.gameObject);
+            }
         }
 
         public void SetSpawnPosition(Vector3 worldPos)

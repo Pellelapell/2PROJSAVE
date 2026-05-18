@@ -1669,6 +1669,7 @@ GameObject:
   - component: {fileID: 534388193}
   - component: {fileID: 534388194}
   - component: {fileID: 534388195}
+  - component: {fileID: 534388196}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1776,8 +1777,8 @@ MonoBehaviour:
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
-  neutralGuardPrefab: {fileID: 0}
-  guardsPerNeutralCamp: 2
+  neutralGuardPrefab: {fileID: 4258408347571373034, guid: 5ec93be3c3ceca948807bc47ad32148f, type: 3}
+  guardsPerNeutralCamp: 1
 --- !u!114 &534388194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1816,6 +1817,19 @@ MonoBehaviour:
     scaleRange: {x: 0, y: 1}
   placementRadius: -5
   yOffset: 0
+--- !u!114 &534388196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534388189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f22db39ed024627408b0b90873355876, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  toggleKey: 27
 --- !u!1 &602989995
 GameObject:
   m_ObjectHideFlags: 0
