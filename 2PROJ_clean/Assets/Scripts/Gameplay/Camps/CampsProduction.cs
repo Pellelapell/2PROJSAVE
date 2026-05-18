@@ -71,6 +71,14 @@ namespace SupKonQuest
         {
             if (camp == null || camp.owner == null) return false;
 
+            // Limite de population : 10 unités par camp possédé
+            int popCap = camp.owner.ownedCamps.Count * 10;
+            if (CountOwnerUnits() >= popCap)
+            {
+                Debug.Log("[Production] Limite de population atteinte");
+                return false;
+            }
+
             GameObject prefab = GetPrefab(type);
             if (prefab == null)
             {
@@ -95,6 +103,20 @@ namespace SupKonQuest
             return true;
         }
 
+        public int GetPopCap()   => camp?.owner != null ? camp.owner.ownedCamps.Count * 10 : 0;
+        public int GetPopCount() => CountOwnerUnits();
+
+        private int CountOwnerUnits()
+        {
+            if (camp == null || camp.owner == null) return 0;
+            int id = camp.owner.playerId;
+            int count = 0;
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            foreach (UnitStats us in all)
+                if (us.ownerId == id && us.gameObject.activeInHierarchy) count++;
+            return count;
+        }
+
         public void SpawnUnitInstant(UnitType type)
         {
             if (camp == null || camp.owner == null) return;
@@ -114,6 +136,13 @@ namespace SupKonQuest
             if (camp.spawnPoint != null)
                 spawnPos = camp.spawnPoint.position;
 
+            bool isNaval = entry.type == UnitType.Transport ||
+                           entry.type == UnitType.Frigate   ||
+                           entry.type == UnitType.Destroyer;
+
+            // Chercher une position valide sur le NavMesh selon le type d'unité
+            spawnPos = FindValidSpawnPosition(spawnPos, isNaval);
+
             GameObject unitObj = Instantiate(entry.prefab, spawnPos, Quaternion.identity);
 
             UnitStats stats = unitObj.GetComponent<UnitStats>();
@@ -125,14 +154,12 @@ namespace SupKonQuest
                 UnitDefaults.Apply(stats, entry.type);
             }
 
-            // Si le prefab a un NeutralUnitAI, il ne doit pas s'activer pour une unité joueur
             NeutralUnitAI neutralAI = unitObj.GetComponent<NeutralUnitAI>();
             if (neutralAI != null) neutralAI.enabled = false;
 
             UnitVisuals visuals = unitObj.GetComponent<UnitVisuals>();
             if (visuals != null) visuals.ApplyRaceVisuals();
 
-            // Auto-add UnitSpell for units with activable spells
             if (stats != null && stats.hasActivable && unitObj.GetComponent<UnitSpell>() == null)
                 unitObj.AddComponent<UnitSpell>();
 
@@ -148,12 +175,40 @@ namespace SupKonQuest
                 if (agent != null)
                 {
                     agent.enabled = false;
-                    if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 30f, NavMesh.AllAreas))
+                    int areaMask = isNaval
+                        ? NavMesh.GetAreaFromName("Water") >= 0 ? (1 << NavMesh.GetAreaFromName("Water")) : NavMesh.AllAreas
+                        : 1 << NavMesh.GetAreaFromName("Walkable");
+                    if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 30f, areaMask))
                         unitObj.transform.position = hit.position;
                     agent.enabled = true;
                     agent.speed = speed;
                 }
             }
+        }
+
+        // Cherche la tuile walkable (ou eau si naval) la plus proche dans un rayon de 15 m.
+        // Sur la map Îles, les unités terrestres refusent les îles de moins de 4 tuiles.
+        private static Vector3 FindValidSpawnPosition(Vector3 origin, bool naval)
+        {
+            HexTerrain targetTerrain = naval ? HexTerrain.Water : HexTerrain.Walkable;
+            bool islandMap = PlayerPrefs.GetInt("MapType", 0) == 2;
+            Collider[] hits = Physics.OverlapSphere(origin, 15f);
+            float bestDist = float.MaxValue;
+            Vector3 best = origin;
+
+            foreach (Collider c in hits)
+            {
+                HexTile tile = c.GetComponentInParent<HexTile>();
+                if (tile == null || tile.terrain != targetTerrain) continue;
+
+                // Map îles + unité terrestre : ignorer les îles trop petites
+                if (!naval && islandMap && BuildingManager.CountIslandSize(tile.transform.position) < 4)
+                    continue;
+
+                float d = Vector3.Distance(origin, tile.transform.position);
+                if (d < bestDist) { bestDist = d; best = tile.transform.position; }
+            }
+            return best;
         }
 
         private GameObject GetPrefab(UnitType type)

@@ -251,12 +251,27 @@ namespace SupKonQuest
             TransportShip transport = selectedUnits[0].GetComponent<TransportShip>();
             if (transport == null || transport.IsEmpty) return;
 
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            Vector3 disembarkPos = selectedUnits[0].transform.position;
-            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayerMask))
-                disembarkPos = hit.point;
+            // Chercher la tuile walkable la plus proche dans un rayon de 5 unités
+            Vector3 shipPos = selectedUnits[0].transform.position;
+            Vector3 landPos = FindNearestWalkable(shipPos, 5f);
+            if (landPos == Vector3.zero) return; // aucune case accessible, on refuse
 
-            transport.DisembarkAll(disembarkPos);
+            transport.DisembarkAll(landPos);
+        }
+
+        private static Vector3 FindNearestWalkable(Vector3 from, float range)
+        {
+            Collider[] hits = Physics.OverlapSphere(from, range);
+            float bestDist = float.MaxValue;
+            Vector3 best = Vector3.zero;
+            foreach (Collider c in hits)
+            {
+                HexTile tile = c.GetComponentInParent<HexTile>();
+                if (tile == null || tile.terrain != HexTerrain.Walkable) continue;
+                float d = Vector3.Distance(from, tile.transform.position);
+                if (d < bestDist) { bestDist = d; best = tile.transform.position; }
+            }
+            return best;
         }
 
         // ── Groupes Ctrl+1-5 ─────────────────────────────────────────

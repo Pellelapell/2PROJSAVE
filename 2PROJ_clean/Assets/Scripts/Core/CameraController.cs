@@ -36,7 +36,7 @@ namespace SupKonQuest
         {
             if (GameManager.Instance == null) return;
             PlayerData localPlayer = null;
-            foreach (PlayerData p in GameManager.Instance.players)
+            foreach (PlayerData p in GameManager.Instance.activePlayers)
                 if (!p.isAI) { localPlayer = p; break; }
             if (localPlayer == null || localPlayer.ownedCamps.Count == 0) return;
             Vector3 campPos = localPlayer.ownedCamps[0].transform.position;

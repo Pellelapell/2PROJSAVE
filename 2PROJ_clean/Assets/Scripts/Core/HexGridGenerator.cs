@@ -51,6 +51,7 @@ public class HexGridGenerator : MonoBehaviour
 
     private readonly List<HexTile> walkableTiles = new List<HexTile>();
     private readonly Dictionary<Vector2Int, HexTile> tileMap = new Dictionary<Vector2Int, HexTile>();
+    private float hexW, hexD; // taille d'une tuile en world space (après scale)
 
     public static List<Camp>[] CornerCamps { get; private set; }
     public static Bounds MapBounds { get; private set; }
@@ -65,17 +66,18 @@ public class HexGridGenerator : MonoBehaviour
 
         if (seed != 0) Random.InitState(seed);
 
-        float hexW, hexD;
         MeasureHex(out hexW, out hexD);
         GenerateGrid(hexW, hexD);
         BuildNavMesh();
+
+        // Générer les régions AVANT les camps pour garantir 1 camp neutre par région
+        if (RegionManager.Instance != null)
+            RegionManager.Instance.GenerateRegions(MapBounds);
+
         PlaceCamps();
 
         if (RegionManager.Instance != null)
-        {
-            RegionManager.Instance.GenerateRegions(MapBounds);
             RegionManager.Instance.AssignCampsToRegions();
-        }
     }
 
     // ── 1. Mesure ────────────────────────────────────────────────────
@@ -548,36 +550,65 @@ public class HexGridGenerator : MonoBehaviour
 
         if (neutralCampPrefab != null)
         {
-            // Exclure les tuiles de coins (réservées aux joueurs) et un rayon autour
+            // Espacements automatiquement adaptés à l'échelle réelle de la map.
+            // minCampDistance (inspector) est en unités world. Si la map est petite
+            // (hexScale faible), on réduit pour ne pas bloquer tout le pool.
+            float mapMin  = Mathf.Min(MapBounds.size.x, MapBounds.size.z);
+            float effDist = Mathf.Min(minCampDistance,  mapMin / Mathf.Max(neutralCampCount + 3f, 5f));
+            float effCornerExclude = Mathf.Min(minCampDistance * 2f, mapMin * 0.2f);
+
             List<HexTile> neutralPool = new List<HexTile>(walkableTiles);
             neutralPool.RemoveAll(t => used.Contains(t));
             foreach (Vector3 corner in corners)
-                neutralPool.RemoveAll(t => Vector3.Distance(t.transform.position, corner) < minCampDistance * 2f);
+                neutralPool.RemoveAll(t => Vector3.Distance(t.transform.position, corner) < effCornerExclude);
+
+            Debug.Log($"[HexGrid] neutralPool: {neutralPool.Count} tuiles candidates (effDist={effDist:F2}, cornerExcl={effCornerExclude:F2})");
 
             List<Vector3> neutralUsed = new List<Vector3>();
             int neutralPlaced = 0;
 
-            // Tirage aléatoire avec distance minimum pour disperser sur toute la map
+            // ── 1. Au moins 1 camp neutre par région ─────────────────
+            if (RegionManager.Instance != null)
+            {
+                Region[] regions = RegionManager.Instance.GetAllRegions();
+                foreach (Region region in regions)
+                {
+                    HexTile tile = FindWalkableTileInRegion(region, used, neutralUsed, effDist);
+                    if (tile == null) continue;
+
+                    Camp camp = SpawnCamp(neutralCampPrefab, tile, CampType.NeutralSpecial);
+                    if (camp != null)
+                    {
+                        neutralUsed.Add(tile.transform.position);
+                        SpawnNeutralGuards(camp, tile);
+                        neutralPlaced++;
+                        used.Add(tile);
+                    }
+                }
+            }
+
+            // ── 2. Camps neutres supplémentaires jusqu'à neutralCampCount ─
             ShuffleTiles(neutralPool);
             foreach (HexTile tile in neutralPool)
             {
                 if (neutralPlaced >= neutralCampCount) break;
+                if (used.Contains(tile)) continue;
 
                 bool tooClose = false;
                 foreach (Vector3 u in neutralUsed)
-                    if (Vector3.Distance(tile.transform.position, u) < minCampDistance) { tooClose = true; break; }
+                    if (Vector3.Distance(tile.transform.position, u) < effDist) { tooClose = true; break; }
                 if (tooClose) continue;
 
                 Camp camp = SpawnCamp(neutralCampPrefab, tile, CampType.NeutralSpecial);
                 if (camp != null)
                 {
                     neutralUsed.Add(tile.transform.position);
-                    SpawnNeutralGuards(tile.transform.position);
+                    SpawnNeutralGuards(camp, tile);
                     neutralPlaced++;
                     used.Add(tile);
                 }
             }
-            Debug.Log($"[HexGrid] {neutralPlaced} camps neutres + gardes.");
+            Debug.Log($"[HexGrid] {neutralPlaced} camps neutres placés ({RegionManager.Instance?.GetAllRegions().Length ?? 0} régions garanties).");
         }
     }
 
@@ -597,6 +628,22 @@ public class HexGridGenerator : MonoBehaviour
 
     // ── Helpers ──────────────────────────────────────────────────────
 
+    private HexTile FindWalkableTileInRegion(Region region, HashSet<HexTile> usedTiles, List<Vector3> neutralUsed, float spacing)
+    {
+        List<HexTile> candidates = new List<HexTile>();
+        foreach (HexTile t in walkableTiles)
+        {
+            if (usedTiles.Contains(t)) continue;
+            if (!region.ContainsPoint(t.transform.position)) continue;
+            bool tooClose = false;
+            foreach (Vector3 u in neutralUsed)
+                if (Vector3.Distance(t.transform.position, u) < spacing) { tooClose = true; break; }
+            if (!tooClose) candidates.Add(t);
+        }
+        ShuffleTiles(candidates);
+        return candidates.Count > 0 ? candidates[0] : null;
+    }
+
     private void RemoveTooClose(List<HexTile> pool, Vector3 center, float radius)
         => pool.RemoveAll(t => Vector3.Distance(t.transform.position, center) < radius);
 
@@ -609,17 +656,34 @@ public class HexGridGenerator : MonoBehaviour
         }
     }
 
-    private void SpawnNeutralGuards(Vector3 campPos)
+    private void SpawnNeutralGuards(Camp camp, HexTile campTile)
     {
         if (neutralGuardPrefab == null || guardsPerNeutralCamp <= 0) return;
 
-        // Collecter les tuiles walkable proches du camp (rayon 3-4 unités)
+        Vector3 campPos = campTile.transform.position;
+
+        // Tuiles proches : jusqu'à 1.5× la largeur d'une tuile (inclut la tuile du camp)
+        float guardMax = hexW * 1.5f;
+
+        float playerExclude = hexW * 3f;
+
         List<HexTile> nearby = new List<HexTile>();
         foreach (HexTile t in walkableTiles)
         {
             float dist = Vector3.Distance(t.transform.position, campPos);
-            if (dist > 0.5f && dist <= 4f)
-                nearby.Add(t);
+            if (dist > guardMax) continue;
+
+            bool tooCloseToPlayer = false;
+            if (CornerCamps != null)
+            {
+                foreach (var list in CornerCamps)
+                    foreach (Camp pc in list)
+                        if (Vector3.Distance(t.transform.position, pc.transform.position) < playerExclude)
+                        { tooCloseToPlayer = true; break; }
+                if (tooCloseToPlayer) continue;
+            }
+
+            nearby.Add(t);
         }
         ShuffleTiles(nearby);
 
@@ -631,7 +695,9 @@ public class HexGridGenerator : MonoBehaviour
             Vector3 pos = r != null
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.15f, r.bounds.center.z)
                 : tile.transform.position + Vector3.up * 0.2f;
-            Instantiate(neutralGuardPrefab, pos, Quaternion.identity);
+            GameObject obj = Instantiate(neutralGuardPrefab, pos, Quaternion.identity);
+            NeutralUnitAI ai = obj.GetComponent<NeutralUnitAI>();
+            if (ai != null) ai.SetGuardedCamp(camp);
             spawned++;
         }
     }

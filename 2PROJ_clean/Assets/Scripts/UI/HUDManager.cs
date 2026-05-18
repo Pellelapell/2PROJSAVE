@@ -15,14 +15,25 @@ namespace SupKonQuest
         private GUIStyle regionStyle;
         private GUIStyle endStyle;
         private GUIStyle btnStyle;
+        private GUIStyle sunkStyle;
 
         private bool showEndScreen;
         private bool localPlayerWon;
 
-        private const float PanelWidth  = 240f;
-        private const float RowHeight   = 62f;
+        // Notification transport coulé
+        private List<string> sunkPassengers;
+        private float sunkNotifTimer;
+        private const float SunkNotifDuration = 6f;
+
+        // Population (mise à jour 1×/s pour limiter FindObjectsByType)
+        private int cachedPop;
+        private int cachedPopCap;
+        private float popRefreshTimer;
+
+        private const float PanelWidth   = 240f;
+        private const float RowHeight    = 62f;
         private const float HeaderHeight = 28f;
-        private const float Margin      = 10f;
+        private const float Margin       = 10f;
 
         private void Start()
         {
@@ -32,18 +43,57 @@ namespace SupKonQuest
 
             if (gameManager != null)
                 gameManager.OnGameOver += HandleGameOver;
+
+            TransportShip.OnShipSunkWithPassengers += HandleShipSunk;
         }
 
         private void OnDestroy()
         {
             if (gameManager != null)
                 gameManager.OnGameOver -= HandleGameOver;
+
+            TransportShip.OnShipSunkWithPassengers -= HandleShipSunk;
+        }
+
+        private void Update()
+        {
+            if (sunkNotifTimer > 0f)
+                sunkNotifTimer -= Time.deltaTime;
+
+            popRefreshTimer -= Time.deltaTime;
+            if (popRefreshTimer <= 0f)
+            {
+                popRefreshTimer = 1f;
+                RefreshPopCount();
+            }
+        }
+
+        private void RefreshPopCount()
+        {
+            if (gameManager == null) return;
+            PlayerData local = null;
+            foreach (PlayerData p in gameManager.activePlayers)
+                if (!p.isAI) { local = p; break; }
+            if (local == null) return;
+
+            cachedPopCap = local.ownedCamps.Count * 10;
+            int count = 0;
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            foreach (UnitStats us in all)
+                if (us.ownerId == local.playerId && us.gameObject.activeInHierarchy) count++;
+            cachedPop = count;
         }
 
         private void HandleGameOver(PlayerData winner)
         {
-            showEndScreen   = true;
-            localPlayerWon  = winner.playerId == gameManager.localPlayerId;
+            showEndScreen  = true;
+            localPlayerWon = winner.playerId == gameManager.localPlayerId;
+        }
+
+        private void HandleShipSunk(List<string> unitNames)
+        {
+            sunkPassengers  = unitNames;
+            sunkNotifTimer  = SunkNotifDuration;
         }
 
         private void OnGUI()
@@ -55,6 +105,9 @@ namespace SupKonQuest
             DrawLeaderboard();
             DrawUnitStats();
 
+            if (sunkNotifTimer > 0f && sunkPassengers != null && sunkPassengers.Count > 0)
+                DrawSunkNotification();
+
             if (showEndScreen)
                 DrawEndScreen();
         }
@@ -64,12 +117,12 @@ namespace SupKonQuest
         private void DrawTopBar()
         {
             PlayerData local = null;
-            foreach (PlayerData p in gameManager.players)
+            foreach (PlayerData p in gameManager.activePlayers)
                 if (!p.isAI) { local = p; break; }
             if (local == null) return;
 
             float barH = 32f;
-            float barW = Screen.width * 0.5f;
+            float barW = Screen.width * 0.65f;
             float barX = (Screen.width - barW) * 0.5f;
 
             GUI.color = new Color(0f, 0f, 0f, 0.7f);
@@ -78,7 +131,6 @@ namespace SupKonQuest
 
             float cx = barX + 10f;
 
-            // Or
             GUI.color = new Color(1f, 0.85f, 0.2f);
             GUI.Label(new Rect(cx, 6f, 140f, 22f), $"{L("hud_gold")} : {local.money}", titleStyle);
             cx += 150f;
@@ -88,19 +140,22 @@ namespace SupKonQuest
             cx += 150f;
 
             GUI.color = local.playerColor;
-            GUI.Label(new Rect(cx, 6f, 160f, 22f), $"{L("hud_camps")} : {local.ownedCamps.Count}", titleStyle);
+            GUI.Label(new Rect(cx, 6f, 130f, 22f), $"{L("hud_camps")} : {local.ownedCamps.Count}", titleStyle);
+            cx += 140f;
+
+            Color popColor = cachedPop >= cachedPopCap ? new Color(1f, 0.35f, 0.35f) : new Color(0.7f, 1f, 0.7f);
+            GUI.color = popColor;
+            GUI.Label(new Rect(cx, 6f, 130f, 22f), $"Pop : {cachedPop}/{cachedPopCap}", titleStyle);
 
             GUI.color = Color.white;
 
-            // Bouton langue (coin haut-droit)
+            // Bouton langue (coin haut-droit) : cycle FR → EN → ES → FR
             if (LocalizationManager.Instance != null)
             {
-                string langLabel = LocalizationManager.Instance.CurrentLanguage == "fr" ? "EN" : "FR";
-                if (GUI.Button(new Rect(Screen.width - 52f, 4f, 44f, 24f), langLabel, titleStyle))
-                {
-                    string next = LocalizationManager.Instance.CurrentLanguage == "fr" ? "en" : "fr";
+                string cur = LocalizationManager.Instance.CurrentLanguage;
+                string next = cur == "fr" ? "en" : cur == "en" ? "es" : "fr";
+                if (GUI.Button(new Rect(Screen.width - 52f, 4f, 44f, 24f), next.ToUpper(), titleStyle))
                     LocalizationManager.Instance.LoadLanguage(next);
-                }
             }
         }
 
@@ -108,16 +163,16 @@ namespace SupKonQuest
 
         private void DrawLeaderboard()
         {
-            float rowH    = 40f;
-            float panelHeight = HeaderHeight + gameManager.players.Length * rowH + Margin;
+            float rowH = 40f;
+            float panelHeight = HeaderHeight + gameManager.activePlayers.Length * rowH + Margin;
             float x = Screen.width - PanelWidth - Margin;
-            float y = Margin + 40f; // décalé sous la top bar
+            float y = Margin + 40f;
 
             GUI.Box(new Rect(x - 5, y - 5, PanelWidth + 10, panelHeight), "", boxStyle);
             GUI.Label(new Rect(x, y, PanelWidth, HeaderHeight), L("hud_title"), titleStyle);
             y += HeaderHeight;
 
-            foreach (PlayerData player in gameManager.players)
+            foreach (PlayerData player in gameManager.activePlayers)
             {
                 Color prev = GUI.color;
                 GUI.color = player.eliminated ? new Color(0.5f, 0.5f, 0.5f) : player.playerColor;
@@ -154,7 +209,6 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, lineH), L("hud_regions"), titleStyle);
             y += lineH;
 
-            // Note sur le bonus de combat
             GUIStyle noteStyle = new GUIStyle(rowStyle) { fontSize = 10 };
             GUI.color = new Color(1f, 1f, 0.5f);
             GUI.Label(new Rect(x, y, w, lineH), $"  {L("hud_region_bonus")}", noteStyle);
@@ -191,7 +245,6 @@ namespace SupKonQuest
 
             GUI.Box(new Rect(x - 5, y - 5, w + 10, h + 10), "", boxStyle);
 
-            // Titre : type + propriétaire
             PlayerData owner = GameManager.Instance?.GetPlayerById(u.ownerId);
             Color prev = GUI.color;
             GUI.color = owner != null ? owner.playerColor : Color.white;
@@ -209,7 +262,6 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y + 2f, w, 20f), $"  {u.currentHealth} / {u.maxHealth}", rowStyle);
             y += 24f;
 
-            // Stats
             GUI.color = Color.white;
             GUI.Label(new Rect(x, y,       w * 0.5f, 18f), $"  {L("hud_damage")} : {u.attackDamage}", rowStyle);
             GUI.Label(new Rect(x + w*0.5f, y, w*0.5f, 18f), $"{L("hud_speed")} : {u.moveSpeed:F1}", rowStyle);
@@ -221,7 +273,6 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_type")} : {dmgType}{(u.isAOE ? "  [AOE]" : "")}", rowStyle);
             y += 18f;
 
-            // Bonus région
             bool inRegion = RegionManager.Instance != null && RegionManager.Instance.IsInOwnedRegion(u.transform.position, u.ownerId);
             if (inRegion)
             {
@@ -231,7 +282,7 @@ namespace SupKonQuest
                 y += 18f;
             }
 
-            // Passagers si transport
+            // Transport ship
             TransportShip ship = u.GetComponent<TransportShip>();
             if (ship != null)
             {
@@ -249,8 +300,8 @@ namespace SupKonQuest
                     }
                     else
                     {
-                        GUI.color = new Color(1f, 1f, 1f, 0.35f);
-                        GUI.Label(new Rect(x + w * 0.55f, y, w * 0.45f, 20f), L("disembark"), rowStyle);
+                        GUI.color = new Color(1f, 0.4f, 0.4f, 0.8f);
+                        GUI.Label(new Rect(x + w * 0.55f, y, w * 0.45f, 20f), L("disembark_refused"), rowStyle);
                         GUI.color = Color.white;
                     }
                 }
@@ -258,11 +309,39 @@ namespace SupKonQuest
             }
         }
 
+        // ── Notification transport coulé ─────────────────────────────
+
+        private void DrawSunkNotification()
+        {
+            const float w = 320f;
+            float lineH = 18f;
+            float h = 28f + sunkPassengers.Count * lineH + 8f;
+            float x = (Screen.width - w) * 0.5f;
+            float y = Screen.height * 0.3f;
+
+            float alpha = Mathf.Clamp01(sunkNotifTimer / 1.5f);
+            GUI.color = new Color(0f, 0f, 0f, 0.75f * alpha);
+            GUI.DrawTexture(new Rect(x - 8, y - 8, w + 16, h + 16), Texture2D.whiteTexture);
+            GUI.color = new Color(1f, 0.3f, 0.3f, alpha);
+            GUI.Label(new Rect(x, y, w, 26f), $"⚓ {L("transport_sunk")}", sunkStyle ?? titleStyle);
+            y += 28f;
+
+            GUI.color = new Color(1f, 0.85f, 0.85f, alpha);
+            GUI.Label(new Rect(x, y, w, lineH), $"  {L("transport_lost_units")} :", rowStyle);
+            y += lineH;
+
+            foreach (string name in sunkPassengers)
+            {
+                GUI.Label(new Rect(x + 10f, y, w, lineH), $"• {name}", rowStyle);
+                y += lineH;
+            }
+            GUI.color = Color.white;
+        }
+
         // ── Écran de fin ─────────────────────────────────────────────
 
         private void DrawEndScreen()
         {
-            // Fond semi-transparent plein écran
             Color prev = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.65f);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
@@ -278,21 +357,27 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, h), msg, endStyle);
         }
 
-        // ── Styles ───────────────────────────────────────────────────
+        // ── Helpers ──────────────────────────────────────────────────
 
         private static string L(string key) => LocalizationManager.Get(key);
 
+        // Retourne la position de la tuile walkable la plus proche dans un rayon donné
         private static Vector3 FindNearLand(Vector3 from, float range)
         {
             Collider[] hits = Physics.OverlapSphere(from, range);
+            float bestDist = float.MaxValue;
+            Vector3 best = Vector3.zero;
             foreach (Collider c in hits)
             {
                 HexTile tile = c.GetComponentInParent<HexTile>();
-                if (tile != null && tile.terrain == HexTerrain.Walkable)
-                    return tile.transform.position;
+                if (tile == null || tile.terrain != HexTerrain.Walkable) continue;
+                float d = Vector3.Distance(from, tile.transform.position);
+                if (d < bestDist) { bestDist = d; best = tile.transform.position; }
             }
-            return Vector3.zero;
+            return best;
         }
+
+        // ── Styles ───────────────────────────────────────────────────
 
         private void InitStyles()
         {
@@ -327,6 +412,13 @@ namespace SupKonQuest
                 fontSize  = 64,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
+            };
+
+            sunkStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize  = 15,
+                fontStyle = FontStyle.Bold,
+                normal    = { textColor = new Color(1f, 0.3f, 0.3f) }
             };
 
             btnStyle = new GUIStyle(GUI.skin.button)

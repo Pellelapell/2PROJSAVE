@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dir \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\\\\2PROJ_clean\\\\Assets\")",
-      "Bash(xargs grep -l \"NavMesh\\\\|agentType\")",
-      "Bash(Remove-Item \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\\\\2PROJ_clean\\\\Assets\\\\Scripts\\\\UI\\\\MainMenuUI.cs\" -Force)"
-    ]
-  }
-}

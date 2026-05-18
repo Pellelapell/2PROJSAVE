@@ -13,13 +13,6 @@ namespace SupKonQuest
         private bool stylesReady;
 
         private static readonly BuildingType[] Types = { BuildingType.Camp, BuildingType.Sawmill, BuildingType.Port, BuildingType.Castle };
-        private static readonly string[] Names       = { "Camp", "Scierie", "Port", "Château" };
-        private static readonly string[] Descs       = {
-            "Produit des unités terrestres",
-            "Génère du Bois chaque tick",
-            "Produit des unités navales\n(doit jouxter l'eau)",
-            "Produit des unités d'élite\n(Chevalier, Paladin, Mage, Catapulte)"
-        };
 
         private void Awake()
         {
@@ -54,15 +47,15 @@ namespace SupKonQuest
 
             foreach (BuildingType type in Types)
             {
-                int idx = System.Array.IndexOf(Types, type);
                 var (gold, wood) = BuildingManager.Instance.GetCost(type);
                 bool canBuild = BuildingManager.Instance.CanBuild(selectedTile, type, localPlayer);
                 GUIStyle style = canBuild ? btnStyle : disabledStyle;
+                string typeKey = type.ToString().ToLower();
 
                 // Fond du bouton
                 GUI.Box(new Rect(x, y, w, lineH - 4f), GUIContent.none, panelStyle);
-                GUI.Label(new Rect(x + 6, y + 2,  w - 12, 20f), Names[idx], titleStyle);
-                GUI.Label(new Rect(x + 6, y + 20f, w - 12, 16f), Descs[idx], costStyle);
+                GUI.Label(new Rect(x + 6, y + 2,  w - 12, 20f), LocalizationManager.Get("building_" + typeKey), titleStyle);
+                GUI.Label(new Rect(x + 6, y + 20f, w - 12, 16f), LocalizationManager.Get("builder_desc_" + typeKey), costStyle);
 
                 GUI.color = new Color(1f, 0.85f, 0.2f);
                 GUI.Label(new Rect(x + 6, y + 46f, 130f, 18f), $"Or: {gold}  Bois: {wood}", costStyle);
@@ -91,7 +84,7 @@ namespace SupKonQuest
         private PlayerData FindLocalPlayer()
         {
             if (GameManager.Instance == null) return null;
-            foreach (PlayerData p in GameManager.Instance.players)
+            foreach (PlayerData p in GameManager.Instance.activePlayers)
                 if (!p.isAI) return p;
             return null;
         }
