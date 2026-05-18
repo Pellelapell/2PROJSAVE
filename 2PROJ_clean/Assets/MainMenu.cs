@@ -38,7 +38,7 @@ public class MainMenu : MonoBehaviour
 
     private void Awake()
     {
-        // Charge l'image depuis Assets/UI/
+        // Charge l'image depuis Assets/Resources/
         backgroundTexture = Resources.Load<Texture2D>("background-principal");
 
         if (LocalizationManager.Instance == null)
@@ -267,9 +267,9 @@ public class MainMenu : MonoBehaviour
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize  = 16,
+            fontSize  = 18,
             fontStyle = FontStyle.Bold,
-            normal    = { textColor = new Color(1f, 0.95f, 0.7f) }
+            normal    = { textColor = new Color(1f, 0.85f, 0.2f) }
         };
 
         mainBtnStyle = new GUIStyle(GUI.skin.button)
@@ -288,20 +288,21 @@ public class MainMenu : MonoBehaviour
 
         buttonStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize = 14,
-            normal   = { textColor = Color.white }
+            fontSize  = 15,
+            fontStyle = FontStyle.Bold,
+            normal    = { textColor = new Color(0.85f, 0.85f, 0.85f) }
         };
 
         selectedButtonStyle = new GUIStyle(GUI.skin.button)
         {
-            fontSize  = 14,
+            fontSize  = 15,
             fontStyle = FontStyle.Bold,
-            normal    = { textColor = Color.yellow }
+            normal    = { textColor = new Color(1f, 0.85f, 0.1f) }
         };
 
         panelStyle = new GUIStyle(GUI.skin.box)
         {
-            normal = { background = MakeTex(1, 1, new Color(0.05f, 0.05f, 0.1f, 0.88f)) }
+            normal = { background = MakeTex(1, 1, new Color(0.05f, 0.03f, 0.0f, 0.92f)) }
         };
     }
 
