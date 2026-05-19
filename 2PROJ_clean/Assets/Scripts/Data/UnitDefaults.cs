@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SupKonQuest
 {
@@ -18,16 +19,25 @@ namespace SupKonQuest
 
         private static readonly Dictionary<UnitType, Def> Data = new Dictionary<UnitType, Def>
         {
-            [UnitType.Infantry]  = new Def { hp=60,  damage=8,  price=50,  attackSpeed=1f,    range=1.5f, moveSpeed=4f,   buildTime=3f,  damageType=DamageType.Physical, displayName="Infanterie" },
-            [UnitType.Support]   = new Def { hp=50,  damage=5,  price=40,  attackSpeed=1f,    range=1.5f, moveSpeed=4f,   buildTime=2f,  damageType=DamageType.Physical, hasActivable=true, spellDuration=5f,  spellCooldown=10f, displayName="Soutien" },
-            [UnitType.Heal]      = new Def { hp=50,  damage=0,  price=60,  attackSpeed=0.5f,  range=4f,   moveSpeed=4f,   buildTime=3f,  damageType=DamageType.Healing,  hasActivable=true, spellDuration=5f,  spellCooldown=12f, displayName="Soigneur" },
-            [UnitType.Range]     = new Def { hp=40,  damage=12, price=60,  attackSpeed=0.8f,  range=5f,   moveSpeed=3.5f, buildTime=3f,  damageType=DamageType.Physical, displayName="Archer" },
-            [UnitType.Heavy]     = new Def { hp=120, damage=10, price=80,  attackSpeed=0.7f,  range=1.5f, moveSpeed=2.5f, buildTime=5f,  damageType=DamageType.Physical, displayName="Lourd" },
-            [UnitType.AntiArmor] = new Def { hp=50,  damage=15, price=70,  attackSpeed=0.6f,  range=3f,   moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Piercing, displayName="Anti-Armure" },
-            [UnitType.Mortar]    = new Def { hp=60,  damage=35, price=90,  attackSpeed=0.35f, range=7f,   moveSpeed=2.5f, buildTime=6f,  damageType=DamageType.Siege,    isAOE=true, aoeRadius=2.5f, aoeFalloff=0.6f, displayName="Mortier" },
-            [UnitType.Transport] = new Def { hp=80,  damage=0,  price=80,  attackSpeed=0f,    range=0f,   moveSpeed=4f,   buildTime=8f,  damageType=DamageType.Physical, displayName="Transport" },
-            [UnitType.Frigate]   = new Def { hp=100, damage=15, price=100, attackSpeed=0.9f,  range=4f,   moveSpeed=3f,   buildTime=8f,  damageType=DamageType.Physical, displayName="Frégate" },
-            [UnitType.Destroyer] = new Def { hp=150, damage=25, price=130, attackSpeed=0.7f,  range=5f,   moveSpeed=3.5f, buildTime=12f, damageType=DamageType.Physical, displayName="Destroyer" },
+            // ── Unités terrestres ──────────────────────────────────────────────────────────────
+            // Infantry: solide et polyvalent, base de toute armée
+            [UnitType.Infantry]  = new Def { hp=80,  damage=10, price=50,  attackSpeed=1.00f, range=1.5f, moveSpeed=4.0f, buildTime=4f,  damageType=DamageType.Physical, displayName="Infanterie" },
+            // Support: fragile mais booste les alliés avec son sort actif
+            [UnitType.Support]   = new Def { hp=60,  damage=6,  price=45,  attackSpeed=0.80f, range=2.0f, moveSpeed=4.0f, buildTime=3f,  damageType=DamageType.Physical, hasActivable=true, spellDuration=5f,  spellCooldown=15f, displayName="Soutien" },
+            // Heal: soigne les alliés, aucune attaque
+            [UnitType.Heal]      = new Def { hp=55,  damage=0,  price=55,  attackSpeed=0.50f, range=4.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Healing,  hasActivable=true, spellDuration=6f,  spellCooldown=12f, displayName="Soigneur" },
+            // Range: longue portée, fragile; contre infanterie et support
+            [UnitType.Range]     = new Def { hp=45,  damage=14, price=65,  attackSpeed=0.75f, range=5.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Physical, displayName="Archer" },
+            // Heavy: tank lent avec réduction 30% des dégâts physiques
+            [UnitType.Heavy]     = new Def { hp=150, damage=12, price=85,  attackSpeed=0.65f, range=1.5f, moveSpeed=2.0f, buildTime=6f,  damageType=DamageType.Physical, displayName="Lourd" },
+            // AntiArmor: perce les tanks (x2 vs Heavy), moins efficace ailleurs
+            [UnitType.AntiArmor] = new Def { hp=55,  damage=18, price=75,  attackSpeed=0.55f, range=3.5f, moveSpeed=3.0f, buildTime=5f,  damageType=DamageType.Piercing, displayName="Anti-Armure" },
+            // Mortar: AOE dévastateur mais lent et cher; nécessite protection
+            [UnitType.Mortar]    = new Def { hp=55,  damage=30, price=100, attackSpeed=0.30f, range=8.0f, moveSpeed=2.0f, buildTime=7f,  damageType=DamageType.Siege,    isAOE=true, aoeRadius=2.5f, aoeFalloff=0.5f, displayName="Mortier" },
+            // ── Unités navales ─────────────────────────────────────────────────────────────────
+            [UnitType.Transport] = new Def { hp=100, damage=0,  price=90,  attackSpeed=0f,    range=0f,   moveSpeed=3.5f, buildTime=10f, damageType=DamageType.Physical, displayName="Transport" },
+            [UnitType.Frigate]   = new Def { hp=110, damage=18, price=110, attackSpeed=0.80f, range=5.0f, moveSpeed=3.0f, buildTime=9f,  damageType=DamageType.Physical, displayName="Frégate" },
+            [UnitType.Destroyer] = new Def { hp=200, damage=28, price=150, attackSpeed=0.65f, range=6.0f, moveSpeed=3.5f, buildTime=14f, damageType=DamageType.Physical, displayName="Destroyer" },
         };
 
         public static void Apply(UnitStats stats, UnitType type)
@@ -50,6 +60,42 @@ namespace SupKonQuest
             stats.spellCooldown         = d.spellCooldown;
             stats.price                 = d.price;
             stats.attackSpeedMultiplier = 1f;
+            ApplyRaceBonus(stats, type);
+        }
+
+        // ── Bonus raciaux ─────────────────────────────────────────────
+        // Human  – Endurance  : +10% HP ; archers et soigneurs +0.5 portée
+        // Elf    – Agilité    : +20% vitesse ; +0.5 portée ; soigneur -20% cooldown
+        // Demon  – Berserk    : +20% dégâts ; +15% vitesse d'attaque ; -10% HP
+        private static void ApplyRaceBonus(UnitStats stats, UnitType type)
+        {
+            switch (stats.race)
+            {
+                case Race.Human:
+                    stats.maxHealth     = Mathf.RoundToInt(stats.maxHealth * 1.10f);
+                    stats.currentHealth = stats.maxHealth;
+                    if (type == UnitType.Range || type == UnitType.Heal)
+                        stats.attackRange += 0.5f;
+                    stats.detectRange = stats.attackRange * 1.5f;
+                    break;
+
+                case Race.Elf:
+                    stats.moveSpeed   *= 1.20f;
+                    stats.attackRange += 0.5f;
+                    stats.detectRange  = stats.attackRange * 1.5f;
+                    if (type == UnitType.Heal)
+                        stats.spellCooldown *= 0.80f;
+                    break;
+
+                case Race.Demon:
+                    stats.attackDamage  = Mathf.RoundToInt(stats.attackDamage * 1.20f);
+                    stats.attackSpeed  *= 1.15f;
+                    stats.maxHealth     = Mathf.RoundToInt(stats.maxHealth * 0.90f);
+                    stats.currentHealth = stats.maxHealth;
+                    if (type == UnitType.Mortar)
+                        stats.aoeRadius += 0.5f;
+                    break;
+            }
         }
 
         public static int    GetPrice    (UnitType type) => Data.TryGetValue(type, out Def d) ? d.price     : 50;
