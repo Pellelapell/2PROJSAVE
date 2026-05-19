@@ -174,7 +174,7 @@ public class MainMenu : MonoBehaviour
             current = MenuScreen.Options;
         }
 
-        btnY += btnH + 22f; // Correction : 'gap' n'était pas défini, remplacé par une valeur fixe
+        btnY += btnH + 22f; 
 
         GUI.color = new Color(1f, 0.35f, 0.35f);
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("quit"), quitBtnStyle))
