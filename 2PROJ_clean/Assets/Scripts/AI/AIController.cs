@@ -3,6 +3,10 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
+    // AoE-style AI: Economy → Military → Attack phases with difficulty scaling.
+    // Difficulty 0 (Easy)   : slow, infantry-only, chaotic attacks, no buildings.
+    // Difficulty 1 (Medium) : sawmill + port on island maps, mixed army, smart targeting.
+    // Difficulty 2 (Hard)   : full building tree, counters enemy comp, transports, defenders.
     public class AIController : MonoBehaviour
     {
         [Header("Player")]
@@ -11,58 +15,233 @@ namespace SupKonQuest
         [Header("Difficulty")]
         [Range(0, 2)] public int difficultyLevel = 0;
 
-        private float thinkTimer;
-        private GameManager gameManager;
+        // ── Difficulty tables ────────────────────────────────────────
+        private static readonly float[] ThinkDelay      = { 6.0f, 3.0f, 1.5f };
+        private static readonly int[]   MaxUnits        = { 8,   16,   26   };
+        private static readonly int[]   MaxQueue        = { 1,    2,    4   };
+        // Seuil d'attaque = AttackBase + ownedCamps.Count (IA attend d'être vraiment forte)
+        private static readonly int[]   AttackBase      = { 8,    6,    4   };
+        private static readonly float[] AttackCooldown  = { 40f, 25f, 14f  };
+        private static readonly int[]   MaxSawmills     = { 0,    1,    2   };
+        // Durée minimale de la phase économique avant de passer à Military
+        private static readonly float[] EconomyMinTime  = { 999f, 60f, 40f }; // Easy ne passe jamais en mode bâtiments
 
-        // ── Paramètres par difficulté ────────────────────────────────
-        // 0=Facile  1=Moyen  2=Difficile
-        private static readonly int[]   attackThreshold = { 5, 3, 2 };
-        private static readonly int[]   maxQueue        = { 1, 3, 5 };
-        private static readonly int[]   maxUnits        = { 6, 14, 22 };
-        private static readonly float[] thinkDelay      = { 5f, 2.5f, 1.2f };
+        // ── State ────────────────────────────────────────────────────
+        private float thinkTimer;
+        private float attackCooldownLeft;
+        private float economyTimer;     // temps passé en phase Economy
+        private GameManager gameManager;
+        private bool isIslandMap;
+
+        private enum Phase { Economy, Military, Attack }
+        private Phase phase = Phase.Economy;
+
+        // ── Init ─────────────────────────────────────────────────────
 
         private void Start()
         {
-            gameManager = GameManager.Instance;
-            thinkTimer  = Random.Range(0f, thinkDelay[difficultyLevel]);
+            gameManager  = GameManager.Instance;
+            thinkTimer   = Random.Range(0f, ThinkDelay[difficultyLevel]);
+            isIslandMap  = PlayerPrefs.GetInt("MapType", 0) == (int)MapType.Island;
         }
 
         private void Update()
         {
             if (gameManager == null || gameManager.gameOver || player == null || player.eliminated) return;
+            if (attackCooldownLeft > 0f) attackCooldownLeft -= Time.deltaTime;
+            if (phase == Phase.Economy) economyTimer += Time.deltaTime;
 
             thinkTimer -= Time.deltaTime;
             if (thinkTimer > 0f) return;
-            thinkTimer = thinkDelay[difficultyLevel];
+            thinkTimer = ThinkDelay[difficultyLevel] + Random.Range(-0.4f, 0.6f);
 
-            // Facile : pas de bâtiments, attaque naïve
-            // Moyen  : scierie seulement
-            // Difficile : tout construit
-            if (difficultyLevel >= 1) TryBuildSawmill();
-            if (difficultyLevel >= 2) TryBuildCastle();
-            if (difficultyLevel >= 2) TryBuildPort();
-
-            ProduceUnits();
-            GiveOrders();
+            Think();
         }
 
-        // ── Construction ─────────────────────────────────────────────
+        // ── AI brain ─────────────────────────────────────────────────
+
+        private void Think()
+        {
+            // Medium/Hard: defend camps that are being attacked before doing anything else
+            if (difficultyLevel >= 1 && CheckAndDefend()) return;
+
+            UpdatePhase();
+            ProduceUnits();
+
+            switch (phase)
+            {
+                case Phase.Economy:
+                    RunEconomy();
+                    break;
+                case Phase.Military:
+                    RunMilitary();
+                    break;
+                case Phase.Attack:
+                    RunAttack();
+                    break;
+            }
+
+            if (isIslandMap && difficultyLevel >= 1)
+                ManageTransports();
+        }
+
+        // ── Phase transitions ─────────────────────────────────────────
+
+        private void UpdatePhase()
+        {
+            int units = CountMyUnits();
+            int threshold = AttackBase[difficultyLevel] + player.ownedCamps.Count;
+
+            if (phase == Phase.Economy)
+            {
+                // Passe en Military seulement quand l'économie est établie ET le timer minimum écoulé
+                bool timerOk  = economyTimer >= EconomyMinTime[difficultyLevel];
+                bool hasSaw   = CountOwnedSawmills() > 0;
+                // Easy : passe directement en Military (pas de bâtiments, mais attaque lente)
+                bool ready = difficultyLevel == 0 || (timerOk && hasSaw) || timerOk;
+                if (ready) phase = Phase.Military;
+            }
+            else if (phase == Phase.Military)
+            {
+                if (units >= threshold && attackCooldownLeft <= 0f)
+                    phase = Phase.Attack;
+            }
+            // Attack transitions back to Military inside RunAttack
+        }
+
+        // ── Economy phase ─────────────────────────────────────────────
+
+        private void RunEconomy()
+        {
+            if (difficultyLevel >= 1) TryBuildSawmill();
+            if (difficultyLevel >= 1) TryBuildPort();
+            // Capturer les camps neutres très proches uniquement (pas de rush agressif)
+            TryCaptureNeutral(minUnits: 3, maxDistToNeutral: 18f);
+        }
+
+        // ── Military phase ────────────────────────────────────────────
+
+        private void RunMilitary()
+        {
+            if (difficultyLevel >= 1) TryBuildSawmill();
+            if (difficultyLevel >= 1) TryBuildPort();
+            if (difficultyLevel >= 2) TryBuildCastle();
+            // En phase Military : capturer les neutres seulement si on a un surplus d'unités
+            int surplus = CountMyUnits() - (AttackBase[difficultyLevel] + player.ownedCamps.Count - 2);
+            if (surplus >= 3) TryCaptureNeutral(minUnits: 4, maxDistToNeutral: 25f);
+        }
+
+        // ── Attack phase ──────────────────────────────────────────────
+
+        private void RunAttack()
+        {
+            Camp target = FindBestAttackTarget();
+            if (target == null) { phase = Phase.Military; return; }
+
+            List<UnitMovement> units = GetMyMovableUnits();
+            if (units.Count < AttackBase[difficultyLevel]) { phase = Phase.Military; return; }
+
+            // Hard: leave one defender per owned camp
+            List<UnitMovement> attackers = difficultyLevel == 2
+                ? RemoveDefenders(units)
+                : units;
+
+            if (attackers.Count == 0) { phase = Phase.Military; return; }
+
+            Vector3 dest = target.transform.position;
+            for (int i = 0; i < attackers.Count; i++)
+            {
+                attackers[i].MoveTo(dest + FormationOffset(i, attackers.Count));
+                attackers[i].GetComponent<UnitAttack>()?.SetCampTarget(target);
+            }
+
+            attackCooldownLeft = AttackCooldown[difficultyLevel];
+            phase = Phase.Military;
+        }
+
+        // ── Defense ───────────────────────────────────────────────────
+
+        private bool CheckAndDefend()
+        {
+            foreach (Camp camp in player.ownedCamps)
+            {
+                if (!IsCampUnderAttack(camp)) continue;
+
+                List<UnitMovement> units = GetMyMovableUnits();
+                foreach (UnitMovement u in units)
+                {
+                    if (Vector3.Distance(u.transform.position, camp.transform.position) > 30f) continue;
+                    u.MoveTo(camp.transform.position + FormationOffset(units.IndexOf(u), units.Count));
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool IsCampUnderAttack(Camp camp)
+        {
+            Collider[] hits = Physics.OverlapSphere(camp.transform.position, 8f);
+            foreach (Collider c in hits)
+            {
+                UnitStats us = c.GetComponent<UnitStats>();
+                if (us != null && us.ownerId != player.playerId && us.ownerId != 0)
+                    return true;
+            }
+            return false;
+        }
+
+        // ── Neutral capture ───────────────────────────────────────────
+
+        private void TryCaptureNeutral(int minUnits, float maxDistToNeutral)
+        {
+            List<UnitMovement> myUnits = GetMyMovableUnits();
+            if (myUnits.Count < minUnits) return;
+
+            Camp target = FindNearestNeutralCamp(maxDistToNeutral);
+            if (target == null) return;
+
+            myUnits.Sort((a, b) =>
+                Vector3.Distance(a.transform.position, target.transform.position)
+                    .CompareTo(Vector3.Distance(b.transform.position, target.transform.position)));
+
+            int sendCount = Mathf.Min(minUnits + 1, myUnits.Count);
+            Vector3 dest  = target.transform.position;
+            for (int i = 0; i < sendCount; i++)
+            {
+                myUnits[i].MoveTo(dest + FormationOffset(i, sendCount));
+                myUnits[i].GetComponent<UnitAttack>()?.SetCampTarget(target);
+            }
+        }
+
+        private Camp FindNearestNeutralCamp(float maxDist)
+        {
+            if (player.ownedCamps.Count == 0) return null;
+            Vector3 refPos = player.ownedCamps[0].transform.position;
+
+            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            Camp nearest = null;
+            float nearestDist = maxDist;
+            foreach (Camp c in allCamps)
+            {
+                if (!c.isNeutral) continue;
+                float d = Vector3.Distance(c.transform.position, refPos);
+                if (d < nearestDist) { nearestDist = d; nearest = c; }
+            }
+            return nearest;
+        }
+
+        // ── Building ──────────────────────────────────────────────────
 
         private void TryBuildSawmill()
         {
             if (BuildingManager.Instance == null) return;
-
-            int maxSaws = difficultyLevel; // moyen=1, difficile=2
-            if (CountOwnedSawmills() >= maxSaws) return;
+            if (CountOwnedSawmills() >= MaxSawmills[difficultyLevel]) return;
 
             foreach (Camp camp in player.ownedCamps)
             {
-                HexTile tile = FindFreeTileNear(camp.transform.position, 8f, false);
+                HexTile tile = FindFreeTileNear(camp.transform.position, 10f, requireWaterNeighbor: false);
                 if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Sawmill, player))
-                {
-                    SendInfantryTo(tile.transform.position);
                     return;
-                }
             }
         }
 
@@ -70,74 +249,260 @@ namespace SupKonQuest
         {
             if (BuildingManager.Instance == null) return;
             if (player.ownedCamps.Count < 2) return;
-
             foreach (Camp c in player.ownedCamps)
-                if (c.campType == CampType.Castle) return; // déjà un château
+                if (c.campType == CampType.Castle) return;
 
             foreach (Camp camp in player.ownedCamps)
             {
-                HexTile tile = FindFreeTileNear(camp.transform.position, 8f, false);
+                HexTile tile = FindFreeTileNear(camp.transform.position, 10f, requireWaterNeighbor: false);
                 if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Castle, player))
-                {
-                    SendInfantryTo(tile.transform.position);
                     return;
-                }
             }
         }
 
         private void TryBuildPort()
         {
             if (BuildingManager.Instance == null) return;
-
             foreach (Camp c in player.ownedCamps)
-                if (c.campType == CampType.Port) return; // déjà un port
+                if (c.campType == CampType.Port) return;
 
-            // Chercher une case côtière dans un grand rayon
             foreach (Camp camp in player.ownedCamps)
             {
-                HexTile tile = FindFreeTileNear(camp.transform.position, 20f, requireWaterNeighbor: true);
+                HexTile tile = FindFreeTileNear(camp.transform.position, 22f, requireWaterNeighbor: true);
                 if (tile != null && BuildingManager.Instance.TryBuild(tile, BuildingType.Port, player))
-                {
-                    SendInfantryTo(tile.transform.position);
                     return;
+            }
+        }
+
+        // ── Unit production ───────────────────────────────────────────
+
+        private void ProduceUnits()
+        {
+            int popCap = player.ownedCamps.Count * 10;
+            if (CountMyUnits() >= Mathf.Min(MaxUnits[difficultyLevel], popCap)) return;
+
+            EnemyCompo comp = difficultyLevel >= 2 ? AnalyzeEnemyCompo() : default;
+
+            foreach (Camp camp in player.ownedCamps)
+            {
+                CampProduction prod = camp.GetComponent<CampProduction>();
+                if (prod == null || prod.GetQueueCount() >= MaxQueue[difficultyLevel]) continue;
+                prod.Produce(ChooseUnit(camp, comp));
+            }
+        }
+
+        private struct EnemyCompo
+        {
+            public int heavy, total;
+        }
+
+        private EnemyCompo AnalyzeEnemyCompo()
+        {
+            EnemyCompo c = default;
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            foreach (UnitStats us in all)
+            {
+                if (us.ownerId == player.playerId || us.ownerId == 0) continue;
+                c.total++;
+                if (us.unitType == UnitType.Heavy) c.heavy++;
+            }
+            return c;
+        }
+
+        private UnitType ChooseUnit(Camp camp, EnemyCompo comp)
+        {
+            if (camp.campType == CampType.Port)
+            {
+                if (difficultyLevel < 2) return UnitType.Frigate;
+                float r = Random.value;
+                // Transports are only useful on island maps for cross-water assaults
+                if (isIslandMap && r < 0.30f) return UnitType.Transport;
+                if (r < 0.65f) return UnitType.Frigate;
+                return UnitType.Destroyer;
+            }
+
+            if (camp.campType == CampType.Castle)
+            {
+                // Hard: produce anti-armor when enemy has many heavies
+                bool manyHeavies = comp.total > 0 && comp.heavy > comp.total * 0.3f;
+                float r = Random.value;
+                if (difficultyLevel == 2 && manyHeavies)
+                    return r < 0.50f ? UnitType.AntiArmor : UnitType.Mortar;
+                if (r < 0.35f) return UnitType.AntiArmor;
+                if (r < 0.65f) return UnitType.Mortar;
+                if (r < 0.82f) return UnitType.Support;
+                return UnitType.Heal;
+            }
+
+            // Normal camp
+            if (difficultyLevel == 0)
+                return Random.value < 0.20f ? UnitType.Range : UnitType.Infantry;
+
+            if (difficultyLevel == 1)
+            {
+                float rv = Random.value;
+                if (rv < 0.40f) return UnitType.Infantry;
+                if (rv < 0.62f) return UnitType.Range;
+                if (rv < 0.78f) return UnitType.Heavy;
+                return UnitType.Heal;
+            }
+
+            // Hard: full mix with enemy adaptation
+            bool needAntiArmor = comp.total > 0 && comp.heavy > comp.total * 0.25f;
+            float r2 = Random.value;
+            if (needAntiArmor && r2 < 0.30f) return UnitType.AntiArmor;
+            if (r2 < 0.25f) return UnitType.Infantry;
+            if (r2 < 0.45f) return UnitType.Range;
+            if (r2 < 0.60f) return UnitType.Heavy;
+            if (r2 < 0.72f) return UnitType.AntiArmor;
+            if (r2 < 0.82f) return UnitType.Heal;
+            return UnitType.Support;
+        }
+
+        // ── Transport management (island map only) ────────────────────
+
+        private void ManageTransports()
+        {
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            foreach (UnitStats us in all)
+            {
+                if (us.ownerId != player.playerId || us.unitType != UnitType.Transport) continue;
+                TransportShip ship = us.GetComponent<TransportShip>();
+                UnitMovement  mov  = us.GetComponent<UnitMovement>();
+                if (ship == null || mov == null) continue;
+
+                if (!ship.IsEmpty)
+                {
+                    Camp target = FindBestAttackTarget();
+                    if (target == null) continue;
+
+                    Vector3 landing = FindNearWalkable(target.transform.position, 12f);
+                    if (landing == Vector3.zero) continue;
+
+                    if (Vector3.Distance(us.transform.position, landing) <= 6f)
+                        ship.DisembarkAll(landing);
+                    else
+                        mov.MoveTo(landing);
+                }
+                else
+                {
+                    // Return to port to auto-embark new troops
+                    Camp port = GetMyPort();
+                    if (port != null) mov.MoveTo(port.transform.position);
                 }
             }
         }
 
-        private void SendInfantryTo(Vector3 pos)
+        private Camp GetMyPort()
+        {
+            foreach (Camp c in player.ownedCamps)
+                if (c.campType == CampType.Port) return c;
+            return null;
+        }
+
+        // ── Target selection ──────────────────────────────────────────
+
+        private Camp FindBestAttackTarget()
+        {
+            if (player.ownedCamps.Count == 0) return null;
+            Vector3 refPos = player.ownedCamps[0].transform.position;
+
+            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            Camp best = null;
+            float bestScore = float.MaxValue;
+
+            foreach (Camp camp in allCamps)
+            {
+                if (camp.owner == player) continue;
+                float dist = Vector3.Distance(camp.transform.position, refPos);
+
+                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.55f;      // prefer neutral
+                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.20f;     // cautious vs enemy
+                if (difficultyLevel == 0 && Random.value < 0.25f) dist *= Random.Range(0.5f, 2f); // chaotic
+
+                if (dist < bestScore) { bestScore = dist; best = camp; }
+            }
+            return best;
+        }
+
+        // ── Unit helpers ──────────────────────────────────────────────
+
+        private List<UnitMovement> GetMyMovableUnits()
         {
             UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
-            float best = float.MaxValue;
-            UnitMovement bestMov = null;
-
+            var result = new List<UnitMovement>();
             foreach (UnitStats us in all)
             {
-                if (us.ownerId != player.playerId || us.unitType != UnitType.Infantry) continue;
-                float d = Vector3.Distance(us.transform.position, pos);
-                if (d < best) { best = d; bestMov = us.GetComponent<UnitMovement>(); }
+                if (us.ownerId != player.playerId) continue;
+                if (!us.gameObject.activeInHierarchy) continue; // skip embarked units
+                UnitMovement mov = us.GetComponent<UnitMovement>();
+                if (mov != null) result.Add(mov);
             }
-            bestMov?.MoveTo(pos);
+            return result;
+        }
+
+        private int CountMyUnits()
+        {
+            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            int count = 0;
+            foreach (UnitStats us in all)
+                if (us.ownerId == player.playerId && us.gameObject.activeInHierarchy) count++;
+            return count;
+        }
+
+        private List<UnitMovement> RemoveDefenders(List<UnitMovement> units)
+        {
+            var defended  = new HashSet<Camp>();
+            var attackers = new List<UnitMovement>(units);
+            foreach (UnitMovement u in units)
+            {
+                Camp nearest = NearestOwnCamp(u.transform.position);
+                if (nearest != null && !defended.Contains(nearest))
+                {
+                    defended.Add(nearest);
+                    attackers.Remove(u);
+                }
+            }
+            return attackers;
+        }
+
+        private Camp NearestOwnCamp(Vector3 pos)
+        {
+            Camp nearest = null;
+            float best = float.MaxValue;
+            foreach (Camp c in player.ownedCamps)
+            {
+                float d = Vector3.Distance(c.transform.position, pos);
+                if (d < best) { best = d; nearest = c; }
+            }
+            return nearest;
         }
 
         private int CountOwnedSawmills()
         {
             Sawmill[] saws = FindObjectsByType<Sawmill>(FindObjectsSortMode.None);
             int count = 0;
-            foreach (Sawmill s in saws) if (s.owner == player) count++;
+            foreach (Sawmill s in saws)
+                if (s.owner == player) count++;
             return count;
         }
+
+        // ── Tile helpers ──────────────────────────────────────────────
 
         private HexTile FindFreeTileNear(Vector3 center, float radius, bool requireWaterNeighbor)
         {
             Collider[] hits = Physics.OverlapSphere(center, radius);
+            float best = float.MaxValue;
+            HexTile bestTile = null;
             foreach (Collider c in hits)
             {
                 HexTile t = c.GetComponentInParent<HexTile>();
                 if (t == null || t.isOccupied || t.terrain != HexTerrain.Walkable) continue;
                 if (requireWaterNeighbor && !HasWaterNeighbor(t)) continue;
-                return t;
+                float d = Vector3.Distance(center, t.transform.position);
+                if (d < best) { best = d; bestTile = t; }
             }
-            return null;
+            return bestTile;
         }
 
         private static bool HasWaterNeighbor(HexTile tile)
@@ -151,170 +516,19 @@ namespace SupKonQuest
             return false;
         }
 
-        // ── Production d'unités ───────────────────────────────────────
-
-        private void ProduceUnits()
+        private static Vector3 FindNearWalkable(Vector3 center, float radius)
         {
-            int currentUnitCount = GetMyUnits().Count;
-            if (currentUnitCount >= maxUnits[difficultyLevel]) return;
-
-            foreach (Camp camp in player.ownedCamps)
+            Collider[] hits = Physics.OverlapSphere(center, radius);
+            float best = float.MaxValue;
+            Vector3 result = Vector3.zero;
+            foreach (Collider c in hits)
             {
-                CampProduction prod = camp.GetComponent<CampProduction>();
-                if (prod == null) continue;
-                if (prod.GetQueueCount() >= maxQueue[difficultyLevel]) continue;
-                prod.Produce(ChooseUnit(camp));
-            }
-        }
-
-        private UnitType ChooseUnit(Camp camp)
-        {
-            if (camp.campType == CampType.Port)
-            {
-                // Difficile : mix naval ; sinon juste frégate
-                if (difficultyLevel < 2) return UnitType.Frigate;
-                return Random.value < 0.6f ? UnitType.Frigate : UnitType.Destroyer;
-            }
-
-            if (camp.campType == CampType.Castle)
-            {
-                float r = Random.value;
-                if (r < 0.4f) return UnitType.AntiArmor;
-                if (r < 0.7f) return UnitType.Mortar;
-                return UnitType.Support;
-            }
-
-            // Camp normal
-            if (difficultyLevel == 0)
-            {
-                // Facile : seulement infanterie avec erreurs fréquentes
-                return Random.value < 0.15f ? UnitType.Range : UnitType.Infantry;
-            }
-
-            if (difficultyLevel == 1)
-            {
-                float rv = Random.value;
-                if (rv < 0.45f) return UnitType.Infantry;
-                if (rv < 0.70f) return UnitType.Range;
-                if (rv < 0.85f) return UnitType.Heavy;
-                return UnitType.Heal;
-            }
-
-            // Difficile : mix complet
-            float r2 = Random.value;
-            if (r2 < 0.25f) return UnitType.Infantry;
-            if (r2 < 0.45f) return UnitType.Range;
-            if (r2 < 0.60f) return UnitType.Heavy;
-            if (r2 < 0.72f) return UnitType.AntiArmor;
-            if (r2 < 0.82f) return UnitType.Mortar;
-            if (r2 < 0.90f) return UnitType.Heal;
-            return UnitType.Support;
-        }
-
-        // ── Ordres d'attaque ──────────────────────────────────────────
-
-        private void GiveOrders()
-        {
-            Camp target = FindAttackTarget();
-            if (target == null) return;
-
-            List<UnitMovement> myUnits = GetMyUnits();
-            if (myUnits.Count < attackThreshold[difficultyLevel]) return;
-
-            // Difficile : garde un défenseur par camp
-            if (difficultyLevel == 2 && player.ownedCamps.Count > 0)
-            {
-                myUnits = FilterDefenders(myUnits);
-                if (myUnits.Count == 0) return;
-            }
-
-            // Facile : chance de cibler aléatoirement (joue mal)
-            if (difficultyLevel == 0 && Random.value < 0.3f)
-                target = FindRandomEnemyCamp();
-
-            Vector3 dest  = target.transform.position;
-            int count = myUnits.Count;
-            for (int i = 0; i < count; i++)
-            {
-                myUnits[i].MoveTo(dest + FormationOffset(i, count));
-                UnitAttack atk = myUnits[i].GetComponent<UnitAttack>();
-                atk?.SetCampTarget(target);
-            }
-        }
-
-        private List<UnitMovement> GetMyUnits()
-        {
-            UnitStats[] all = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
-            List<UnitMovement> result = new List<UnitMovement>();
-            foreach (UnitStats unit in all)
-            {
-                if (unit.ownerId != player.playerId) continue;
-                UnitMovement mov = unit.GetComponent<UnitMovement>();
-                if (mov != null) result.Add(mov);
+                HexTile tile = c.GetComponentInParent<HexTile>();
+                if (tile == null || tile.terrain != HexTerrain.Walkable) continue;
+                float d = Vector3.Distance(center, tile.transform.position);
+                if (d < best) { best = d; result = tile.transform.position; }
             }
             return result;
-        }
-
-        private List<UnitMovement> FilterDefenders(List<UnitMovement> units)
-        {
-            HashSet<Camp> defended = new HashSet<Camp>();
-            List<UnitMovement> attackers = new List<UnitMovement>(units);
-            foreach (UnitMovement unit in units)
-            {
-                Camp nearest = FindNearestOwnCamp(unit.transform.position);
-                if (nearest != null && !defended.Contains(nearest))
-                {
-                    defended.Add(nearest);
-                    attackers.Remove(unit);
-                }
-            }
-            return attackers;
-        }
-
-        private Camp FindAttackTarget()
-        {
-            if (player.ownedCamps.Count == 0) return null;
-
-            Camp nearest = null;
-            float nearestScore = float.MaxValue;
-            Vector3 refPos = player.ownedCamps[0].transform.position;
-
-            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
-            foreach (Camp camp in allCamps)
-            {
-                if (camp.owner == player) continue;
-
-                float dist = Vector3.Distance(camp.transform.position, refPos);
-
-                // Moyen+ préfère les camps neutres (plus facile à capturer)
-                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.6f;
-                // Difficile : priorise moins les camps ennemis forts (prudence)
-                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.3f;
-
-                if (dist < nearestScore) { nearestScore = dist; nearest = camp; }
-            }
-            return nearest;
-        }
-
-        private Camp FindRandomEnemyCamp()
-        {
-            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
-            List<Camp> enemies = new List<Camp>();
-            foreach (Camp c in allCamps)
-                if (c.owner != player) enemies.Add(c);
-            return enemies.Count > 0 ? enemies[Random.Range(0, enemies.Count)] : null;
-        }
-
-        private Camp FindNearestOwnCamp(Vector3 pos)
-        {
-            Camp nearest = null;
-            float nearestDist = float.MaxValue;
-            foreach (Camp camp in player.ownedCamps)
-            {
-                float dist = Vector3.Distance(camp.transform.position, pos);
-                if (dist < nearestDist) { nearestDist = dist; nearest = camp; }
-            }
-            return nearest;
         }
 
         private static Vector3 FormationOffset(int i, int count)

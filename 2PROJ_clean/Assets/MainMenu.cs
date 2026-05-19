@@ -4,7 +4,7 @@ using SupKonQuest;
 
 public class MainMenu : MonoBehaviour
 {
-    private enum MenuScreen { Title, Selection }
+    private enum MenuScreen { Title, Selection, Options }
     private MenuScreen current = MenuScreen.Title;
 
     private int selectedMap  = 0;
@@ -13,8 +13,7 @@ public class MainMenu : MonoBehaviour
     private int selectedLang = 0;
     private int selectedRace = 0;
 
-    private static readonly string[] raceLabels = { "Humain", "Elfe", "Démon" };
-    private static readonly Color[]  raceColors =
+    private static readonly Color[] raceColors =
     {
         new Color(0.3f, 0.5f, 1.0f),
         new Color(0.2f, 0.85f, 0.3f),
@@ -23,6 +22,10 @@ public class MainMenu : MonoBehaviour
 
     private readonly string[] langCodes  = { "fr", "en", "es" };
     private readonly string[] langLabels = { "FR", "EN", "ES" };
+
+    // Options (volume 0–1)
+    private float musicVolume = 1f;
+    private float sfxVolume   = 1f;
 
     private Texture2D backgroundTexture;
 
@@ -48,6 +51,7 @@ public class MainMenu : MonoBehaviour
     private Texture2D texBtnPlayHover;
     private Texture2D texBtnBack;
     private Texture2D texBtnBackHover;
+    private GUIStyle sliderLabelStyle;
 
     private void Awake()
     {
@@ -63,6 +67,10 @@ public class MainMenu : MonoBehaviour
         for (int i = 0; i < langCodes.Length; i++)
             if (langCodes[i] == savedLang) { selectedLang = i; break; }
 
+        musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
+        sfxVolume   = PlayerPrefs.GetFloat("SFXVolume",   1f);
+        AudioManager.Instance?.SetMusicVolume(musicVolume);
+        AudioManager.Instance?.SetSFXVolume(sfxVolume);
         AudioManager.Instance?.PlayMenuMusic();
         GenerateTextures();
     }
@@ -120,6 +128,7 @@ public class MainMenu : MonoBehaviour
         {
             case MenuScreen.Title:     DrawTitleScreen();     break;
             case MenuScreen.Selection: DrawSelectionScreen(); break;
+            case MenuScreen.Options:   DrawOptionsScreen();   break;
         }
     }
 
@@ -156,6 +165,10 @@ public class MainMenu : MonoBehaviour
         GUI.DrawTexture(new Rect(sw * 0.1f, sh * 0.07f + 163f, sw * 0.8f, 2f), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
+        GUI.Label(new Rect(0, sh * 0.12f, sw, 90f), "SupKonQuest", titleStyle);
+        GUI.Label(new Rect(0, sh * 0.12f + 90f, sw, 30f),
+                  "Stratégie — Conquête — Tactique", subtitleStyle);
+
         DrawMedievalTitle("SupKonQuest", 0, sh * 0.09f, sw, 95f);
 
         GUI.Label(new Rect(0, sh * 0.09f + 96f, sw, 28f),
@@ -184,6 +197,15 @@ public class MainMenu : MonoBehaviour
 
         btnY += btnH + 22f;
 
+        if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("options"), mainBtnStyle))
+        {
+            AudioManager.Instance?.PlayClick();
+            current = MenuScreen.Options;
+        }
+
+        btnY += btnH + gap;
+
+        GUI.color = new Color(1f, 0.35f, 0.35f);
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("quit"), quitBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
@@ -206,6 +228,10 @@ public class MainMenu : MonoBehaviour
         GUI.color = Color.white;
 
         DrawMedievalTitle("SupKonQuest", 0, 0f, sw, 68f);
+        float panelW = 500f;
+        float panelH = 510f;
+        float panelX = (sw - panelW) / 2f;
+        float panelY = sh * 0.16f;
 
         float panelW      = 480f;
         float panelH      = 395f;
@@ -304,6 +330,16 @@ public class MainMenu : MonoBehaviour
             style.hover.background  = raceTex;
             if (GUI.Button(new Rect(panelX + i * (raceBtnW + 4f), panelY, raceBtnW, 34f),
                            raceLabels[i], style))
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("race"), labelStyle);
+        panelY += 32f;
+        string[] raceKeys = { "race_human", "race_elf", "race_demon" };
+        for (int i = 0; i < raceKeys.Length; i++)
+        {
+            Color raceCol = raceColors[i];
+            GUI.color = (i == selectedRace)
+                ? raceCol
+                : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
+            if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(raceKeys[i]), selectedButtonStyle))
             {
                 AudioManager.Instance?.PlayClick();
                 selectedRace = i;
@@ -336,6 +372,59 @@ public class MainMenu : MonoBehaviour
             StartGame();
         }
     }
+
+    // ── Écran options ─────────────────────────────────────────────────
+
+    private void DrawOptionsScreen()
+    {
+        float sw = Screen.width;
+        float sh = Screen.height;
+
+        GUI.Label(new Rect(0, sh * 0.12f, sw, 70f), L("options"), titleStyle);
+
+        float panelW = 400f;
+        float panelH = 200f;
+        float panelX = (sw - panelW) / 2f;
+        float panelY = sh * 0.38f;
+
+        GUI.Box(new Rect(panelX - 15, panelY - 15, panelW + 30, panelH + 30), "", panelStyle);
+
+        // Musique
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), $"{L("options_music")} : {Mathf.RoundToInt(musicVolume * 100f)}%", labelStyle);
+        panelY += 32f;
+        float newMusic = GUI.HorizontalSlider(new Rect(panelX, panelY, panelW, 20f), musicVolume, 0f, 1f);
+        if (!Mathf.Approximately(newMusic, musicVolume))
+        {
+            musicVolume = newMusic;
+            AudioManager.Instance?.SetMusicVolume(musicVolume);
+            PlayerPrefs.SetFloat("MusicVolume", musicVolume);
+        }
+        panelY += 36f;
+
+        // Sons
+        GUI.Label(new Rect(panelX, panelY, panelW, 28f), $"{L("options_sfx")} : {Mathf.RoundToInt(sfxVolume * 100f)}%", labelStyle);
+        panelY += 32f;
+        float newSFX = GUI.HorizontalSlider(new Rect(panelX, panelY, panelW, 20f), sfxVolume, 0f, 1f);
+        if (!Mathf.Approximately(newSFX, sfxVolume))
+        {
+            sfxVolume = newSFX;
+            AudioManager.Instance?.SetSFXVolume(sfxVolume);
+            PlayerPrefs.SetFloat("SFXVolume", sfxVolume);
+        }
+        panelY += 50f;
+
+        float bw = 220f;
+        float bx = (sw - bw) * 0.5f;
+        if (GUI.Button(new Rect(bx, panelY, bw, 50f), "← " + L("back"), buttonStyle))
+        {
+            AudioManager.Instance?.PlayClick();
+            PlayerPrefs.Save();
+            current = MenuScreen.Title;
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
 
     private static string L(string key) => LocalizationManager.Get(key);
 
@@ -377,6 +466,12 @@ public class MainMenu : MonoBehaviour
             fontSize  = 16,
             fontStyle = FontStyle.Bold,
             normal    = { textColor = new Color(1f, 0.85f, 0.2f) }
+        };
+
+        sliderLabelStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize  = 14,
+            normal    = { textColor = new Color(0.75f, 0.75f, 0.75f) }
         };
 
         mainBtnStyle = new GUIStyle(GUI.skin.button)

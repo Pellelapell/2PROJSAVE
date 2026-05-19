@@ -34,7 +34,7 @@ namespace SupKonQuest
         {
             Sawmill[] sawmills = FindObjectsByType<Sawmill>(FindObjectsSortMode.None);
 
-            foreach (PlayerData player in gameManager.players)
+            foreach (PlayerData player in gameManager.activePlayers)
             {
                 if (player.eliminated) continue;
 

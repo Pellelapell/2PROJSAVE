@@ -2,10 +2,15 @@
   "entries": [
     {"key": "play", "value": "JOUER"},
     {"key": "quit", "value": "Quitter"},
+    {"key": "back", "value": "Retour"},
     {"key": "map", "value": "Carte"},
     {"key": "opponents", "value": "Adversaires IA"},
     {"key": "difficulty", "value": "Difficulté"},
     {"key": "language", "value": "Langue"},
+    {"key": "race", "value": "Race"},
+    {"key": "race_human", "value": "Humain"},
+    {"key": "race_elf", "value": "Elfe"},
+    {"key": "race_demon", "value": "Démon"},
     {"key": "map_classic", "value": "Classique"},
     {"key": "map_frozen", "value": "Sommets Glacés"},
     {"key": "map_island", "value": "Îles"},
@@ -38,6 +43,8 @@
     {"key": "replay", "value": "Rejouer"},
     {"key": "main_menu", "value": "Menu principal"},
     {"key": "transport_passengers", "value": "Passagers"},
+    {"key": "transport_sunk", "value": "Transport coulé !"},
+    {"key": "transport_lost_units", "value": "Unités perdues"},
     {"key": "spell_q", "value": "Sort [Q]"},
     {"key": "spell_active", "value": "Actif"},
     {"key": "spell_cooldown", "value": "Rechargement"},
@@ -52,6 +59,7 @@
     {"key": "region_coast", "value": "Côte"},
     {"key": "group_assigned", "value": "Groupe {0} assigné"},
     {"key": "disembark", "value": "Débarquer [E]"},
+    {"key": "disembark_refused", "value": "Aucune case accessible (rayon 5)"},
     {"key": "building_camp", "value": "Camp"},
     {"key": "building_sawmill", "value": "Scierie"},
     {"key": "building_port", "value": "Port"},
@@ -81,6 +89,11 @@
     {"key": "damage_Magical", "value": "Magique"},
     {"key": "damage_Healing", "value": "Soin"},
     {"key": "damage_Siege", "value": "Siège"},
-    {"key": "spawn_pick_hint", "value": "Cliquez sur une case adjacente pour le point de spawn"}
+    {"key": "spawn_pick_hint", "value": "Cliquez sur une case adjacente pour le point de spawn"},
+    {"key": "options", "value": "Options"},
+    {"key": "options_music", "value": "Musique"},
+    {"key": "options_sfx", "value": "Sons"},
+    {"key": "options_close", "value": "Reprendre"},
+    {"key": "options_menu", "value": "Menu principal"}
   ]
 }

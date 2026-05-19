@@ -21,6 +21,9 @@ namespace SupKonQuest
         // Verrouillé pendant la construction : ignore les commandes de mouvement
         public bool IsLocked { get; set; }
 
+        // Vrai tant que le joueur a ordonné un déplacement manuel (non encore arrivé)
+        public bool HasPlayerMoveOrder { get; private set; }
+
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
@@ -30,6 +33,10 @@ namespace SupKonQuest
 
         private void Update()
         {
+            // Effacer l'ordre manuel dès que l'unité est arrivée à destination
+            if (HasPlayerMoveOrder && !IsMoving && !hasPending)
+                HasPlayerMoveOrder = false;
+
             if (!hasPending) return;
             if (!agent.isOnNavMesh) return;
 
@@ -48,6 +55,7 @@ namespace SupKonQuest
         public void MoveTo(Vector3 destination)
         {
             if (IsLocked) return;
+            HasPlayerMoveOrder = true;
             MoveToForced(destination);
         }
 
