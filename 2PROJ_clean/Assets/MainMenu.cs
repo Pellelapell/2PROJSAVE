@@ -77,39 +77,17 @@ public class MainMenu : MonoBehaviour
 
     private void GenerateTextures()
     {
-        texBtnNormal        = MakeMedievalTex(200, 40,
-            new Color(0.18f, 0.13f, 0.07f),
-            new Color(0.45f, 0.35f, 0.12f), 3);
-        texBtnHover         = MakeMedievalTex(200, 40,
-            new Color(0.28f, 0.20f, 0.10f),
-            new Color(0.70f, 0.55f, 0.18f), 3);
-        texBtnPressed       = MakeMedievalTex(200, 40,
-            new Color(0.12f, 0.08f, 0.04f),
-            new Color(0.40f, 0.30f, 0.10f), 3);
-        texBtnSelected      = MakeMedievalTex(200, 40,
-            new Color(0.30f, 0.20f, 0.05f),
-            new Color(0.85f, 0.65f, 0.15f), 4);
-        texBtnSelectedHover = MakeMedievalTex(200, 40,
-            new Color(0.38f, 0.26f, 0.08f),
-            new Color(1.0f,  0.80f, 0.20f), 4);
-        texBtnPlay          = MakeMedievalTex(300, 62,
-            new Color(0.08f, 0.22f, 0.08f),
-            new Color(0.60f, 0.80f, 0.20f), 5);
-        texBtnPlayHover     = MakeMedievalTex(300, 62,
-            new Color(0.12f, 0.32f, 0.12f),
-            new Color(0.75f, 1.0f,  0.25f), 5);
-        texBtnQuit          = MakeMedievalTex(300, 62,
-            new Color(0.25f, 0.06f, 0.06f),
-            new Color(0.70f, 0.15f, 0.15f), 5);
-        texBtnQuitHover     = MakeMedievalTex(300, 62,
-            new Color(0.35f, 0.09f, 0.09f),
-            new Color(0.90f, 0.20f, 0.20f), 5);
-        texBtnBack          = MakeMedievalTex(220, 52,
-            new Color(0.15f, 0.15f, 0.18f),
-            new Color(0.50f, 0.50f, 0.60f), 4);
-        texBtnBackHover     = MakeMedievalTex(220, 52,
-            new Color(0.22f, 0.22f, 0.28f),
-            new Color(0.70f, 0.70f, 0.85f), 4);
+        texBtnNormal        = MakeMedievalTex(200, 40, new Color(0.18f, 0.13f, 0.07f), new Color(0.45f, 0.35f, 0.12f), 3);
+        texBtnHover         = MakeMedievalTex(200, 40, new Color(0.28f, 0.20f, 0.10f), new Color(0.70f, 0.55f, 0.18f), 3);
+        texBtnPressed       = MakeMedievalTex(200, 40, new Color(0.12f, 0.08f, 0.04f), new Color(0.40f, 0.30f, 0.10f), 3);
+        texBtnSelected      = MakeMedievalTex(200, 40, new Color(0.30f, 0.20f, 0.05f), new Color(0.85f, 0.65f, 0.15f), 4);
+        texBtnSelectedHover = MakeMedievalTex(200, 40, new Color(0.38f, 0.26f, 0.08f), new Color(1.0f,  0.80f, 0.20f), 4);
+        texBtnPlay          = MakeMedievalTex(300, 62, new Color(0.08f, 0.22f, 0.08f), new Color(0.60f, 0.80f, 0.20f), 5);
+        texBtnPlayHover     = MakeMedievalTex(300, 62, new Color(0.12f, 0.32f, 0.12f), new Color(0.75f, 1.0f,  0.25f), 5);
+        texBtnQuit          = MakeMedievalTex(300, 62, new Color(0.25f, 0.06f, 0.06f), new Color(0.70f, 0.15f, 0.15f), 5);
+        texBtnQuitHover     = MakeMedievalTex(300, 62, new Color(0.35f, 0.09f, 0.09f), new Color(0.90f, 0.20f, 0.20f), 5);
+        texBtnBack          = MakeMedievalTex(220, 52, new Color(0.15f, 0.15f, 0.18f), new Color(0.50f, 0.50f, 0.60f), 4);
+        texBtnBackHover     = MakeMedievalTex(220, 52, new Color(0.22f, 0.22f, 0.28f), new Color(0.70f, 0.70f, 0.85f), 4);
     }
 
     private void OnGUI()
@@ -117,8 +95,7 @@ public class MainMenu : MonoBehaviour
         InitStyles();
 
         if (backgroundTexture != null)
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height),
-                            backgroundTexture, ScaleMode.ScaleAndCrop);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), backgroundTexture, ScaleMode.ScaleAndCrop);
 
         GUI.color = new Color(0f, 0f, 0f, 0.42f);
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
@@ -165,14 +142,9 @@ public class MainMenu : MonoBehaviour
         GUI.DrawTexture(new Rect(sw * 0.1f, sh * 0.07f + 163f, sw * 0.8f, 2f), Texture2D.whiteTexture);
         GUI.color = Color.white;
 
-        GUI.Label(new Rect(0, sh * 0.12f, sw, 90f), "SupKonQuest", titleStyle);
-        GUI.Label(new Rect(0, sh * 0.12f + 90f, sw, 30f),
-                  "Stratégie — Conquête — Tactique", subtitleStyle);
-
         DrawMedievalTitle("SupKonQuest", 0, sh * 0.09f, sw, 95f);
 
-        GUI.Label(new Rect(0, sh * 0.09f + 96f, sw, 28f),
-                  "⚔  Stratégie — Conquête — Tactique  ⚔", subtitleStyle);
+        GUI.Label(new Rect(0, sh * 0.09f + 96f, sw, 28f), "⚔  Stratégie — Conquête — Tactique  ⚔", subtitleStyle);
 
         float btnW = 300f;
         float btnH = 64f;
@@ -186,8 +158,7 @@ public class MainMenu : MonoBehaviour
             alignment = TextAnchor.MiddleCenter,
             normal    = { textColor = new Color(0.8f, 0.7f, 0.3f, 0.8f) }
         };
-        GUI.Label(new Rect(btnX, btnY - 22f, btnW, 20f),
-                  "— Commencer l'aventure —", hintStyle);
+        GUI.Label(new Rect(btnX, btnY - 22f, btnW, 20f), "— Commencer l'aventure —", hintStyle);
 
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("play"), mainBtnStyle))
         {
@@ -203,7 +174,7 @@ public class MainMenu : MonoBehaviour
             current = MenuScreen.Options;
         }
 
-        btnY += btnH + gap;
+        btnY += btnH + 22f; // Correction : 'gap' n'était pas défini, remplacé par une valeur fixe
 
         GUI.color = new Color(1f, 0.35f, 0.35f);
         if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), L("quit"), quitBtnStyle))
@@ -211,6 +182,7 @@ public class MainMenu : MonoBehaviour
             AudioManager.Instance?.PlayClick();
             Application.Quit();
         }
+        GUI.color = Color.white;
     }
 
     private void DrawSelectionScreen()
@@ -228,10 +200,6 @@ public class MainMenu : MonoBehaviour
         GUI.color = Color.white;
 
         DrawMedievalTitle("SupKonQuest", 0, 0f, sw, 68f);
-        float panelW = 500f;
-        float panelH = 510f;
-        float panelX = (sw - panelW) / 2f;
-        float panelY = sh * 0.16f;
 
         float panelW      = 480f;
         float panelH      = 395f;
@@ -311,40 +279,20 @@ public class MainMenu : MonoBehaviour
         panelY += 42f;
 
         // Race
-        GUI.Label(new Rect(panelX, panelY, panelW, 24f), "Race", labelStyle);
-        panelY += 28f;
-        float raceBtnW = (panelW - 8f) / 3f;
-        for (int i = 0; i < raceLabels.Length; i++)
-        {
-            Color     raceCol = raceColors[i];
-            GUIStyle  style   = new GUIStyle(selectedRace == i ? selectedButtonStyle : buttonStyle);
-            Texture2D raceTex = selectedRace == i
-                ? MakeMedievalTex(200, 40,
-                    new Color(raceCol.r * 0.35f, raceCol.g * 0.35f, raceCol.b * 0.35f),
-                    raceCol, 4)
-                : MakeMedievalTex(200, 40,
-                    new Color(raceCol.r * 0.15f, raceCol.g * 0.15f, raceCol.b * 0.15f),
-                    new Color(raceCol.r * 0.40f, raceCol.g * 0.40f, raceCol.b * 0.40f), 3);
-            style.normal.background = raceTex;
-            style.normal.textColor  = selectedRace == i ? raceCol : raceCol * 0.6f;
-            style.hover.background  = raceTex;
-            if (GUI.Button(new Rect(panelX + i * (raceBtnW + 4f), panelY, raceBtnW, 34f),
-                           raceLabels[i], style))
         GUI.Label(new Rect(panelX, panelY, panelW, 28f), L("race"), labelStyle);
         panelY += 32f;
         string[] raceKeys = { "race_human", "race_elf", "race_demon" };
         for (int i = 0; i < raceKeys.Length; i++)
         {
             Color raceCol = raceColors[i];
-            GUI.color = (i == selectedRace)
-                ? raceCol
-                : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
+            GUI.color = (i == selectedRace) ? raceCol : new Color(raceCol.r * 0.4f, raceCol.g * 0.4f, raceCol.b * 0.4f);
             if (GUI.Button(new Rect(panelX + i * 168f, panelY, 160f, 38f), L(raceKeys[i]), selectedButtonStyle))
             {
                 AudioManager.Instance?.PlayClick();
                 selectedRace = i;
             }
         }
+        GUI.color = Color.white;
 
         // ── BACK gauche — JOUER droite ──
         float btnH   = 54f;
@@ -357,23 +305,19 @@ public class MainMenu : MonoBehaviour
         GUI.color = Color.white;
 
         // BACK ←
-        if (GUI.Button(new Rect(panelX - 20, btnY, btnW, btnH),
-                       "← " + L("back"), backBtnStyle))
+        if (GUI.Button(new Rect(panelX - 20, btnY, btnW, btnH), "← " + L("back"), backBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
             current = MenuScreen.Title;
         }
 
         // JOUER →
-        if (GUI.Button(new Rect(panelX + panelW + 20 - btnW, btnY, btnW, btnH),
-                       L("play") + " ! →", playBtnStyle))
+        if (GUI.Button(new Rect(panelX + panelW + 20 - btnW, btnY, btnW, btnH), L("play") + " ! →", playBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
             StartGame();
         }
     }
-
-    // ── Écran options ─────────────────────────────────────────────────
 
     private void DrawOptionsScreen()
     {
@@ -422,9 +366,6 @@ public class MainMenu : MonoBehaviour
             current = MenuScreen.Title;
         }
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────
-
 
     private static string L(string key) => LocalizationManager.Get(key);
 
@@ -557,33 +498,20 @@ public class MainMenu : MonoBehaviour
         {
             for (int x = 0; x < W; x++)
             {
-                bool onBorder = bSize > 0 &&
-                               (x < bSize || x >= W - bSize ||
-                                y < bSize || y >= H - bSize);
-                bool onCorner = bSize > 0 &&
-                               ((x < bSize + 2 && y < bSize + 2) ||
-                                (x >= W - bSize - 2 && y < bSize + 2) ||
-                                (x < bSize + 2 && y >= H - bSize - 2) ||
-                                (x >= W - bSize - 2 && y >= H - bSize - 2));
+                bool onBorder = bSize > 0 && (x < bSize || x >= W - bSize || y < bSize || y >= H - bSize);
+                bool onCorner = bSize > 0 && ((x < bSize + 2 && y < bSize + 2) || (x >= W - bSize - 2 && y < bSize + 2) || (x < bSize + 2 && y >= H - bSize - 2) || (x >= W - bSize - 2 && y >= H - bSize - 2));
 
                 float nx    = (float)x / W;
                 float ny    = (float)y / H;
-                float noise = (Mathf.Sin(nx * 17f) * Mathf.Cos(ny * 13f) +
-                               Mathf.Sin(nx * 7f + ny * 11f)) * 0.025f;
+                float noise = (Mathf.Sin(nx * 17f) * Mathf.Cos(ny * 13f) + Mathf.Sin(nx * 7f + ny * 11f)) * 0.025f;
                 float grad  = 1f - ny * 0.15f;
 
                 if (onCorner)
                     pixels[y * W + x] = border * 0.55f;
                 else if (onBorder)
-                    pixels[y * W + x] = new Color(
-                        Mathf.Clamp01(border.r + noise),
-                        Mathf.Clamp01(border.g + noise),
-                        Mathf.Clamp01(border.b + noise), 1f);
+                    pixels[y * W + x] = new Color(Mathf.Clamp01(border.r + noise), Mathf.Clamp01(border.g + noise), Mathf.Clamp01(border.b + noise), 1f);
                 else
-                    pixels[y * W + x] = new Color(
-                        Mathf.Clamp01((fill.r + noise) * grad),
-                        Mathf.Clamp01((fill.g + noise) * grad),
-                        Mathf.Clamp01((fill.b + noise) * grad), 1f);
+                    pixels[y * W + x] = new Color(Mathf.Clamp01((fill.r + noise) * grad), Mathf.Clamp01((fill.g + noise) * grad), Mathf.Clamp01((fill.b + noise) * grad), 1f);
             }
         }
         tex.SetPixels(pixels);
