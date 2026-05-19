@@ -312,7 +312,7 @@ public class MainMenu : MonoBehaviour
         }
 
         // JOUER →
-        if (GUI.Button(new Rect(panelX + panelW + 20 - btnW, btnY, btnW, btnH), L("play") + " ! →", playBtnStyle))
+        if (GUI.Button(new Rect(panelX + panelW + 20 - btnW, btnY, btnW, btnH), L("play") + " →", playBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
             StartGame();
