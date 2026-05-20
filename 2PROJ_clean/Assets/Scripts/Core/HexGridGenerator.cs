@@ -11,6 +11,14 @@ public class HexGridGenerator : MonoBehaviour
     public GameObject[] mountainPrefabs;
     public GameObject[] waterPrefabs;
 
+    [Header("Textures")]
+    public Material grassMaterial;
+    public Material mountainMaterial;
+    public Material waterMaterial;
+    public Material sandMaterial;
+    public Material snowMaterial;
+    public Material iceMaterial;
+
     [Header("Grid")]
     public int width  = 12;
     public int height = 12;
@@ -117,6 +125,26 @@ public class HexGridGenerator : MonoBehaviour
 
                 HexTile ht = tile.AddComponent<HexTile>();
                 ht.terrain = terrain;
+
+                Material walkableMat = mapType switch
+                {
+                    MapType.Island      => sandMaterial ?? grassMaterial,
+                    MapType.FrozenPeaks => snowMaterial ?? grassMaterial,
+                    _                   => grassMaterial
+                };
+                Material waterMat = mapType == MapType.FrozenPeaks
+                    ? (iceMaterial ?? waterMaterial)
+                    : waterMaterial;
+                Material matToApply = terrain switch
+                {
+                    HexTerrain.Walkable => walkableMat,
+                    HexTerrain.Mountain => mountainMaterial,
+                    HexTerrain.Water    => waterMat,
+                    _                   => null
+                };
+                if (matToApply != null)
+                    foreach (Renderer rend in tile.GetComponentsInChildren<Renderer>())
+                        rend.sharedMaterial = matToApply;
 
                 foreach (MeshFilter mf in tile.GetComponentsInChildren<MeshFilter>())
                 {
