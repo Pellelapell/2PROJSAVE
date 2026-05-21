@@ -145,7 +145,30 @@ namespace SupKonQuest
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.2f, r.bounds.center.z)
                 : site.tile.transform.position + Vector3.up * 0.2f;
 
-            GameObject obj = Instantiate(prefab, pos, Quaternion.identity);
+            GameObject obj = Instantiate(prefab, pos + Vector3.up * 2.2f, Quaternion.Euler(270f, 0f, 0f));
+            obj.transform.localScale = prefab.transform.localScale * 190f;
+
+            // Obstacle NavMesh dynamique pour que les unités contournent le bâtiment
+            if (obj.GetComponent<NavMeshObstacle>() == null)
+            {
+                NavMeshObstacle obstacle = obj.AddComponent<NavMeshObstacle>();
+                obstacle.carving = true;
+                obstacle.shape   = NavMeshObstacleShape.Box;
+
+                Renderer rend = obj.GetComponentInChildren<Renderer>();
+                if (rend != null)
+                {
+                    // Empreinte au sol uniquement (X et Z world), hauteur fixe de 2 unités
+                    Vector3 scale = obj.transform.lossyScale;
+                    Bounds  wb    = rend.bounds;
+                    obstacle.size   = new Vector3(wb.size.x / scale.x, 2f / scale.y, wb.size.z / scale.z);
+                    obstacle.center = obj.transform.InverseTransformPoint(wb.center);
+                }
+                else
+                {
+                    obstacle.size = Vector3.one;
+                }
+            }
 
             ApplyBuildingSkin(obj, site.owner, site.type);
 
