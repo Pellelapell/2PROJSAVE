@@ -147,8 +147,7 @@ namespace SupKonQuest
 
             GameObject obj = Instantiate(prefab, pos, Quaternion.identity);
 
-            // Teinter tous les renderers aux couleurs du propriétaire
-            ApplyOwnerColor(obj, site.owner.playerColor);
+            ApplyBuildingSkin(obj, site.owner, site.type);
 
             switch (site.type)
             {
@@ -177,14 +176,30 @@ namespace SupKonQuest
             }
         }
 
-        private static void ApplyOwnerColor(GameObject obj, Color color)
+        private static void ApplyBuildingSkin(GameObject obj, PlayerData owner, BuildingType type)
         {
-            foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
+            RaceDefinition def = RaceRegistry.Get(owner.race);
+            if (def != null)
             {
-                // Créer une instance du matériau pour ne pas modifier l'asset partagé
-                Material mat = rend.material;
-                mat.color = color;
+                var skin = def.GetBuildingSkin(type);
+                if (skin.HasValue)
+                {
+                    MeshFilter mf = obj.GetComponentInChildren<MeshFilter>();
+                    if (mf != null && skin.Value.mesh != null)
+                        mf.sharedMesh = skin.Value.mesh;
+
+                    Renderer rend = obj.GetComponentInChildren<Renderer>();
+                    if (rend != null && skin.Value.material != null)
+                    {
+                        rend.material = skin.Value.material;
+                        return;
+                    }
+                }
             }
+
+            // Fallback : teinte couleur du joueur
+            foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
+                rend.material.color = owner.playerColor;
         }
 
         // ── Helpers ───────────────────────────────────────────────────
