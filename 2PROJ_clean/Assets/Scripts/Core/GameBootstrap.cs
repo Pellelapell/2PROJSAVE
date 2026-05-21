@@ -39,9 +39,13 @@ namespace SupKonQuest
             };
         }
 
+        // Ordre du menu : 0=Human, 1=Elf, 2=Demon (≠ ordre de l'enum Race)
+        private static readonly Race[] MenuRaceOrder = { Race.Human, Race.Elf, Race.Demon };
+
         private void ApplyPlayerRace()
         {
-            Race race = (Race)PlayerPrefs.GetInt("PlayerRace", 0);
+            int idx = PlayerPrefs.GetInt("PlayerRace", 0);
+            Race race = MenuRaceOrder[Mathf.Clamp(idx, 0, MenuRaceOrder.Length - 1)];
 
             // Trouver le joueur humain (non-IA) et lui appliquer la race + couleur
             PlayerData[] allPlayers = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);

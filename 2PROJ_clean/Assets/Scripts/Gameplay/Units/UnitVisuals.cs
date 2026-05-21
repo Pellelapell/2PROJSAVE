@@ -3,40 +3,49 @@ using SupKonQuest;
 
 public class UnitVisuals : MonoBehaviour
 {
-    public Color aiColor = new Color(1f, 0.45f, 0f); // orange
-
-    private Renderer[] unitRenderers;
-    private UnitStats stats;
+    private Renderer   unitRenderer;
+    private MeshFilter meshFilter;
+    private UnitStats  stats;
 
     private void Awake()
     {
-        stats = GetComponent<UnitStats>();
-        unitRenderers = GetComponentsInChildren<Renderer>();
+        stats        = GetComponent<UnitStats>();
+        unitRenderer = GetComponentInChildren<Renderer>();
+        meshFilter   = GetComponentInChildren<MeshFilter>();
+
+        if (unitRenderer == null) unitRenderer = GetComponent<Renderer>();
+        if (meshFilter   == null) meshFilter   = GetComponent<MeshFilter>();
     }
 
     public void ApplyRaceVisuals()
     {
-        if (stats == null || unitRenderers == null) return;
+        if (stats == null) return;
 
-        PlayerData owner = GameManager.Instance?.GetPlayerById(stats.ownerId);
-
-        Color color;
-        if (owner != null && !owner.isAI)
+        RaceDefinition def = RaceRegistry.Get(stats.race);
+        if (def != null)
         {
-            color = stats.race switch
+            var skin = def.GetUnitSkin(stats.unitType);
+            if (skin.HasValue)
             {
-                Race.Human => Color.blue,
-                Race.Elf   => Color.green,
-                Race.Demon => Color.red,
-                _          => Color.white
-            };
-        }
-        else
-        {
-            color = aiColor;
+                if (meshFilter != null && skin.Value.mesh != null)
+                    meshFilter.sharedMesh = skin.Value.mesh;
+
+                if (unitRenderer != null && skin.Value.material != null)
+                {
+                    unitRenderer.material = skin.Value.material;
+                    return;
+                }
+            }
         }
 
-        foreach (Renderer rend in unitRenderers)
-            rend.material.color = color;
+        // Fallback couleur si aucun skin configuré
+        if (unitRenderer == null) return;
+        unitRenderer.material.color = stats.race switch
+        {
+            Race.Human => Color.blue,
+            Race.Elf   => Color.green,
+            Race.Demon => Color.red,
+            _          => Color.white
+        };
     }
 }
