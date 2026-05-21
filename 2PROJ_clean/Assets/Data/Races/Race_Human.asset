@@ -15,4 +15,5 @@ MonoBehaviour:
   race: 0
   displayName: Human
   uiColor: {r: 0.04106027, g: 0.745283, b: 0, a: 1}
-  visuals: []
+  unitSkins: []
+  buildingSkins: []
