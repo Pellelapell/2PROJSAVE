@@ -17,6 +17,15 @@ MonoBehaviour:
   uiColor: {r: 0.0006303787, g: 0, b: 1, a: 1}
   unitSkins: []
   buildingSkins:
+  - buildingType: 3
+    mesh: {fileID: 5461320835613783329, guid: 840f56a9af3ef0b428992fb0c66e6679, type: 3}
+    material: {fileID: 2100000, guid: eda761d45408d574390afd0946718b86, type: 2}
+  - buildingType: 0
+    mesh: {fileID: 5461320835613783329, guid: 1216e30483b7bba4f8fd623cde08d0b1, type: 3}
+    material: {fileID: 2100000, guid: 3faf91592cf99d944ae75e2e50c68fe2, type: 2}
+  - buildingType: 2
+    mesh: {fileID: 5461320835613783329, guid: 76d2b0386b676274abaa907e77850320, type: 3}
+    material: {fileID: 2100000, guid: a8fec4d412b5a3640bd3099f0deaf2b8, type: 2}
   - buildingType: 1
     mesh: {fileID: 5461320835613783329, guid: e49a36703704d174ba0ce8d6a60189d5, type: 3}
     material: {fileID: 2100000, guid: 0b003cfafe286f44d901253cc8914482, type: 2}
