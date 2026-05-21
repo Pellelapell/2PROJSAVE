@@ -155,19 +155,7 @@ namespace SupKonQuest
                 obstacle.carving = true;
                 obstacle.shape   = NavMeshObstacleShape.Box;
 
-                Renderer rend = obj.GetComponentInChildren<Renderer>();
-                if (rend != null)
-                {
-                    // Empreinte au sol uniquement (X et Z world), hauteur fixe de 2 unités
-                    Vector3 scale = obj.transform.lossyScale;
-                    Bounds  wb    = rend.bounds;
-                    obstacle.size   = new Vector3(wb.size.x / scale.x, 2f / scale.y, wb.size.z / scale.z);
-                    obstacle.center = obj.transform.InverseTransformPoint(wb.center);
-                }
-                else
-                {
-                    obstacle.size = Vector3.one;
-                }
+                obstacle.size = Vector3.one * 0.01f;
             }
 
             ApplyBuildingSkin(obj, site.owner, site.type);
