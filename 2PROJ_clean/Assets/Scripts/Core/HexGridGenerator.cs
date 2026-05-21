@@ -11,6 +11,10 @@ public class HexGridGenerator : MonoBehaviour
     public GameObject[] mountainPrefabs;
     public GameObject[] waterPrefabs;
 
+    [Header("Hauteur terrain")]
+    public float waterYOffset = 0f;
+    public float mountainYOffset = 0f;
+
     [Header("Textures")]
     public Material grassMaterial;
     public Material mountainMaterial;
@@ -120,7 +124,10 @@ public class HexGridGenerator : MonoBehaviour
                 float xPos = x * colSpacing;
                 float zPos = z * rowSpacing + (x % 2 == 1 ? rowSpacing * 0.5f : 0f);
 
-                GameObject tile = Instantiate(prefab, new Vector3(xPos, 0f, zPos), Quaternion.identity, transform);
+                float yPos = terrain == HexTerrain.Water    ? waterYOffset
+                           : terrain == HexTerrain.Mountain ? mountainYOffset
+                           : 0f;
+                GameObject tile = Instantiate(prefab, new Vector3(xPos, yPos, zPos), Quaternion.identity, transform);
                 tile.transform.localScale = Vector3.one * hexScale;
 
                 HexTile ht = tile.AddComponent<HexTile>();
