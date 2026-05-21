@@ -3,32 +3,40 @@ using SupKonQuest;
 
 public class UnitVisuals : MonoBehaviour
 {
-    [Header("Visual Components")]
-    private Renderer unitRenderer;
-    private UnitStats stats;
+    public Color aiColor = new Color(1f, 0.45f, 0f); // orange
 
+    private Renderer[] unitRenderers;
+    private UnitStats stats;
 
     private void Awake()
     {
         stats = GetComponent<UnitStats>();
-        unitRenderer = GetComponent<Renderer>();
+        unitRenderers = GetComponentsInChildren<Renderer>();
     }
-
 
     public void ApplyRaceVisuals()
     {
-        if (stats == null || unitRenderer == null) return;
-        switch (stats.race)
+        if (stats == null || unitRenderers == null) return;
+
+        PlayerData owner = GameManager.Instance?.GetPlayerById(stats.ownerId);
+
+        Color color;
+        if (owner != null && !owner.isAI)
         {
-            case Race.Human:
-                unitRenderer.material.color = Color.blue;
-                break;
-            case Race.Elf:
-                unitRenderer.material.color = Color.green;
-                break;
-            case Race.Demon:
-                unitRenderer.material.color = Color.red;
-                break;
+            color = stats.race switch
+            {
+                Race.Human => Color.blue,
+                Race.Elf   => Color.green,
+                Race.Demon => Color.red,
+                _          => Color.white
+            };
         }
+        else
+        {
+            color = aiColor;
+        }
+
+        foreach (Renderer rend in unitRenderers)
+            rend.material.color = color;
     }
 }
