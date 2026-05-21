@@ -15,4 +15,8 @@ MonoBehaviour:
   race: 2
   displayName: Elf
   uiColor: {r: 0.0006303787, g: 0, b: 1, a: 1}
-  visuals: []
+  unitSkins: []
+  buildingSkins:
+  - buildingType: 1
+    mesh: {fileID: 5461320835613783329, guid: e49a36703704d174ba0ce8d6a60189d5, type: 3}
+    material: {fileID: 2100000, guid: 0b003cfafe286f44d901253cc8914482, type: 2}

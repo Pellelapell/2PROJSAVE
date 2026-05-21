@@ -9,22 +9,42 @@ public class RaceDefinition : ScriptableObject
     public Color uiColor = Color.white;
 
     [System.Serializable]
-    public struct UnitVisual
+    public struct UnitSkinEntry
     {
         public UnitType unitType;
-        public Sprite sprite;
+        public Mesh     mesh;
+        public Material material;
     }
 
-    [Header("Visuals per UnitType")]
-    public UnitVisual[] visuals;
-
-    public Sprite GetSprite(UnitType type)
+    [System.Serializable]
+    public struct BuildingSkinEntry
     {
-        for (int i = 0; i < visuals.Length; i++)
-            if (visuals[i].unitType == type)
-                return visuals[i].sprite;
+        public BuildingType buildingType; // Camp, Sawmill, Port, Castle
+        public Mesh         mesh;
+        public Material     material;
+    }
 
+    [Header("Unit Skins (par type)")]
+    public UnitSkinEntry[] unitSkins;
+
+    [Header("Building Skins (Camp / Sawmill / Port / Castle)")]
+    public BuildingSkinEntry[] buildingSkins;
+
+    public UnitSkinEntry? GetUnitSkin(UnitType type)
+    {
+        for (int i = 0; i < unitSkins.Length; i++)
+            if (unitSkins[i].unitType == type)
+                return unitSkins[i];
         return null;
     }
+
+    public BuildingSkinEntry? GetBuildingSkin(BuildingType type)
+    {
+        for (int i = 0; i < buildingSkins.Length; i++)
+            if (buildingSkins[i].buildingType == type)
+                return buildingSkins[i];
+        return null;
+    }
+
+    public Material GetUnitMaterial(UnitType type) => GetUnitSkin(type)?.material;
 }
-//selem

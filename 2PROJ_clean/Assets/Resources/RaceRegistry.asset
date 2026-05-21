@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 636203ced400ead4c9cb94d57f8bd6d5, type: 3}
+  m_Name: RaceRegistry
+  m_EditorClassIdentifier: 
+  definitions:
+  - {fileID: 11400000, guid: 8c2655a9aab724b4e9b1b4a8ce02e6aa, type: 2}
+  - {fileID: 11400000, guid: ccec0f0e1cfb898429022b96f49b2c40, type: 2}
+  - {fileID: 11400000, guid: d2031f2e6acf29f44870b3e142f0dda8, type: 2}

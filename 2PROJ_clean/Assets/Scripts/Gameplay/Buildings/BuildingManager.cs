@@ -145,10 +145,20 @@ namespace SupKonQuest
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.2f, r.bounds.center.z)
                 : site.tile.transform.position + Vector3.up * 0.2f;
 
-            GameObject obj = Instantiate(prefab, pos, Quaternion.identity);
+            GameObject obj = Instantiate(prefab, pos + Vector3.up * 2.2f, Quaternion.Euler(270f, 0f, 0f));
+            obj.transform.localScale = prefab.transform.localScale * 190f;
 
-            // Teinter tous les renderers aux couleurs du propriétaire
-            ApplyOwnerColor(obj, site.owner.playerColor);
+            // Obstacle NavMesh dynamique pour que les unités contournent le bâtiment
+            if (obj.GetComponent<NavMeshObstacle>() == null)
+            {
+                NavMeshObstacle obstacle = obj.AddComponent<NavMeshObstacle>();
+                obstacle.carving = true;
+                obstacle.shape   = NavMeshObstacleShape.Box;
+
+                obstacle.size = Vector3.one * 0.01f;
+            }
+
+            ApplyBuildingSkin(obj, site.owner, site.type);
 
             switch (site.type)
             {
@@ -177,14 +187,30 @@ namespace SupKonQuest
             }
         }
 
-        private static void ApplyOwnerColor(GameObject obj, Color color)
+        private static void ApplyBuildingSkin(GameObject obj, PlayerData owner, BuildingType type)
         {
-            foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
+            RaceDefinition def = RaceRegistry.Get(owner.race);
+            if (def != null)
             {
-                // Créer une instance du matériau pour ne pas modifier l'asset partagé
-                Material mat = rend.material;
-                mat.color = color;
+                var skin = def.GetBuildingSkin(type);
+                if (skin.HasValue)
+                {
+                    MeshFilter mf = obj.GetComponentInChildren<MeshFilter>();
+                    if (mf != null && skin.Value.mesh != null)
+                        mf.sharedMesh = skin.Value.mesh;
+
+                    Renderer rend = obj.GetComponentInChildren<Renderer>();
+                    if (rend != null && skin.Value.material != null)
+                    {
+                        rend.material = skin.Value.material;
+                        return;
+                    }
+                }
             }
+
+            // Fallback : teinte couleur du joueur
+            foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
+                rend.material.color = owner.playerColor;
         }
 
         // ── Helpers ───────────────────────────────────────────────────
