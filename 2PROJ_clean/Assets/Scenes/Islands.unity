@@ -1761,6 +1761,12 @@ MonoBehaviour:
   - {fileID: 3637096172939143290, guid: 253bd66f55ba3c64aa9825ea2896b609, type: 3}
   waterPrefabs:
   - {fileID: 2413447369293234240, guid: 3b042d658ba55d940a649b33c122fbca, type: 3}
+  grassMaterial: {fileID: 2100000, guid: 7410e1e9220ccb04f87aac49ffbf3ff2, type: 2}
+  mountainMaterial: {fileID: 2100000, guid: d2d0511d994dbdb4dacddc5b45506c87, type: 2}
+  waterMaterial: {fileID: 2100000, guid: bf728ebcecca70142b54477940f0cec9, type: 2}
+  sandMaterial: {fileID: 2100000, guid: e213c762ebd70ff45b80b96bbd768d66, type: 2}
+  snowMaterial: {fileID: 2100000, guid: 9af92a8c45c0c0f4f9653795f82977a8, type: 2}
+  iceMaterial: {fileID: 2100000, guid: 9c574548065b6384f88cea8e7ee19599, type: 2}
   width: 15
   height: 20
   hexScale: 0.1

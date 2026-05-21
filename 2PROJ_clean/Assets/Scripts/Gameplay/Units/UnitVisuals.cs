@@ -3,32 +3,49 @@ using SupKonQuest;
 
 public class UnitVisuals : MonoBehaviour
 {
-    [Header("Visual Components")]
-    private Renderer unitRenderer;
-    private UnitStats stats;
-
+    private Renderer   unitRenderer;
+    private MeshFilter meshFilter;
+    private UnitStats  stats;
 
     private void Awake()
     {
-        stats = GetComponent<UnitStats>();
-        unitRenderer = GetComponent<Renderer>();
-    }
+        stats        = GetComponent<UnitStats>();
+        unitRenderer = GetComponentInChildren<Renderer>();
+        meshFilter   = GetComponentInChildren<MeshFilter>();
 
+        if (unitRenderer == null) unitRenderer = GetComponent<Renderer>();
+        if (meshFilter   == null) meshFilter   = GetComponent<MeshFilter>();
+    }
 
     public void ApplyRaceVisuals()
     {
-        if (stats == null || unitRenderer == null) return;
-        switch (stats.race)
+        if (stats == null) return;
+
+        RaceDefinition def = RaceRegistry.Get(stats.race);
+        if (def != null)
         {
-            case Race.Human:
-                unitRenderer.material.color = Color.blue;
-                break;
-            case Race.Elf:
-                unitRenderer.material.color = Color.green;
-                break;
-            case Race.Demon:
-                unitRenderer.material.color = Color.red;
-                break;
+            var skin = def.GetUnitSkin(stats.unitType);
+            if (skin.HasValue)
+            {
+                if (meshFilter != null && skin.Value.mesh != null)
+                    meshFilter.sharedMesh = skin.Value.mesh;
+
+                if (unitRenderer != null && skin.Value.material != null)
+                {
+                    unitRenderer.material = skin.Value.material;
+                    return;
+                }
+            }
         }
+
+        // Fallback couleur si aucun skin configuré
+        if (unitRenderer == null) return;
+        unitRenderer.material.color = stats.race switch
+        {
+            Race.Human => Color.blue,
+            Race.Elf   => Color.green,
+            Race.Demon => Color.red,
+            _          => Color.white
+        };
     }
 }
