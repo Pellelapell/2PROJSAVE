@@ -104,6 +104,32 @@ namespace SupKonQuest
         {
             Renderer rend = GetComponentInChildren<Renderer>();
             if (rend == null) return;
+
+            if (owner != null)
+            {
+                RaceDefinition def = RaceRegistry.Get(owner.race);
+                if (def != null)
+                {
+                    BuildingType btype = campType == CampType.Port   ? BuildingType.Port
+                                       : campType == CampType.Castle ? BuildingType.Castle
+                                       :                               BuildingType.Camp;
+
+                    var skin = def.GetBuildingSkin(btype);
+                    if (skin.HasValue)
+                    {
+                        MeshFilter mf = GetComponentInChildren<MeshFilter>();
+                        if (mf != null && skin.Value.mesh != null)
+                            mf.sharedMesh = skin.Value.mesh;
+
+                        if (skin.Value.material != null)
+                        {
+                            rend.material = skin.Value.material;
+                            return;
+                        }
+                    }
+                }
+            }
+
             rend.material.color = owner == null ? Color.gray : owner.playerColor;
         }
 
