@@ -11,6 +11,18 @@ public class HexGridGenerator : MonoBehaviour
     public GameObject[] mountainPrefabs;
     public GameObject[] waterPrefabs;
 
+    [Header("Hauteur terrain")]
+    public float waterYOffset = 0f;
+    public float mountainYOffset = 0f;
+
+    [Header("Textures")]
+    public Material grassMaterial;
+    public Material mountainMaterial;
+    public Material waterMaterial;
+    public Material sandMaterial;
+    public Material snowMaterial;
+    public Material iceMaterial;
+
     [Header("Grid")]
     public int width  = 12;
     public int height = 12;
@@ -112,11 +124,34 @@ public class HexGridGenerator : MonoBehaviour
                 float xPos = x * colSpacing;
                 float zPos = z * rowSpacing + (x % 2 == 1 ? rowSpacing * 0.5f : 0f);
 
-                GameObject tile = Instantiate(prefab, new Vector3(xPos, 0f, zPos), Quaternion.identity, transform);
+                float yPos = terrain == HexTerrain.Water    ? waterYOffset
+                           : terrain == HexTerrain.Mountain ? mountainYOffset
+                           : 0f;
+                GameObject tile = Instantiate(prefab, new Vector3(xPos, yPos, zPos), Quaternion.identity, transform);
                 tile.transform.localScale = Vector3.one * hexScale;
 
                 HexTile ht = tile.AddComponent<HexTile>();
                 ht.terrain = terrain;
+
+                Material walkableMat = mapType switch
+                {
+                    MapType.Island      => sandMaterial ?? grassMaterial,
+                    MapType.FrozenPeaks => snowMaterial ?? grassMaterial,
+                    _                   => grassMaterial
+                };
+                Material waterMat = mapType == MapType.FrozenPeaks
+                    ? (iceMaterial ?? waterMaterial)
+                    : waterMaterial;
+                Material matToApply = terrain switch
+                {
+                    HexTerrain.Walkable => walkableMat,
+                    HexTerrain.Mountain => mountainMaterial,
+                    HexTerrain.Water    => waterMat,
+                    _                   => null
+                };
+                if (matToApply != null)
+                    foreach (Renderer rend in tile.GetComponentsInChildren<Renderer>())
+                        rend.sharedMaterial = matToApply;
 
                 foreach (MeshFilter mf in tile.GetComponentsInChildren<MeshFilter>())
                 {

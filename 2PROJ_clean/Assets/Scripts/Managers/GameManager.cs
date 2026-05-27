@@ -32,7 +32,6 @@ namespace SupKonQuest
 
         private void Start()
         {
-            // Filtrer dans activePlayers sans toucher au tableau sérialisé (évite ObjectDisposedException éditeur)
             var active = new System.Collections.Generic.List<PlayerData>();
             foreach (PlayerData p in players)
                 if (p != null && p.gameObject.activeInHierarchy) active.Add(p);
@@ -41,6 +40,7 @@ namespace SupKonQuest
             AssignCampsByCorner();
             gameStarted = true;
         }
+
 
         // Chaque joueur reçoit les camps du coin qui lui correspond (coin 0 → joueur 0, etc.)
         private void AssignCampsByCorner()
