@@ -15,7 +15,28 @@ MonoBehaviour:
   race: 2
   displayName: Elf
   uiColor: {r: 0.0006303787, g: 0, b: 1, a: 1}
-  unitSkins: []
+  unitSkins:
+  - unitType: 5
+    mesh: {fileID: -6734620852318575487, guid: 7cd4a47ad8ea97e4899e6dbf1c271890, type: 3}
+    material: {fileID: 2100000, guid: e40f137f47be06840b5aa7e33b63276d, type: 2}
+  - unitType: 2
+    mesh: {fileID: -6734620852318575487, guid: 1202a8d1ff5701c43a8414434d28db54, type: 3}
+    material: {fileID: 2100000, guid: dc9de3c7ec294204a8b16f4a57818359, type: 2}
+  - unitType: 4
+    mesh: {fileID: -6734620852318575487, guid: 81569f4d91597644d944524b4287efcf, type: 3}
+    material: {fileID: 2100000, guid: 317dd94286818304b8a49b620d2d56cc, type: 2}
+  - unitType: 0
+    mesh: {fileID: -6734620852318575487, guid: 03687b79579e4aa4884c3a03c217b8c4, type: 3}
+    material: {fileID: 2100000, guid: b84c83968dfbe8046b0407e6a0eee4df, type: 2}
+  - unitType: 6
+    mesh: {fileID: 0}
+    material: {fileID: 0}
+  - unitType: 3
+    mesh: {fileID: -6734620852318575487, guid: 55e35206a668216478b6a08dddc18e6f, type: 3}
+    material: {fileID: 2100000, guid: a25ba9a5ac1324b459e84197d0d6e1f7, type: 2}
+  - unitType: 1
+    mesh: {fileID: -6734620852318575487, guid: d4735995cfadd434a9e401cdf8c95b12, type: 3}
+    material: {fileID: 2100000, guid: a1d7c601f7f68b24a94619b29391a5b5, type: 2}
   buildingSkins:
   - buildingType: 3
     mesh: {fileID: 5461320835613783329, guid: 840f56a9af3ef0b428992fb0c66e6679, type: 3}

@@ -15,7 +15,28 @@ MonoBehaviour:
   race: 1
   displayName: Demon
   uiColor: {r: 0.74509805, g: 0.13906041, b: 0, a: 1}
-  unitSkins: []
+  unitSkins:
+  - unitType: 0
+    mesh: {fileID: -6734620852318575487, guid: 9bcfd3338217e3743a4572a65c3334fb, type: 3}
+    material: {fileID: 2100000, guid: f662d70728e817c4fabb9df38765b3ed, type: 2}
+  - unitType: 1
+    mesh: {fileID: -6734620852318575487, guid: 08a68931335bf934aba94d70a59e5265, type: 3}
+    material: {fileID: 2100000, guid: f8d26b4e4bb1b1445b363a13cfb9c695, type: 2}
+  - unitType: 2
+    mesh: {fileID: -6734620852318575487, guid: aeda3fc3577a106429cc250038b987d3, type: 3}
+    material: {fileID: 2100000, guid: e1fc7d24284f0764b807a67ed5306793, type: 2}
+  - unitType: 3
+    mesh: {fileID: -6734620852318575487, guid: 03e9b2014f9a5b64099121765895add1, type: 3}
+    material: {fileID: 2100000, guid: 2c96cd520f374224995d526e75f629d9, type: 2}
+  - unitType: 4
+    mesh: {fileID: -6734620852318575487, guid: 34a309f409aea6a428686d6c8680f2d7, type: 3}
+    material: {fileID: 2100000, guid: 7631b59993b80624c847643deb7ab1b8, type: 2}
+  - unitType: 5
+    mesh: {fileID: -6734620852318575487, guid: bca617ae3debba44693a4564eadbd5af, type: 3}
+    material: {fileID: 2100000, guid: 229ca7056b11f62449785ab4200668c8, type: 2}
+  - unitType: 6
+    mesh: {fileID: -6734620852318575487, guid: cf4e8f4ca85ae6642b2ba3b20962bdf4, type: 3}
+    material: {fileID: 2100000, guid: 56b61c84185c5994a820c04480ffa911, type: 2}
   buildingSkins:
   - buildingType: 3
     mesh: {fileID: 5461320835613783329, guid: 0cae960f6189b0944b30a3af80959453, type: 3}
