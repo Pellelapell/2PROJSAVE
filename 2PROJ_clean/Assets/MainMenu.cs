@@ -226,24 +226,39 @@ public class MainMenu : MonoBehaviour
         string playText = L("play").ToLower();
         if (playText.Length > 0) playText = char.ToUpper(playText[0]) + playText.Substring(1);
 
-        if (GUI.Button(new Rect(btnX, currentY, btnW, btnH), playText, mainBtnStyle))
+        Rect playRect = new Rect(btnX, currentY, btnW, btnH);
+        string playLabel = $"{playText}";
+
+        if (GUI.Button(playRect, playLabel, mainBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
             current = MenuScreen.Selection;
         }
         currentY += btnH + gap;
 
-        if (GUI.Button(new Rect(btnX, currentY, btnW, btnH), L("options"), optionsBtnStyle))
+        string optionsText = L("options");
+        Rect optionsRect = new Rect(btnX, currentY, btnW, btnH);
+        string optionsLabel = $"⚙  {optionsText}  ⚙";
+
+        if (GUI.Button(optionsRect, optionsLabel, optionsBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
             current = MenuScreen.Options;
         }
         currentY += btnH + gap;
 
-        if (GUI.Button(new Rect(btnX, currentY, btnW, btnH), L("quit"), quitBtnStyle))
+        string quitText = L("quit");
+        Rect quitRect = new Rect(btnX, currentY, btnW, btnH);
+        string quitLabel = $"✕  {quitText}  ✕";
+
+        if (GUI.Button(quitRect, quitLabel, quitBtnStyle))
         {
             AudioManager.Instance?.PlayClick();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
             Application.Quit();
+#endif
         }
     }
 
