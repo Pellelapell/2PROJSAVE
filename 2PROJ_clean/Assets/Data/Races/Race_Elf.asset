@@ -29,14 +29,23 @@ MonoBehaviour:
     mesh: {fileID: -6734620852318575487, guid: 03687b79579e4aa4884c3a03c217b8c4, type: 3}
     material: {fileID: 2100000, guid: b84c83968dfbe8046b0407e6a0eee4df, type: 2}
   - unitType: 6
-    mesh: {fileID: 0}
-    material: {fileID: 0}
+    mesh: {fileID: -6734620852318575487, guid: f79dc0b50fceb434888d195797f67795, type: 3}
+    material: {fileID: 2100000, guid: 9d790cebac2ad7a438b4863a38597d79, type: 2}
   - unitType: 3
     mesh: {fileID: -6734620852318575487, guid: 55e35206a668216478b6a08dddc18e6f, type: 3}
     material: {fileID: 2100000, guid: a25ba9a5ac1324b459e84197d0d6e1f7, type: 2}
   - unitType: 1
     mesh: {fileID: -6734620852318575487, guid: d4735995cfadd434a9e401cdf8c95b12, type: 3}
     material: {fileID: 2100000, guid: a1d7c601f7f68b24a94619b29391a5b5, type: 2}
+  - unitType: 7
+    mesh: {fileID: 5461320835613783329, guid: 62761c1255b6fea4887c4cad27e20f74, type: 3}
+    material: {fileID: 2100000, guid: 7a35d0938248d12449be2bfbecf89c07, type: 2}
+  - unitType: 8
+    mesh: {fileID: 5461320835613783329, guid: 1e4e94c513643b04e82622ff6e604a0e, type: 3}
+    material: {fileID: 2100000, guid: e516548ce9288e945a86adaa5d9bfecc, type: 2}
+  - unitType: 9
+    mesh: {fileID: 5461320835613783329, guid: e99d63f813ab0ea40b3c27c92be4e818, type: 3}
+    material: {fileID: 2100000, guid: 5f34f1346bfc8714ea4e34a021f88313, type: 2}
   buildingSkins:
   - buildingType: 3
     mesh: {fileID: 5461320835613783329, guid: 840f56a9af3ef0b428992fb0c66e6679, type: 3}

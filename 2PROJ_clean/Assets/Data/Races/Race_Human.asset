@@ -37,6 +37,15 @@ MonoBehaviour:
   - unitType: 1
     mesh: {fileID: -6734620852318575487, guid: 3e611897248128e458ec972026aa4e4d, type: 3}
     material: {fileID: 2100000, guid: 17c9b2e098e66bb49837c41bcd7b2032, type: 2}
+  - unitType: 7
+    mesh: {fileID: 5461320835613783329, guid: c598637ed5766cf4c8248f114cc9231a, type: 3}
+    material: {fileID: 2100000, guid: f99fb307e1fd51245849330404e2989d, type: 2}
+  - unitType: 8
+    mesh: {fileID: 5461320835613783329, guid: a5b01687b21f85341b5de1b8cb953132, type: 3}
+    material: {fileID: 2100000, guid: 48bd4bf513de5d440baa4bbd38255705, type: 2}
+  - unitType: 9
+    mesh: {fileID: 5461320835613783329, guid: 801bdea5f2160434e87fed7068e14c80, type: 3}
+    material: {fileID: 2100000, guid: 589537c4fb3ac314e80d4e12f88052a2, type: 2}
   buildingSkins:
   - buildingType: 3
     mesh: {fileID: 5461320835613783329, guid: 00e2f70bb71b1504781eea7c1317c640, type: 3}
