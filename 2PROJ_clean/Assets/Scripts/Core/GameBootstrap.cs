@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SupKonQuest
@@ -45,24 +46,38 @@ namespace SupKonQuest
         private void ApplyPlayerRace()
         {
             int idx = PlayerPrefs.GetInt("PlayerRace", 0);
-            Race race = MenuRaceOrder[Mathf.Clamp(idx, 0, MenuRaceOrder.Length - 1)];
+            Race humanRace = MenuRaceOrder[Mathf.Clamp(idx, 0, MenuRaceOrder.Length - 1)];
 
-            // Trouver le joueur humain (non-IA) et lui appliquer la race + couleur
             PlayerData[] allPlayers = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
+
+            // Joueur humain
             foreach (PlayerData p in allPlayers)
             {
                 if (p.isAI) continue;
-                p.race = race;
-                p.playerColor = race switch
-                {
-                    Race.Human => new Color(0.3f, 0.5f, 1.0f),
-                    Race.Elf   => new Color(0.2f, 0.85f, 0.3f),
-                    Race.Demon => new Color(1.0f, 0.25f, 0.25f),
-                    _          => Color.white
-                };
+                p.race       = humanRace;
+                p.playerColor = RaceColor(humanRace);
                 break;
             }
+
+            // Joueurs IA : chaque IA reçoit une race différente (cycle)
+            int aiOffset = 1;
+            foreach (PlayerData p in allPlayers)
+            {
+                if (!p.isAI) continue;
+                Race aiRace   = MenuRaceOrder[(Array.IndexOf(MenuRaceOrder, humanRace) + aiOffset) % MenuRaceOrder.Length];
+                p.race        = aiRace;
+                p.playerColor = RaceColor(aiRace);
+                aiOffset++;
+            }
         }
+
+        private static Color RaceColor(Race race) => race switch
+        {
+            Race.Human => new Color(0.3f, 0.5f, 1.0f),
+            Race.Elf   => new Color(0.2f, 0.85f, 0.3f),
+            Race.Demon => new Color(1.0f, 0.25f, 0.25f),
+            _          => Color.white
+        };
 
         private void ApplyAIConfig()
         {

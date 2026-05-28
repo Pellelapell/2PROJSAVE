@@ -84,7 +84,9 @@ namespace SupKonQuest
             }
 
             panel.SetActive(true);
-            titleText.text = selectedCamp.campType.ToString();
+            titleText.text = L(selectedCamp.campType == CampType.Port   ? "building_port"
+                             : selectedCamp.campType == CampType.Castle  ? "building_castle"
+                             :                                             "building_camp");
 
             RefreshButtons();
             RefreshProductionInfo();

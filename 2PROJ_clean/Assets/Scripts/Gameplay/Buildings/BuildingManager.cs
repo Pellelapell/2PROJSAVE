@@ -145,7 +145,7 @@ namespace SupKonQuest
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.2f, r.bounds.center.z)
                 : site.tile.transform.position + Vector3.up * 0.2f;
 
-            GameObject obj = Instantiate(prefab, pos + Vector3.up * 2.2f, Quaternion.Euler(270f, 0f, 0f));
+            GameObject obj = Instantiate(prefab, pos, Quaternion.Euler(270f, 0f, 0f));
             obj.transform.localScale = prefab.transform.localScale * 190f;
 
             // Obstacle NavMesh dynamique pour que les unités contournent le bâtiment
