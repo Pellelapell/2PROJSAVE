@@ -70,7 +70,7 @@ namespace SupKonQuest
 
         private void RefreshPopCount()
         {
-            if (gameManager == null) return;
+            if (gameManager == null || gameManager.activePlayers == null) return;
             PlayerData local = null;
             foreach (PlayerData p in gameManager.activePlayers)
                 if (!p.isAI) { local = p; break; }
@@ -104,6 +104,7 @@ namespace SupKonQuest
             DrawTopBar();
             DrawLeaderboard();
             DrawUnitStats();
+            DrawBuildingInfo();
 
             if (sunkNotifTimer > 0f && sunkPassengers != null && sunkPassengers.Count > 0)
                 DrawSunkNotification();
@@ -116,6 +117,7 @@ namespace SupKonQuest
 
         private void DrawTopBar()
         {
+            if (gameManager.activePlayers == null) return;
             PlayerData local = null;
             foreach (PlayerData p in gameManager.activePlayers)
                 if (!p.isAI) { local = p; break; }
@@ -163,6 +165,7 @@ namespace SupKonQuest
 
         private void DrawLeaderboard()
         {
+            if (gameManager.activePlayers == null) return;
             float rowH = 40f;
             float panelHeight = HeaderHeight + gameManager.activePlayers.Length * rowH + Margin;
             float x = Screen.width - PanelWidth - Margin;
@@ -307,6 +310,54 @@ namespace SupKonQuest
                 }
                 y += 22f;
             }
+        }
+
+        // ── Info bâtiment sélectionné ────────────────────────────────
+
+        private void DrawBuildingInfo()
+        {
+            Camp campBldg         = InputManager.Instance?.SelectedCampBuilding;
+            BuildingHealth hpBldg = InputManager.Instance?.SelectedHealthBuilding;
+            if (campBldg == null && hpBldg == null) return;
+
+            string nameKey;
+            int cur, max;
+
+            if (campBldg != null)
+            {
+                nameKey = campBldg.campType == CampType.Port   ? "building_port"
+                        : campBldg.campType == CampType.Castle ? "building_castle"
+                        :                                        "building_camp";
+                cur = campBldg.currentHP;
+                max = campBldg.maxHP;
+            }
+            else
+            {
+                nameKey = "building_sawmill";
+                cur     = hpBldg.currentHP;
+                max     = hpBldg.maxHP;
+            }
+
+            const float w = 200f;
+            const float h = 60f;
+            float x = (Screen.width  - w) * 0.5f;
+            float y = Screen.height - h - 10f;
+
+            GUI.Box(new Rect(x - 5, y - 5, w + 10, h + 10), "", boxStyle);
+
+            GUI.color = Color.white;
+            GUI.Label(new Rect(x, y, w, 22f), L(nameKey), titleStyle);
+            y += 24f;
+
+            float ratio = max > 0 ? (float)cur / max : 1f;
+            GUI.color = new Color(0.15f, 0.15f, 0.15f, 0.9f);
+            GUI.DrawTexture(new Rect(x, y, w, 20f), Texture2D.whiteTexture);
+            GUI.color = Color.Lerp(Color.red, Color.green, ratio);
+            GUI.DrawTexture(new Rect(x, y, w * ratio, 20f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(x, y + 2f, w, 20f), $"  {cur} / {max}", rowStyle);
+
+            GUI.color = Color.white;
         }
 
         // ── Notification transport coulé ─────────────────────────────

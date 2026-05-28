@@ -119,8 +119,25 @@ namespace SupKonQuest
         {
             int total = 0;
             foreach (Region r in regionList)
-                if (r.IsOwnedBy(player)) total += r.GetBonusGold();
+                if (PlayerHasMajority(r, player)) total += r.GetBonusGold();
             return total;
+        }
+
+        // Le joueur possède plus de camps neutres dans la région que n'importe quel rival.
+        private static bool PlayerHasMajority(Region region, PlayerData player)
+        {
+            int playerCount = 0, maxRival = 0;
+            Dictionary<PlayerData, int> counts = new Dictionary<PlayerData, int>();
+            foreach (Camp c in region.camps)
+            {
+                if (c.owner == null) continue;
+                counts.TryGetValue(c.owner, out int n);
+                counts[c.owner] = n + 1;
+            }
+            counts.TryGetValue(player, out playerCount);
+            foreach (var kv in counts)
+                if (kv.Key != player && kv.Value > maxRival) maxRival = kv.Value;
+            return playerCount > 0 && playerCount > maxRival;
         }
 
         public bool IsInOwnedRegion(Vector3 position, int ownerId)
