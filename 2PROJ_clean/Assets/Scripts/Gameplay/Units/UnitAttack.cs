@@ -19,6 +19,8 @@ namespace SupKonQuest
         private BuildingHealth currentBuildingTarget;
         private bool manualCampTarget;
 
+        public bool IsAttacking { get; private set; }
+
         private void Awake()
         {
             stats = GetComponent<UnitStats>();
@@ -29,6 +31,7 @@ namespace SupKonQuest
         {
             if (stats == null) return;
 
+            IsAttacking = false;
             attackCooldown -= Time.deltaTime;
 
             if (currentUnitTarget == null || currentUnitTarget.currentHealth <= 0)
@@ -67,6 +70,7 @@ namespace SupKonQuest
                 FaceTarget(currentUnitTarget.transform);
                 if (attackCooldown <= 0f)
                 {
+                    IsAttacking = true;
                     PerformAttackOnUnit(currentUnitTarget);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
                 }
@@ -150,6 +154,7 @@ namespace SupKonQuest
                 FaceTarget(currentCampTarget.transform);
                 if (attackCooldown <= 0f)
                 {
+                    IsAttacking = true;
                     int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
                     currentCampTarget.TakeDamage(damage, stats);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
@@ -215,6 +220,7 @@ namespace SupKonQuest
                 FaceTarget(currentBuildingTarget.transform);
                 if (attackCooldown <= 0f)
                 {
+                    IsAttacking = true;
                     int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
                     currentBuildingTarget.TakeDamage(damage);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
