@@ -51,7 +51,7 @@ namespace SupKonQuest
                 leashRange = stats != null ? stats.attackRange * 3f : 6f;
 
             if (agent != null)
-                StartCoroutine(InitAgentOnNavMesh());
+                InitAgentOnNavMesh();
             else
                 initialized = true;
 
@@ -63,10 +63,8 @@ namespace SupKonQuest
                 Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvé !", this);
         }
 
-        private IEnumerator InitAgentOnNavMesh()
+        private void InitAgentOnNavMesh()
         {
-            yield return null; // attend un frame que le NavMesh soit prêt
-
             int walkableMask = 1 << NavMesh.GetAreaFromName("Walkable");
             if (walkableMask <= 0) walkableMask = NavMesh.AllAreas;
 

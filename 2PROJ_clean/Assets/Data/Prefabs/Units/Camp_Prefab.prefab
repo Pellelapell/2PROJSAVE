@@ -56,6 +56,8 @@ MonoBehaviour:
   spawnPoint: {fileID: 2246156444666041100}
   maxHP: 300
   currentHP: 300
+  neutralMesh: {fileID: 5461320835613783329, guid: cf1b4172530586a4ab39c318bbff882d, type: 3}
+  neutralMaterial: {fileID: 2100000, guid: 5d732ed0cb6a18c4196aa17154332ff1, type: 2}
 --- !u!114 &5388071035605871899
 MonoBehaviour:
   m_ObjectHideFlags: 0

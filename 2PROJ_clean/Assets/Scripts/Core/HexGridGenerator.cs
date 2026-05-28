@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.AI.Navigation;
 using SupKonQuest;
 
@@ -55,11 +56,17 @@ public class HexGridGenerator : MonoBehaviour
     public float minCampDistance = 4f;
     [Tooltip("Hauteur au-dessus de la surface de la tuile")]
     public float campYOffset = 0.2f;
+    [Tooltip("Facteur de scale des camps neutres (même logique que ×190 pour les camps joueur)")]
+    public float neutralCampScaleFactor = 190f;
+    [Tooltip("Distance minimale entre camps de joueurs différents, en nombre de tuiles")]
+    public int minInterPlayerCampTiles = 5;
 
     [Header("Gardes neutres")]
     public GameObject neutralGuardPrefab;
     [Range(1, 4)]
     public int guardsPerNeutralCamp = 2;
+    [Tooltip("Multiplicateur de taille des gardes neutres (2 = deux fois plus grand)")]
+    public float neutralGuardScale = 2f;
 
     private readonly List<HexTile> walkableTiles = new List<HexTile>();
     private readonly Dictionary<Vector2Int, HexTile> tileMap = new Dictionary<Vector2Int, HexTile>();
@@ -67,6 +74,9 @@ public class HexGridGenerator : MonoBehaviour
 
     public static List<Camp>[] CornerCamps { get; private set; }
     public static Bounds MapBounds { get; private set; }
+
+    public static Vector3    PlayerCampScale    { get; private set; }
+    public static Quaternion PlayerCampRotation { get; private set; }
 
     private void Start()
     {
@@ -557,6 +567,9 @@ public class HexGridGenerator : MonoBehaviour
 
         if (normalCampPrefab != null)
         {
+            float interPlayerDist = hexW * minInterPlayerCampTiles;
+            List<Vector3> allPlayerCamps = new List<Vector3>();
+
             for (int c = 0; c < 4; c++)
             {
                 List<HexTile> pool = new List<HexTile>(walkableTiles);
@@ -566,20 +579,28 @@ public class HexGridGenerator : MonoBehaviour
                     Vector3.Distance(a.transform.position, corner)
                     .CompareTo(Vector3.Distance(b.transform.position, corner)));
 
-                List<Vector3> placed = new List<Vector3>();
+                bool spawned = false;
                 foreach (HexTile tile in pool)
                 {
-                    if (placed.Count >= campsPerCorner) break;
-                    bool tooClose = false;
-                    foreach (Vector3 p in placed)
-                        if (Vector3.Distance(tile.transform.position, p) < minCampDistance * 0.5f)
-                        { tooClose = true; break; }
-                    if (tooClose) continue;
+                    if (spawned) break;
+
+                    // Distance minimale vis-à-vis des camps des autres joueurs déjà placés
+                    bool tooCloseToOther = false;
+                    foreach (Vector3 p in allPlayerCamps)
+                        if (Vector3.Distance(tile.transform.position, p) < interPlayerDist)
+                        { tooCloseToOther = true; break; }
+                    if (tooCloseToOther) continue;
 
                     Camp camp = SpawnCamp(normalCampPrefab, tile, CampType.Normal);
-                    if (camp != null) { CornerCamps[c].Add(camp); placed.Add(tile.transform.position); used.Add(tile); }
+                    if (camp != null)
+                    {
+                        CornerCamps[c].Add(camp);
+                        allPlayerCamps.Add(tile.transform.position);
+                        used.Add(tile);
+                        spawned = true;
+                    }
                 }
-                Debug.Log($"[HexGrid] Coin {c} : {placed.Count} camp(s).");
+                Debug.Log($"[HexGrid] Coin {c} : {(spawned ? 1 : 0)} camp(s).");
             }
         }
 
@@ -651,14 +672,80 @@ public class HexGridGenerator : MonoBehaviour
     {
         Renderer r = tile.GetComponentInChildren<Renderer>();
         Vector3 spawnPos = r != null
-            ? new Vector3(r.bounds.center.x, r.bounds.max.y + campYOffset, r.bounds.center.z)
-            : tile.transform.position + Vector3.up * campYOffset;
+            ? new Vector3(r.bounds.center.x, 1.8f, r.bounds.center.z)
+            : new Vector3(tile.transform.position.x, 1.8f, tile.transform.position.z);
 
-        GameObject obj = Instantiate(prefab, spawnPos, Quaternion.identity);
+        bool isPlayerCamp = (type == CampType.Normal);
+        Quaternion rotation = Quaternion.Euler(270f, 0f, 0f);
+        GameObject obj = Instantiate(prefab, spawnPos, rotation);
+        if (isPlayerCamp)
+        {
+            obj.transform.localScale = prefab.transform.localScale * 190f;
+            ScaleDownColliders(obj, 190f);
+            PlayerCampScale    = obj.transform.localScale;
+            PlayerCampRotation = obj.transform.rotation;
+        }
+
         Camp camp = obj.GetComponent<Camp>();
         if (camp == null) { Debug.LogError($"[HexGrid] Pas de Camp sur '{prefab.name}'"); Destroy(obj); return null; }
         camp.campType = type; camp.isNeutral = true; camp.owner = null;
+
+        if (!isPlayerCamp && neutralCampScaleFactor > 0f)
+        {
+            obj.transform.localScale = prefab.transform.localScale * neutralCampScaleFactor;
+            ScaleDownColliders(obj, neutralCampScaleFactor);
+        }
+
+        // Après tout rescale, recentrer le spawnPoint enfant
+        if (camp.spawnPoint != null)
+            camp.spawnPoint.localPosition = Vector3.zero;
+
+        if (!isPlayerCamp)
+            ApplyDemonCampSkin(obj, camp);
+
         return camp;
+    }
+
+    private static void ScaleDownColliders(GameObject obj, float factor)
+    {
+        foreach (Collider col in obj.GetComponentsInChildren<Collider>())
+        {
+            if (col is BoxCollider bc)
+            {
+                bc.size   /= factor;
+                bc.center /= factor;
+            }
+            else if (col is SphereCollider sc)
+                sc.radius /= factor;
+            else if (col is CapsuleCollider cc)
+            {
+                cc.radius /= factor;
+                cc.height /= factor;
+            }
+        }
+    }
+
+    private static void ApplyDemonCampSkin(GameObject obj, Camp camp)
+    {
+        RaceDefinition demonDef = RaceRegistry.Get(Race.Demon);
+        if (demonDef == null) return;
+
+        var skin = demonDef.GetBuildingSkin(BuildingType.Camp);
+        if (!skin.HasValue) return;
+
+        MeshFilter mf = obj.GetComponentInChildren<MeshFilter>();
+        if (mf != null && skin.Value.mesh != null)
+        {
+            mf.sharedMesh = skin.Value.mesh;
+            camp.neutralMesh = skin.Value.mesh;
+        }
+
+        Renderer rend = obj.GetComponentInChildren<Renderer>();
+        if (rend != null && skin.Value.material != null)
+        {
+            rend.material = skin.Value.material;
+            camp.neutralMaterial = skin.Value.material;
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
@@ -730,11 +817,38 @@ public class HexGridGenerator : MonoBehaviour
             Vector3 pos = r != null
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.15f, r.bounds.center.z)
                 : tile.transform.position + Vector3.up * 0.2f;
+
+            // Snapper sur le NavMesh pour éviter "agent not close enough to NavMesh"
+            if (NavMesh.SamplePosition(pos, out NavMeshHit navHit, 5f, NavMesh.AllAreas))
+                pos = navHit.position;
+
             GameObject obj = Instantiate(neutralGuardPrefab, pos, Quaternion.identity);
+
+            // Skin Démon Heavy + taille intimidante
+            ApplyDemonHeavySkin(obj);
+            obj.transform.localScale *= neutralGuardScale;
+
             NeutralUnitAI ai = obj.GetComponent<NeutralUnitAI>();
             if (ai != null) ai.SetGuardedCamp(camp);
             spawned++;
         }
+    }
+
+    private static void ApplyDemonHeavySkin(GameObject obj)
+    {
+        RaceDefinition demonDef = RaceRegistry.Get(Race.Demon);
+        if (demonDef == null) return;
+
+        var skin = demonDef.GetUnitSkin(UnitType.Heavy);
+        if (!skin.HasValue) return;
+
+        MeshFilter mf = obj.GetComponentInChildren<MeshFilter>();
+        if (mf != null && skin.Value.mesh != null)
+            mf.sharedMesh = skin.Value.mesh;
+
+        Renderer rend = obj.GetComponentInChildren<Renderer>();
+        if (rend != null && skin.Value.material != null)
+            rend.material = skin.Value.material;
     }
 
     private void ComputeMapBounds(float hexW, float hexD)

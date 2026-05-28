@@ -24,6 +24,10 @@ namespace SupKonQuest
         // Unité unique sélectionnée — lue par HUDManager pour afficher les stats
         public UnitStats SelectedUnitStats { get; private set; }
 
+        // Bâtiment sélectionné — lu par HUDManager pour afficher nom + PV
+        public Camp SelectedCampBuilding { get; private set; }
+        public BuildingHealth SelectedHealthBuilding { get; private set; }
+
         private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
         private readonly Dictionary<int, List<UnitMovement>> unitGroups = new Dictionary<int, List<UnitMovement>>();
 
@@ -133,12 +137,30 @@ namespace SupKonQuest
 
             if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
             {
-                Camp camp = hitCamp.collider.GetComponent<Camp>();
-                if (camp != null && camp.owner != null && camp.owner.playerId == localPlayerId)
+                Camp camp = hitCamp.collider.GetComponentInParent<Camp>();
+                if (camp != null)
                 {
                     ClearSelection();
-                    campUIManager?.SelectCamp(camp);
+                    SelectedCampBuilding = camp;
+                    if (camp.owner != null && camp.owner.playerId == localPlayerId)
+                        campUIManager?.SelectCamp(camp);
+                    else
+                        campUIManager?.HideUI();
+                    spellUI?.HidePanel();
+                    return;
+                }
+            }
 
+            // Bâtiments non-camp (Scierie…)
+            RaycastHit[] buildingHits = Physics.RaycastAll(ray, 1000f);
+            foreach (RaycastHit h in buildingHits)
+            {
+                BuildingHealth bh = h.collider.GetComponentInParent<BuildingHealth>();
+                if (bh != null && h.collider.GetComponentInParent<Camp>() == null)
+                {
+                    ClearSelection();
+                    campUIManager?.HideUI();
+                    SelectedHealthBuilding = bh;
                     spellUI?.HidePanel();
                     return;
                 }
@@ -206,7 +228,7 @@ namespace SupKonQuest
             // Clic droit sur un camp ennemi/neutre → attaquer
             if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
             {
-                Camp camp = hitCamp.collider.GetComponent<Camp>();
+                Camp camp = hitCamp.collider.GetComponentInParent<Camp>();
                 if (camp != null && (camp.isNeutral || (camp.owner != null && camp.owner.playerId != localPlayerId)))
                 {
                     foreach (UnitMovement u in selectedUnits)
@@ -352,6 +374,8 @@ namespace SupKonQuest
         private void SelectUnit(UnitMovement unit)
         {
             if (unit == null || selectedUnits.Contains(unit)) return;
+            SelectedCampBuilding = null;
+            SelectedHealthBuilding = null;
 
             UnitStats stats = unit.GetComponent<UnitStats>();
             if (stats != null) stats.OnDeath += HandleSelectedUnitDeath;
@@ -386,6 +410,8 @@ namespace SupKonQuest
             }
             selectedUnits.Clear();
             SelectedUnitStats = null;
+            SelectedCampBuilding = null;
+            SelectedHealthBuilding = null;
             BuilderHUD.Instance?.Hide();
         }
 
