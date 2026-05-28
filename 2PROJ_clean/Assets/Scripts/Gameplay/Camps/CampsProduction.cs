@@ -143,6 +143,14 @@ namespace SupKonQuest
             // Chercher une position valide sur le NavMesh selon le type d'unité
             spawnPos = FindValidSpawnPosition(spawnPos, isNaval);
 
+            // Snapper exactement sur le NavMesh avant Instantiate → supprime le warning "Failed to create agent"
+            int waterIdx = NavMesh.GetAreaFromName("Water");
+            int snapMask = isNaval
+                ? (waterIdx >= 0 ? (1 << waterIdx) : NavMesh.AllAreas)
+                : (waterIdx >= 0 ? NavMesh.AllAreas & ~(1 << waterIdx) : NavMesh.AllAreas);
+            if (NavMesh.SamplePosition(spawnPos, out NavMeshHit navHit, 5f, snapMask))
+                spawnPos = navHit.position;
+
             GameObject unitObj = Instantiate(entry.prefab, spawnPos, Quaternion.identity);
 
             UnitStats stats = unitObj.GetComponent<UnitStats>();

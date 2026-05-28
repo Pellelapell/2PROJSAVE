@@ -18,12 +18,17 @@ namespace SupKonQuest
         public int maxHP = 300;
         public int currentHP = 300;
 
+        [Header("Skin neutre (assigné dans l'Inspector du prefab)")]
+        public Mesh neutralMesh;
+        public Material neutralMaterial;
+
         private Camera mainCam;
 
         private void Start()
         {
             mainCam = Camera.main;
             currentHP = maxHP;
+            UpdateCampVisual();
         }
 
         // ── Dégâts ───────────────────────────────────────────────────
@@ -58,12 +63,34 @@ namespace SupKonQuest
             if (owner == newOwner) return;
 
             PlayerData previousOwner = owner;
+            bool wasNeutral = isNeutral;
 
             if (owner != null)
                 owner.ownedCamps.Remove(this);
 
             owner = newOwner;
             isNeutral = (newOwner == null);
+
+            // Appliquer le scale/rotation des camps joueur lors d'une capture depuis l'état neutre
+            if (wasNeutral && newOwner != null && HexGridGenerator.PlayerCampScale != Vector3.zero)
+            {
+                Vector3 oldScale     = transform.localScale;
+                transform.rotation   = HexGridGenerator.PlayerCampRotation;
+                transform.localScale = HexGridGenerator.PlayerCampScale;
+
+                // Corriger les colliders proportionnellement au changement d'échelle
+                float ratio = oldScale.x > 0f ? oldScale.x / transform.localScale.x : 1f;
+                foreach (Collider col in GetComponentsInChildren<Collider>())
+                {
+                    if (col is BoxCollider bc)       { bc.size *= ratio; bc.center *= ratio; }
+                    else if (col is SphereCollider sc) sc.radius *= ratio;
+                    else if (col is CapsuleCollider cc){ cc.radius *= ratio; cc.height *= ratio; }
+                }
+
+                // Recentrer le spawnPoint : après le rescale il peut être très loin du camp
+                if (spawnPoint != null)
+                    spawnPoint.localPosition = Vector3.zero;
+            }
 
             if (owner != null && !owner.ownedCamps.Contains(this))
                 owner.ownedCamps.Add(this);
@@ -130,7 +157,17 @@ namespace SupKonQuest
                 }
             }
 
-            rend.material.color = owner == null ? Color.gray : owner.playerColor;
+            if (owner == null)
+            {
+                MeshFilter mf = GetComponentInChildren<MeshFilter>();
+                if (mf != null && neutralMesh != null) mf.sharedMesh = neutralMesh;
+                if (neutralMaterial != null) rend.material = neutralMaterial;
+                else rend.material.color = Color.gray;
+            }
+            else
+            {
+                rend.material.color = owner.playerColor;
+            }
         }
 
         // ── Barre de vie ─────────────────────────────────────────────

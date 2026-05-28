@@ -142,11 +142,12 @@ namespace SupKonQuest
 
             Renderer r = site.tile.GetComponentInChildren<Renderer>();
             Vector3 pos = r != null
-                ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.2f, r.bounds.center.z)
-                : site.tile.transform.position + Vector3.up * 0.2f;
+                ? new Vector3(r.bounds.center.x, 1.8f, r.bounds.center.z)
+                : new Vector3(site.tile.transform.position.x, 1.8f, site.tile.transform.position.z);
 
-            GameObject obj = Instantiate(prefab, pos + Vector3.up * 2.2f, Quaternion.Euler(270f, 0f, 0f));
+            GameObject obj = Instantiate(prefab, pos, Quaternion.Euler(270f, 0f, 0f));
             obj.transform.localScale = prefab.transform.localScale * 190f;
+            ScaleDownColliders(obj, 190f);
 
             // Obstacle NavMesh dynamique pour que les unités contournent le bâtiment
             if (obj.GetComponent<NavMeshObstacle>() == null)
@@ -173,6 +174,8 @@ namespace SupKonQuest
                                        :                                    CampType.Normal;
                         camp.isNeutral = false;
                         camp.SetOwner(site.owner);
+                        if (camp.spawnPoint != null)
+                            camp.spawnPoint.localPosition = Vector3.zero;
                     }
                     break;
 
@@ -214,6 +217,25 @@ namespace SupKonQuest
         }
 
         // ── Helpers ───────────────────────────────────────────────────
+
+        private static void ScaleDownColliders(GameObject obj, float factor)
+        {
+            foreach (Collider col in obj.GetComponentsInChildren<Collider>())
+            {
+                if (col is BoxCollider bc)
+                {
+                    bc.size   /= factor;
+                    bc.center /= factor;
+                }
+                else if (col is SphereCollider sc)
+                    sc.radius /= factor;
+                else if (col is CapsuleCollider cc)
+                {
+                    cc.radius /= factor;
+                    cc.height /= factor;
+                }
+            }
+        }
 
         private bool InOwnedTerritory(HexTile tile, PlayerData owner)
         {
