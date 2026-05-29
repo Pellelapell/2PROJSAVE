@@ -14,6 +14,8 @@ public class RaceDefinition : ScriptableObject
         public UnitType unitType;
         public Mesh     mesh;
         public Material material;
+        // le controller d'animation specifique a cette race pour ce type d'unite
+        public RuntimeAnimatorController animatorController;
     }
 
     [System.Serializable]

@@ -31,14 +31,21 @@ public class UnitVisuals : MonoBehaviour
                     meshFilter.sharedMesh = skin.Value.mesh;
 
                 if (unitRenderer != null && skin.Value.material != null)
-                {
                     unitRenderer.material = skin.Value.material;
-                    return;
+
+                // on change le controller d'animation selon la race
+                if (skin.Value.animatorController != null)
+                {
+                    Animator anim = GetComponentInChildren<Animator>();
+                    if (anim != null)
+                        anim.runtimeAnimatorController = skin.Value.animatorController;
                 }
+
+                return;
             }
         }
 
-        // Fallback couleur si aucun skin configuré
+        // si pas de skin configure on met juste la couleur de la race
         if (unitRenderer == null) return;
         unitRenderer.material.color = stats.race switch
         {
