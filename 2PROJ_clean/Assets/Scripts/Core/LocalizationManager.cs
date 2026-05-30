@@ -66,7 +66,7 @@ namespace SupKonQuest
         {
             if (Instance != null && Instance.entries.TryGetValue(key, out string val))
                 return val;
-            return key; // fallback : retourne la clé si pas trouvée
+            return key;
         }
     }
 }

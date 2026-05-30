@@ -31,8 +31,6 @@ namespace SupKonQuest
             UpdateCampVisual();
         }
 
-        // ── Dégâts ───────────────────────────────────────────────────
-
         public void TakeDamage(int amount, UnitStats attacker)
         {
             currentHP = Mathf.Max(0, currentHP - amount);
@@ -56,8 +54,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Propriété ────────────────────────────────────────────────
-
         public void SetOwner(PlayerData newOwner)
         {
             if (owner == newOwner) return;
@@ -71,14 +67,12 @@ namespace SupKonQuest
             owner = newOwner;
             isNeutral = (newOwner == null);
 
-            // Appliquer le scale/rotation des camps joueur lors d'une capture depuis l'état neutre
             if (wasNeutral && newOwner != null && HexGridGenerator.PlayerCampScale != Vector3.zero)
             {
                 Vector3 oldScale     = transform.localScale;
                 transform.rotation   = HexGridGenerator.PlayerCampRotation;
                 transform.localScale = HexGridGenerator.PlayerCampScale;
 
-                // Corriger les colliders proportionnellement au changement d'échelle
                 float ratio = oldScale.x > 0f ? oldScale.x / transform.localScale.x : 1f;
                 foreach (Collider col in GetComponentsInChildren<Collider>())
                 {
@@ -87,7 +81,6 @@ namespace SupKonQuest
                     else if (col is CapsuleCollider cc){ cc.radius *= ratio; cc.height *= ratio; }
                 }
 
-                // Recentrer le spawnPoint : après le rescale il peut être très loin du camp
                 if (spawnPoint != null)
                     spawnPoint.localPosition = Vector3.zero;
             }
@@ -95,7 +88,6 @@ namespace SupKonQuest
             if (owner != null && !owner.ownedCamps.Contains(this))
                 owner.ownedCamps.Add(this);
 
-            // Détruire les gardes neutres proches quand le camp change de main
             if (newOwner != null)
                 DestroyNearbyNeutralGuards();
 
@@ -170,8 +162,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Barre de vie ─────────────────────────────────────────────
-
         private void OnGUI()
         {
             if (mainCam == null) return;
@@ -184,18 +174,15 @@ namespace SupKonQuest
             float x = screenPos.x - barW * 0.5f;
             float y = Screen.height - screenPos.y - barH * 0.5f;
 
-            // Fond sombre
             Color prev = GUI.color;
             GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
             GUI.DrawTexture(new Rect(x, y, barW, barH), Texture2D.whiteTexture);
 
-            // Remplissage coloré selon PV
             float ratio = maxHP > 0 ? (float)currentHP / maxHP : 1f;
             Color fill = Color.Lerp(Color.red, Color.green, ratio);
             GUI.color = new Color(fill.r, fill.g, fill.b, 0.9f);
             GUI.DrawTexture(new Rect(x, y, barW * ratio, barH), Texture2D.whiteTexture);
 
-            // Bordure blanche fine
             GUI.color = new Color(1f, 1f, 1f, 0.4f);
             GUI.Box(new Rect(x - 1, y - 1, barW + 2, barH + 2), GUIContent.none);
 

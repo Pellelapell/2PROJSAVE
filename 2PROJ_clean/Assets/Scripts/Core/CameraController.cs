@@ -22,7 +22,6 @@ namespace SupKonQuest
 
         private float minX, maxX, minZ, maxZ;
 
-        // Drag molette
         private bool  isDragging;
         private Vector3 dragOriginWorld;
 
@@ -69,8 +68,6 @@ namespace SupKonQuest
             ClampPosition();
         }
 
-        // ── Clic-molette drag (style AoE) ────────────────────────────
-
         private void HandleMiddleMouseDrag()
         {
             if (Input.GetMouseButtonDown(2))
@@ -90,19 +87,15 @@ namespace SupKonQuest
             transform.position += delta * dragSensitivity;
         }
 
-        // ── Clavier + scroll de bord ─────────────────────────────────
-
         private void HandleKeyboardAndEdge()
         {
             Vector3 move = Vector3.zero;
 
-            // Clavier (ZQSD ou flèches)
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
             move += transform.right * h;
             move += Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized * v;
 
-            // Scroll de bord uniquement si pas de drag en cours
             if (!isDragging)
             {
                 Vector3 mousePos = Input.mousePosition;
@@ -116,20 +109,16 @@ namespace SupKonQuest
 
             if (move == Vector3.zero) return;
 
-            // Vitesse augmente avec la hauteur (plus on est haut, plus on va vite)
             float speedMult = Mathf.Lerp(1f, 2.5f, (transform.position.y - minY) / Mathf.Max(1f, maxY - minY));
             float speed = (h != 0f || v != 0f) ? moveSpeed : edgeScrollSpeed;
             transform.position += move.normalized * speed * speedMult * Time.deltaTime;
         }
-
-        // ── Zoom molette ─────────────────────────────────────────────
 
         private void HandleZoom()
         {
             float scroll = Input.mouseScrollDelta.y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
-            // Zoom vers le point sous la souris (style AoE)
             Vector3 target = GetGroundPoint();
             Vector3 dir = (target - transform.position).normalized;
 
@@ -137,8 +126,6 @@ namespace SupKonQuest
             pos.y = Mathf.Clamp(pos.y, minY, maxY);
             transform.position = pos;
         }
-
-        // ── Clamp ────────────────────────────────────────────────────
 
         private void ClampPosition()
         {
@@ -148,8 +135,6 @@ namespace SupKonQuest
             pos.y = Mathf.Clamp(pos.y, minY, maxY);
             transform.position = pos;
         }
-
-        // ── Helper : point au sol sous la souris ─────────────────────
 
         private Vector3 GetGroundPoint()
         {

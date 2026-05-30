@@ -100,8 +100,6 @@ namespace SupKonQuest
             if (panel != null) panel.SetActive(false);
         }
 
-        // ── Spawn point picking ───────────────────────────────────────
-
         public void StartPickingSpawnPoint()
         {
             if (selectedCamp == null) return;

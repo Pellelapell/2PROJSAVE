@@ -17,10 +17,8 @@ namespace SupKonQuest
         public bool IsMoving => agent != null && agent.isOnNavMesh
                              && agent.hasPath && agent.remainingDistance > agent.stoppingDistance;
 
-        // Verrouillé pendant la construction : ignore les commandes de mouvement
         public bool IsLocked { get; set; }
 
-        // Vrai tant que le joueur a ordonné un déplacement manuel (non encore arrivé)
         public bool HasPlayerMoveOrder { get; private set; }
 
         private static Material selectionCircleMat;
@@ -45,7 +43,6 @@ namespace SupKonQuest
                 selectionCircleMat = new Material(sh);
                 selectionCircleMat.color = new Color(0f, 0.9f, 0f, 0.35f);
 
-                // Activer la transparence sur le shader Standard
                 selectionCircleMat.SetFloat("_Mode", 3);
                 selectionCircleMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                 selectionCircleMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
@@ -66,7 +63,6 @@ namespace SupKonQuest
 
         private void Update()
         {
-            // Effacer l'ordre manuel dès que l'unité est arrivée à destination
             if (HasPlayerMoveOrder && !IsMoving && !hasPending)
                 HasPlayerMoveOrder = false;
 
@@ -77,8 +73,6 @@ namespace SupKonQuest
             agent.SetDestination(pendingDestination);
             hasPending = false;
         }
-
-        // ── API publique ─────────────────────────────────────────────
 
         public void InitOnNavMesh(float speed)
         {
@@ -140,16 +134,13 @@ namespace SupKonQuest
                 selectionCircle.SetActive(selected);
         }
 
-
         private int ComputeAreaMask(int waterAreaIndex)
         {
             if (IsNavalUnit())
             {
-                // Bateaux : eau uniquement (si l'area Water existe)
                 return waterAreaIndex >= 0 ? (1 << waterAreaIndex) : NavMesh.AllAreas;
             }
 
-            // Unités terrestres : tout sauf l'eau
             if (waterAreaIndex >= 0)
                 return NavMesh.AllAreas & ~(1 << waterAreaIndex);
 

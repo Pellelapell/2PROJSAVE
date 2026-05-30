@@ -39,7 +39,7 @@ namespace SupKonQuest
             float lineH = 72f;
             float h = 30f + Types.Length * lineH + 10f;
             float x = (Screen.width  - w) * 0.5f;
-            float y = Screen.height - h - 120f; // juste au-dessus du panneau unité
+            float y = Screen.height - h - 120f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.Label(new Rect(x, y, w, 24f), "  Construire", titleStyle);
@@ -52,7 +52,6 @@ namespace SupKonQuest
                 GUIStyle style = canBuild ? btnStyle : disabledStyle;
                 string typeKey = type.ToString().ToLower();
 
-                // Fond du bouton
                 GUI.Box(new Rect(x, y, w, lineH - 4f), GUIContent.none, panelStyle);
                 GUI.Label(new Rect(x + 6, y + 2,  w - 12, 20f), LocalizationManager.Get("building_" + typeKey), titleStyle);
                 GUI.Label(new Rect(x + 6, y + 20f, w - 12, 16f), LocalizationManager.Get("builder_desc_" + typeKey), costStyle);
@@ -76,7 +75,6 @@ namespace SupKonQuest
                 y += lineH;
             }
 
-            // Fermer
             if (GUI.Button(new Rect(x + w - 28f, y - Types.Length * lineH - 32f, 24f, 20f), "✕", costStyle))
                 selectedTile = null;
         }

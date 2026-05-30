@@ -48,8 +48,6 @@ namespace SupKonQuest
         {
             if (def == null) return;
             unitType = def.unitType;
-            // N'écraser que les valeurs > 0 dans le SO — si un champ est oublié (0),
-            // UnitDefaults.Apply() aura déjà mis une valeur correcte.
             if (def.price > 0)       price       = def.price;
             if (def.maxHP > 0)     { maxHealth   = def.maxHP; currentHealth = def.maxHP; }
             if (def.damage > 0)      attackDamage = def.damage;
@@ -94,10 +92,8 @@ namespace SupKonQuest
 
         private int ComputeReceivedDamage(int raw)
         {
-            // Heavy prend 30% moins de dégâts sauf contre Piercing (Anti-Armor)
             if (unitType == UnitType.Heavy && damageType != DamageType.Piercing)
                 return Mathf.RoundToInt(raw * 0.7f);
-            // Anti-Armor fait x2 contre Heavy
             return raw;
         }
 

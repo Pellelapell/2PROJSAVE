@@ -39,7 +39,6 @@ namespace SupKonQuest
             if (!isVisible) return;
             InitStyles();
 
-            // Dark overlay
             GUI.color = new Color(0f, 0f, 0f, 0.7f);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;

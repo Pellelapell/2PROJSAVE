@@ -46,7 +46,7 @@ namespace SupKonQuest
                 if (unit == null || unit.currentHealth <= 0) continue;
 
                 bool isEnemy = camp.isNeutral
-                    ? unit.ownerId != 0           // neutral camps attack all non-neutral units
+                    ? unit.ownerId != 0
                     : camp.owner != null && unit.ownerId != camp.owner.playerId;
 
                 if (!isEnemy) continue;

@@ -2,8 +2,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    // Attacher sur un GameObject dans chaque scène de jeu.
-    // Appuyer sur Échap pour ouvrir/fermer le menu options ingame.
     public class GameOptionsMenu : MonoBehaviour
     {
         [Header("Touche d'ouverture (défaut : Escape)")]
@@ -48,7 +46,6 @@ namespace SupKonQuest
             if (!isOpen) return;
             InitStyles();
 
-            // Fond semi-transparent
             GUI.color = new Color(0f, 0f, 0f, 0.6f);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
@@ -64,7 +61,6 @@ namespace SupKonQuest
             GUI.Label(new Rect(px, y, pw, 32f), L("options"), titleStyle);
             y += 40f;
 
-            // Musique
             GUI.Label(new Rect(px, y, pw, 22f), $"{L("options_music")} : {Mathf.RoundToInt(musicVolume * 100f)}%", labelStyle);
             y += 26f;
             float newMusic = GUI.HorizontalSlider(new Rect(px, y, pw, 18f), musicVolume, 0f, 1f);
@@ -76,7 +72,6 @@ namespace SupKonQuest
             }
             y += 32f;
 
-            // Sons
             GUI.Label(new Rect(px, y, pw, 22f), $"{L("options_sfx")} : {Mathf.RoundToInt(sfxVolume * 100f)}%", labelStyle);
             y += 26f;
             float newSFX = GUI.HorizontalSlider(new Rect(px, y, pw, 18f), sfxVolume, 0f, 1f);
@@ -88,7 +83,6 @@ namespace SupKonQuest
             }
             y += 40f;
 
-            // Boutons : Reprendre | Quitter
             float bw = 190f;
             float gap = 20f;
             float totalW = bw * 2f + gap;

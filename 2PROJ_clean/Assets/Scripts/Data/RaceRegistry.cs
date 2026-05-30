@@ -1,7 +1,6 @@
 using UnityEngine;
 using SupKonQuest;
 
-// Placer l'asset dans Assets/Resources/RaceRegistry.asset
 [CreateAssetMenu(menuName = "SupKonQuest/Data/Race Registry")]
 public class RaceRegistry : ScriptableObject
 {

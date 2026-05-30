@@ -15,7 +15,6 @@ namespace SupKonQuest
         public int regionsX = 2;
         public int regionsZ = 2;
 
-        // Noms et bonus assignés automatiquement selon position dans la grille
         private static readonly string[] NameKeys =
         {
             "region_north", "region_east", "region_south", "region_west",
@@ -45,8 +44,6 @@ namespace SupKonQuest
                 lineMat.SetInt("_ZWrite", 0);
             }
         }
-
-        // ── Génération ────────────────────────────────────────────────
 
         public void GenerateRegions(Bounds mapBounds)
         {
@@ -85,8 +82,6 @@ namespace SupKonQuest
             Debug.Log($"[RegionManager] {regionList.Count} régions ({regionsX}×{regionsZ}).");
         }
 
-        // ── Assignation des camps ─────────────────────────────────────
-
         public void AssignCampsToRegions()
         {
             foreach (Region r in regionList) r.camps.Clear();
@@ -102,8 +97,6 @@ namespace SupKonQuest
                 }
             }
         }
-
-        // ── API publique ──────────────────────────────────────────────
 
         public Region[] GetAllRegions() => regionList.ToArray();
 
@@ -123,7 +116,6 @@ namespace SupKonQuest
             return total;
         }
 
-        // Le joueur possède plus de camps neutres dans la région que n'importe quel rival.
         private static bool PlayerHasMajority(Region region, PlayerData player)
         {
             int playerCount = 0, maxRival = 0;
@@ -148,8 +140,6 @@ namespace SupKonQuest
                 if (r.IsOwnedBy(player) && r.ContainsPoint(position)) return true;
             return false;
         }
-
-        // ── Bordures GL sur la map ────────────────────────────────────
 
         private void OnRenderObject()
         {
@@ -183,8 +173,6 @@ namespace SupKonQuest
 
             GL.End();
         }
-
-        // ── Labels sur la map ─────────────────────────────────────────
 
         private void OnGUI()
         {

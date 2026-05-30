@@ -21,10 +21,8 @@ namespace SupKonQuest
         [Header("Local Player")]
         public int localPlayerId = 1;
 
-        // Unité unique sélectionnée — lue par HUDManager pour afficher les stats
         public UnitStats SelectedUnitStats { get; private set; }
 
-        // Bâtiment sélectionné — lu par HUDManager pour afficher nom + PV
         public Camp SelectedCampBuilding { get; private set; }
         public BuildingHealth SelectedHealthBuilding { get; private set; }
 
@@ -57,8 +55,6 @@ namespace SupKonQuest
             HandleDisembarkHotkey();
         }
 
-        // ── Sélection souris ────────────────────────────────────────
-
         private void HandleMouse()
         {
             if (Input.GetMouseButtonDown(0))
@@ -81,12 +77,10 @@ namespace SupKonQuest
 
         private void SingleClick()
         {
-            // Bloquer si la souris est sur le panel BuilderHUD (évite de clear la sélection)
             if (BuilderHUD.Instance != null && BuilderHUD.Instance.IsMouseOverPanel) return;
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-            // Mode sélection du spawn point de camp
             if (campUIManager != null && campUIManager.IsPickingSpawnPoint)
             {
                 RaycastHit[] spawnHits = Physics.RaycastAll(ray, 1000f);
@@ -103,10 +97,8 @@ namespace SupKonQuest
                 return;
             }
 
-            // Mode placement de bâtiment (fantassin constructeur)
             if (BuilderHUD.Instance != null && BuilderHUD.Instance.HasPendingBuild)
             {
-                // RaycastAll pour traverser unités/camps et trouver la tuile derrière
                 RaycastHit[] hits = Physics.RaycastAll(ray, 1000f);
                 foreach (RaycastHit h in hits)
                 {
@@ -151,7 +143,6 @@ namespace SupKonQuest
                 }
             }
 
-            // Bâtiments non-camp (Scierie…)
             RaycastHit[] buildingHits = Physics.RaycastAll(ray, 1000f);
             foreach (RaycastHit h in buildingHits)
             {
@@ -191,15 +182,12 @@ namespace SupKonQuest
             RefreshSpellUI();
         }
 
-        // ── Clic droit : déplacer / embarquer / attaquer ────────────
-
         private void HandleRightClick()
         {
             if (!Input.GetMouseButtonDown(1) || selectedUnits.Count == 0) return;
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-            // Clic droit sur un transport allié → embarquer
             if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
             {
                 TransportShip transport = hitUnit.collider.GetComponentInParent<TransportShip>();
@@ -216,7 +204,6 @@ namespace SupKonQuest
                     return;
                 }
 
-                // Clic droit sur une unité ennemie → se déplacer vers elle
                 UnitStats target = hitUnit.collider.GetComponentInParent<UnitStats>();
                 if (target != null && target.ownerId != localPlayerId)
                 {
@@ -225,7 +212,6 @@ namespace SupKonQuest
                 }
             }
 
-            // Clic droit sur un camp ennemi/neutre → attaquer
             if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
             {
                 Camp camp = hitCamp.collider.GetComponentInParent<Camp>();
@@ -241,7 +227,6 @@ namespace SupKonQuest
                 }
             }
 
-            // Clic droit sur le sol → déplacer en formation
             int ignoreMask = unitLayerMask | campLayerMask;
             if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, ~ignoreMask))
             {
@@ -252,8 +237,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Sorts ────────────────────────────────────────────────────
-
         private void HandleSpellHotkey()
         {
             if (!Input.GetKeyDown(KeyCode.Q)) return;
@@ -263,8 +246,6 @@ namespace SupKonQuest
             spell?.TryActivate();
         }
 
-        // ── Débarquement ─────────────────────────────────────────────
-
         private void HandleDisembarkHotkey()
         {
             if (!Input.GetKeyDown(KeyCode.E)) return;
@@ -273,10 +254,9 @@ namespace SupKonQuest
             TransportShip transport = selectedUnits[0].GetComponent<TransportShip>();
             if (transport == null || transport.IsEmpty) return;
 
-            // Chercher la tuile walkable la plus proche dans un rayon de 5 unités
             Vector3 shipPos = selectedUnits[0].transform.position;
             Vector3 landPos = FindNearestWalkable(shipPos, 5f);
-            if (landPos == Vector3.zero) return; // aucune case accessible, on refuse
+            if (landPos == Vector3.zero) return;
 
             transport.DisembarkAll(landPos);
         }
@@ -295,8 +275,6 @@ namespace SupKonQuest
             }
             return best;
         }
-
-        // ── Groupes Ctrl+1-5 ─────────────────────────────────────────
 
         private void HandleGroupHotkeys()
         {
@@ -339,15 +317,12 @@ namespace SupKonQuest
             RefreshSpellUI();
         }
 
-        // ── Helpers ──────────────────────────────────────────────────
-
         private void RefreshSpellUI()
         {
             if (selectedUnits.Count == 1)
             {
                 UnitStats stats = selectedUnits[0].GetComponent<UnitStats>();
 
-                // Fantassin → panneau de construction
                 if (stats != null && stats.unitType == UnitType.Infantry)
                 {
                     BuilderHUD.Instance?.ShowForUnit(stats);
@@ -355,7 +330,6 @@ namespace SupKonQuest
                     return;
                 }
 
-                // Autres unités → sort si disponible
                 BuilderHUD.Instance?.Hide();
                 if (spellUI != null)
                 {

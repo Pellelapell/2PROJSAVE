@@ -15,14 +15,13 @@ public class RaceDefinition : ScriptableObject
         public Mesh      mesh;
         public Material  material;
         public RuntimeAnimatorController animatorController;
-        // le prefab du modele 3D complet (avec squelette et Animator)
         public GameObject modelPrefab;
     }
 
     [System.Serializable]
     public struct BuildingSkinEntry
     {
-        public BuildingType buildingType; // Camp, Sawmill, Port, Castle
+        public BuildingType buildingType;
         public Mesh         mesh;
         public Material     material;
     }

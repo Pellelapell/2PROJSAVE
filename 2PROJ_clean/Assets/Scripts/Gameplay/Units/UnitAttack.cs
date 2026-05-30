@@ -43,21 +43,17 @@ namespace SupKonQuest
                 return;
             }
 
-            // Auto-découverte seulement si pas de cible manuelle
             if (!manualCampTarget && (currentCampTarget == null || !IsEnemyCamp(currentCampTarget)))
                 currentCampTarget = FindClosestEnemyCamp();
 
             if (currentCampTarget != null) { HandleCampTarget(); return; }
 
-            // Bâtiments ennemis (Scierie…)
             if (currentBuildingTarget == null || currentBuildingTarget.currentHP <= 0)
                 currentBuildingTarget = FindClosestEnemyBuilding();
 
             if (currentBuildingTarget != null)
                 HandleBuildingTarget();
         }
-
-        // ── Unit targeting ──────────────────────────────────────────
 
         private void HandleUnitTarget()
         {
@@ -66,7 +62,7 @@ namespace SupKonQuest
 
             if (dist <= stats.attackRange)
             {
-                if (!playerMoving) StopMoving(); // ne pas interrompre un déplacement manuel
+                if (!playerMoving) StopMoving();
                 FaceTarget(currentUnitTarget.transform);
                 if (attackCooldown <= 0f)
                 {
@@ -77,7 +73,7 @@ namespace SupKonQuest
             }
             else if (dist <= stats.detectRange)
             {
-                if (!playerMoving) MoveToward(currentUnitTarget.transform.position); // ne pas rediriger si ordre manuel
+                if (!playerMoving) MoveToward(currentUnitTarget.transform.position);
             }
             else
             {
@@ -112,7 +108,6 @@ namespace SupKonQuest
             if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
                 damage *= 2;
 
-            // +20% dégâts si l'unité combat dans une région lui appartenant
             damage = Mathf.RoundToInt(damage * GetRegionDamageMultiplier());
 
             if (stats.isAOE)
@@ -133,11 +128,8 @@ namespace SupKonQuest
             }
         }
 
-        // ── Camp targeting ──────────────────────────────────────────
-
         private void HandleCampTarget()
         {
-            // Annuler si le camp est devenu allié ou inexistant
             if (currentCampTarget == null || !IsEnemyCamp(currentCampTarget))
             {
                 currentCampTarget = null;
@@ -169,7 +161,6 @@ namespace SupKonQuest
             }
         }
 
-        // Ordre manuel depuis InputManager
         public void SetCampTarget(Camp camp)
         {
             currentCampTarget = camp;
@@ -177,7 +168,6 @@ namespace SupKonQuest
             manualCampTarget  = camp != null;
         }
 
-        // Appelé par UnitMovement.MoveTo — le joueur reprend la main
         public void ClearTargets()
         {
             currentUnitTarget    = null;
@@ -201,8 +191,6 @@ namespace SupKonQuest
             }
             return closest;
         }
-
-        // ── Building targeting ──────────────────────────────────────
 
         private void HandleBuildingTarget()
         {
@@ -257,20 +245,17 @@ namespace SupKonQuest
             return camp.owner != null && camp.owner.playerId != stats.ownerId;
         }
 
-        // ── Region bonus ─────────────────────────────────────────────
-
         private float GetRegionDamageMultiplier()
         {
             if (RegionManager.Instance == null) return 1f;
             return RegionManager.Instance.IsInOwnedRegion(transform.position, stats.ownerId) ? 1.2f : 1f;
         }
 
-        // ── Helpers ─────────────────────────────────────────────────
-
         private void MoveToward(Vector3 destination)
         {
             if (agent != null && agent.isOnNavMesh)
             {
+                agent.stoppingDistance = stats.attackRange * 0.9f;
                 agent.isStopped = false;
                 agent.SetDestination(destination);
             }

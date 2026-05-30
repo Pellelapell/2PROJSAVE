@@ -12,10 +12,8 @@ namespace SupKonQuest
         private float spellDurationTimer;
         private bool isActive;
 
-        // Heal : tick toutes les 0.5s pour éviter les problèmes de deltaTime
         private float healTimer;
 
-        // Support : liste des unités buffées pour pouvoir retirer le buff proprement
         private readonly List<UnitStats> buffedUnits = new List<UnitStats>();
 
         public bool IsActive => isActive;
@@ -81,8 +79,6 @@ namespace SupKonQuest
             buffedUnits.Clear();
         }
 
-        // ── Support ──────────────────────────────────────────────────
-
         private void ApplySupportBuff()
         {
             Collider[] hits = Physics.OverlapSphere(transform.position, 5f);
@@ -114,11 +110,8 @@ namespace SupKonQuest
             }
         }
 
-        // ── Heal ─────────────────────────────────────────────────────
-
         private void ApplyHealTick()
         {
-            // 10 HP toutes les 0.5s = 20 HP/s
             Collider[] hits = Physics.OverlapSphere(transform.position, 5f);
             foreach (Collider hit in hits)
             {

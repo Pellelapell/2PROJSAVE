@@ -10,7 +10,6 @@ namespace SupKonQuest
         private BuildingType? pendingType;
         private bool justActivated;
 
-        // Séparé de trackedUnit : reste actif même après déselection
         private UnitStats builderUnit;
         private HexTile   activeSiteTile;
         private bool      builderLocked;
@@ -88,10 +87,8 @@ namespace SupKonQuest
         {
             if (activeSiteTile == null || builderUnit == null) return;
 
-            // Builder mort → annuler chantier
             if (builderUnit.gameObject == null) { CancelAndRelease(); return; }
 
-            // Construction terminée → libérer sans annuler
             if (BuildingManager.Instance == null || BuildingManager.Instance.GetProgress01(activeSiteTile) < 0f)
                 ReleaseBuilder();
         }
@@ -120,8 +117,6 @@ namespace SupKonQuest
             justActivated = false;
         }
 
-        // ── API ──────────────────────────────────────────────────────
-
         public void ShowForUnit(UnitStats stats)
         {
             trackedUnit = stats;
@@ -132,7 +127,6 @@ namespace SupKonQuest
         {
             trackedUnit = null;
             pendingType = null;
-            // builderUnit et activeSiteTile restent actifs jusqu'à la fin du chantier
         }
 
         public void CancelPending() => pendingType = null;
@@ -161,8 +155,6 @@ namespace SupKonQuest
             return built;
         }
 
-        // ── Rendu ────────────────────────────────────────────────────
-
         private void OnGUI()
         {
             DrawConstructionProgress();
@@ -178,15 +170,13 @@ namespace SupKonQuest
             DrawBuildPanel(owner);
         }
 
-        // Barre de progression de construction au-dessus de l'infanterie
-        // Reste visible même après déselection tant que le chantier est actif
         private void DrawConstructionProgress()
         {
             if (activeSiteTile == null || builderUnit == null || BuildingManager.Instance == null) return;
             if (builderUnit.gameObject == null) return;
 
             float progress = BuildingManager.Instance.GetProgress01(activeSiteTile);
-            if (progress < 0f) return; // cleanup géré dans Update
+            if (progress < 0f) return;
 
             Camera cam = Camera.main;
             if (cam == null) return;
@@ -273,8 +263,6 @@ namespace SupKonQuest
             if (GUI.Button(new Rect(x + (w - 80f) * 0.5f, y + 32f, 80f, 20f), L("builder_cancel"), btnStyle))
                 pendingType = null;
         }
-
-        // ── Styles ───────────────────────────────────────────────────
 
         private void InitStyles()
         {

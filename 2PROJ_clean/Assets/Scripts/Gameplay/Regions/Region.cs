@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    // Placer ce composant sur un GameObject vide dans la scène.
-    // Définir Center + Size pour couvrir la zone géographique de la région.
-    // Les camps qui spawne dans cette zone sont assignés automatiquement au Start.
     public class Region : MonoBehaviour
     {
         public RegionData data;
@@ -14,7 +11,6 @@ namespace SupKonQuest
         public Vector3 center = Vector3.zero;
         public Vector3 size = new Vector3(10f, 100f, 10f);
 
-        // Rempli automatiquement par RegionManager
         [HideInInspector] public List<Camp> camps = new List<Camp>();
         [HideInInspector] public string nameKey = "region_default";
         [HideInInspector] public int defaultBonusGold = 10;

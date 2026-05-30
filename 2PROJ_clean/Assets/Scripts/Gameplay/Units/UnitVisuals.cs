@@ -1,7 +1,6 @@
 using UnityEngine;
 using SupKonQuest;
 
-// instancie le bon modele 3D selon la race de l'unite au moment du spawn
 [RequireComponent(typeof(UnitStats))]
 public class UnitVisuals : MonoBehaviour
 {
@@ -12,7 +11,6 @@ public class UnitVisuals : MonoBehaviour
         stats = GetComponent<UnitStats>();
     }
 
-    // appele par CampProduction apres le spawn
     public void ApplyRaceVisuals()
     {
         if (stats == null) return;
@@ -21,31 +19,44 @@ public class UnitVisuals : MonoBehaviour
         if (def == null) return;
 
         var skin = def.GetUnitSkin(stats.unitType);
-        if (!skin.HasValue)
-        {
-            Debug.LogWarning($"[UnitVisuals] Pas de skin pour {stats.unitType} race {stats.race}");
-            return;
-        }
+        if (!skin.HasValue) return;
+
         if (skin.Value.modelPrefab == null)
         {
-            Debug.LogWarning($"[UnitVisuals] modelPrefab est null pour {stats.unitType} race {stats.race}");
+            if (skin.Value.mesh == null) return;
+
+            Renderer placeholder = GetComponent<Renderer>();
+            if (placeholder != null) placeholder.enabled = false;
+
+            GameObject model = new GameObject("Model");
+            model.transform.SetParent(transform, false);
+            model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            model.transform.localScale = Vector3.one;
+
+            MeshFilter mf = model.AddComponent<MeshFilter>();
+            mf.sharedMesh = skin.Value.mesh;
+
+            MeshRenderer mr = model.AddComponent<MeshRenderer>();
+            if (skin.Value.material != null) mr.material = skin.Value.material;
             return;
         }
 
-        Debug.Log($"[UnitVisuals] Instancie {skin.Value.modelPrefab.name} pour {stats.unitType} race {stats.race}");
-        Animator checkAnim = skin.Value.modelPrefab.GetComponentInChildren<Animator>();
-        Debug.Log($"[UnitVisuals] Animator dans le prefab : {(checkAnim != null ? checkAnim.name : "NULL - ANIMATOR MANQUANT")}");
-        if (checkAnim != null)
-            Debug.Log($"[UnitVisuals] Controller : {(checkAnim.runtimeAnimatorController != null ? checkAnim.runtimeAnimatorController.name : "NULL - CONTROLLER MANQUANT")}");
-
-
-        // on cache le mesh placeholder du prefab (cube/capsule par defaut)
         Renderer placeholder = GetComponent<Renderer>();
         if (placeholder != null) placeholder.enabled = false;
 
-        // on instancie le modele en enfant de l'unite et on recentre sa position
         GameObject model = Instantiate(skin.Value.modelPrefab, transform, false);
         model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         model.transform.localScale = Vector3.one;
+
+        Animator wrapperAnim = model.GetComponent<Animator>();
+        if (wrapperAnim != null && model.transform.childCount > 0)
+        {
+            Transform fbxRoot = model.transform.GetChild(0);
+            RuntimeAnimatorController ctrl = wrapperAnim.runtimeAnimatorController;
+            Destroy(wrapperAnim);
+            Animator fbxAnim = fbxRoot.gameObject.AddComponent<Animator>();
+            fbxAnim.runtimeAnimatorController = ctrl;
+            fbxAnim.applyRootMotion = false;
+        }
     }
 }
