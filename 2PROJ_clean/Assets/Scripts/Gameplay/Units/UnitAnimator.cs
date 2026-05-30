@@ -34,11 +34,21 @@ namespace SupKonQuest
 
             if (animator == null)
                 animator = GetComponentInChildren<Animator>();
+
+            Debug.Log($"[UnitAnimator] Awake sur {gameObject.name}");
         }
 
         private void Update()
         {
-            if (animator == null) return;
+            // on cherche l'animator en lazy car le modele est instancie apres le Awake
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+                if (animator != null)
+                    Debug.Log($"[UnitAnimator] Animator trouve sur {animator.gameObject.name}, controller = {animator.runtimeAnimatorController?.name}");
+                else
+                    return;
+            }
 
             // Mort — état terminal, on joue une fois et on ne touche plus à rien
             if (!isDead && stats != null && stats.currentHealth <= 0)

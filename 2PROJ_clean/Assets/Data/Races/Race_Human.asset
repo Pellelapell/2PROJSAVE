@@ -19,33 +19,53 @@ MonoBehaviour:
   - unitType: 5
     mesh: {fileID: -6734620852318575487, guid: 78597f6dcc0e6ad41a56a4f7ed86a6d4, type: 3}
     material: {fileID: 2100000, guid: 8c239d206b66e5f4296a3942369ab5aa, type: 2}
+    animatorController: {fileID: 9100000, guid: 667a739778c2c424ea7f6fa6bc3689d1, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 0d0467203a384f243b06c46eafad8a86, type: 3}
   - unitType: 2
     mesh: {fileID: -6734620852318575487, guid: 140fb50c746e9e344bc2e96ea53662e0, type: 3}
     material: {fileID: 2100000, guid: e84cc4aa929f3004db4efe71afd7fdb5, type: 2}
+    animatorController: {fileID: 9100000, guid: d9e4bb251674bd5488bde1387ad63f78, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 3411595c09a76df4f87502a7d1dadf67, type: 3}
   - unitType: 4
     mesh: {fileID: -6734620852318575487, guid: 3194a0e9f7347fe4aa0392726cff390f, type: 3}
     material: {fileID: 2100000, guid: b7a957ec4860d724ba09dc07ae5611dc, type: 2}
+    animatorController: {fileID: 9100000, guid: 1772b1034feaca041bfbd20ff644b6e1, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 61d2048d5d220d34da815fb14be67a8d, type: 3}
   - unitType: 0
     mesh: {fileID: -6734620852318575487, guid: 06579ea4ecade7447b7880cafed34321, type: 3}
     material: {fileID: 2100000, guid: 1f67eb1b6984ab24c9da4559937a6b30, type: 2}
+    animatorController: {fileID: 9100000, guid: 716d84a468928e047a474268ad641967, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 6dff4f291e2c3864dabfa28d02e8935e, type: 3}
   - unitType: 6
     mesh: {fileID: -6734620852318575487, guid: 0cb1b3d71f09dec42a684835e1f7d9d6, type: 3}
     material: {fileID: 2100000, guid: 9bd5b559834a7bb42982c054321065c3, type: 2}
+    animatorController: {fileID: 9100000, guid: 75bd3477abdbe784cb695473a4031229, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 3742577b4531e8a43b1339ae0800802d, type: 3}
   - unitType: 3
     mesh: {fileID: -6734620852318575487, guid: 8117c4002875a664da22a9ca3ab3c621, type: 3}
     material: {fileID: 2100000, guid: a23a9422bb6f87f478bc0b55be984378, type: 2}
+    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 9204381226709573549, guid: b71630c0b13bb18489fd8768ced4ce11, type: 3}
   - unitType: 1
     mesh: {fileID: -6734620852318575487, guid: 3e611897248128e458ec972026aa4e4d, type: 3}
     material: {fileID: 2100000, guid: 17c9b2e098e66bb49837c41bcd7b2032, type: 2}
+    animatorController: {fileID: 9100000, guid: 5adba0023a42a004daf672161d5fdd08, type: 2}
+    modelPrefab: {fileID: 9204381226709573549, guid: 896a3dd7a78637b4592471c2d0ad539d, type: 3}
   - unitType: 7
     mesh: {fileID: 5461320835613783329, guid: c598637ed5766cf4c8248f114cc9231a, type: 3}
     material: {fileID: 2100000, guid: f99fb307e1fd51245849330404e2989d, type: 2}
+    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 0}
   - unitType: 8
     mesh: {fileID: 5461320835613783329, guid: a5b01687b21f85341b5de1b8cb953132, type: 3}
     material: {fileID: 2100000, guid: 48bd4bf513de5d440baa4bbd38255705, type: 2}
+    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 0}
   - unitType: 9
     mesh: {fileID: 5461320835613783329, guid: 801bdea5f2160434e87fed7068e14c80, type: 3}
     material: {fileID: 2100000, guid: 589537c4fb3ac314e80d4e12f88052a2, type: 2}
+    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 0}
   buildingSkins:
   - buildingType: 3
     mesh: {fileID: 5461320835613783329, guid: 00e2f70bb71b1504781eea7c1317c640, type: 3}

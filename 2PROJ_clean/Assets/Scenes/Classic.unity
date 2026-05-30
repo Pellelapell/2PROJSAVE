@@ -1811,6 +1811,8 @@ MonoBehaviour:
   - {fileID: 3637096172939143290, guid: 253bd66f55ba3c64aa9825ea2896b609, type: 3}
   waterPrefabs:
   - {fileID: 2413447369293234240, guid: 3b042d658ba55d940a649b33c122fbca, type: 3}
+  waterYOffset: 0
+  mountainYOffset: 0
   grassMaterial: {fileID: 2100000, guid: 7410e1e9220ccb04f87aac49ffbf3ff2, type: 2}
   mountainMaterial: {fileID: 2100000, guid: d2d0511d994dbdb4dacddc5b45506c87, type: 2}
   waterMaterial: {fileID: 2100000, guid: bf728ebcecca70142b54477940f0cec9, type: 2}
@@ -1833,8 +1835,11 @@ MonoBehaviour:
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
+  neutralCampScaleFactor: 190
+  minInterPlayerCampTiles: 5
   neutralGuardPrefab: {fileID: 4258408347571373034, guid: 5ec93be3c3ceca948807bc47ad32148f, type: 3}
   guardsPerNeutralCamp: 1
+  neutralGuardScale: 2
 --- !u!114 &534388194
 MonoBehaviour:
   m_ObjectHideFlags: 0

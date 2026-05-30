@@ -11,11 +11,12 @@ public class RaceDefinition : ScriptableObject
     [System.Serializable]
     public struct UnitSkinEntry
     {
-        public UnitType unitType;
-        public Mesh     mesh;
-        public Material material;
-        // le controller d'animation specifique a cette race pour ce type d'unite
+        public UnitType  unitType;
+        public Mesh      mesh;
+        public Material  material;
         public RuntimeAnimatorController animatorController;
+        // le prefab du modele 3D complet (avec squelette et Animator)
+        public GameObject modelPrefab;
     }
 
     [System.Serializable]
