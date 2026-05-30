@@ -1,58 +1,51 @@
 using UnityEngine;
 using SupKonQuest;
 
+// instancie le bon modele 3D selon la race de l'unite au moment du spawn
+[RequireComponent(typeof(UnitStats))]
 public class UnitVisuals : MonoBehaviour
 {
-    private Renderer   unitRenderer;
-    private MeshFilter meshFilter;
-    private UnitStats  stats;
+    private UnitStats stats;
 
     private void Awake()
     {
-        stats        = GetComponent<UnitStats>();
-        unitRenderer = GetComponentInChildren<Renderer>();
-        meshFilter   = GetComponentInChildren<MeshFilter>();
-
-        if (unitRenderer == null) unitRenderer = GetComponent<Renderer>();
-        if (meshFilter   == null) meshFilter   = GetComponent<MeshFilter>();
+        stats = GetComponent<UnitStats>();
     }
 
+    // appele par CampProduction apres le spawn
     public void ApplyRaceVisuals()
     {
         if (stats == null) return;
 
         RaceDefinition def = RaceRegistry.Get(stats.race);
-        if (def != null)
+        if (def == null) return;
+
+        var skin = def.GetUnitSkin(stats.unitType);
+        if (!skin.HasValue)
         {
-            var skin = def.GetUnitSkin(stats.unitType);
-            if (skin.HasValue)
-            {
-                if (meshFilter != null && skin.Value.mesh != null)
-                    meshFilter.sharedMesh = skin.Value.mesh;
-
-                if (unitRenderer != null && skin.Value.material != null)
-                    unitRenderer.material = skin.Value.material;
-
-                // on change le controller d'animation selon la race
-                if (skin.Value.animatorController != null)
-                {
-                    Animator anim = GetComponentInChildren<Animator>();
-                    if (anim != null)
-                        anim.runtimeAnimatorController = skin.Value.animatorController;
-                }
-
-                return;
-            }
+            Debug.LogWarning($"[UnitVisuals] Pas de skin pour {stats.unitType} race {stats.race}");
+            return;
+        }
+        if (skin.Value.modelPrefab == null)
+        {
+            Debug.LogWarning($"[UnitVisuals] modelPrefab est null pour {stats.unitType} race {stats.race}");
+            return;
         }
 
-        // si pas de skin configure on met juste la couleur de la race
-        if (unitRenderer == null) return;
-        unitRenderer.material.color = stats.race switch
-        {
-            Race.Human => Color.blue,
-            Race.Elf   => Color.green,
-            Race.Demon => Color.red,
-            _          => Color.white
-        };
+        Debug.Log($"[UnitVisuals] Instancie {skin.Value.modelPrefab.name} pour {stats.unitType} race {stats.race}");
+        Animator checkAnim = skin.Value.modelPrefab.GetComponentInChildren<Animator>();
+        Debug.Log($"[UnitVisuals] Animator dans le prefab : {(checkAnim != null ? checkAnim.name : "NULL - ANIMATOR MANQUANT")}");
+        if (checkAnim != null)
+            Debug.Log($"[UnitVisuals] Controller : {(checkAnim.runtimeAnimatorController != null ? checkAnim.runtimeAnimatorController.name : "NULL - CONTROLLER MANQUANT")}");
+
+
+        // on cache le mesh placeholder du prefab (cube/capsule par defaut)
+        Renderer placeholder = GetComponent<Renderer>();
+        if (placeholder != null) placeholder.enabled = false;
+
+        // on instancie le modele en enfant de l'unite et on recentre sa position
+        GameObject model = Instantiate(skin.Value.modelPrefab, transform, false);
+        model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        model.transform.localScale = Vector3.one;
     }
 }
