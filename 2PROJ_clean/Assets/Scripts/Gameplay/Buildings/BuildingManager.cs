@@ -61,8 +61,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── API publique ──────────────────────────────────────────────
-
         public bool CanBuild(HexTile tile, BuildingType type, PlayerData owner)
         {
             if (tile == null || tile.isOccupied) return false;
@@ -73,12 +71,10 @@ namespace SupKonQuest
             return owner.CanAfford(GoldCost(type), WoodCost(type));
         }
 
-        // Vérifie qu'un chemin terrestre NavMesh existe depuis au moins un camp du joueur.
-        // Empêche de construire sur une île inaccessible.
         private static bool IsTileReachable(HexTile tile, PlayerData owner)
         {
             int walkableMask = 1 << NavMesh.GetAreaFromName("Walkable");
-            if (walkableMask <= 0) return true; // area inconnue → pas de blocage
+            if (walkableMask <= 0) return true;
 
             if (!NavMesh.SamplePosition(tile.transform.position, out NavMeshHit targetHit, 5f, walkableMask))
                 return false;
@@ -133,8 +129,6 @@ namespace SupKonQuest
             return false;
         }
 
-        // ── Complétion ────────────────────────────────────────────────
-
         private void Complete(Site site)
         {
             GameObject prefab = Prefab(site.type);
@@ -149,7 +143,6 @@ namespace SupKonQuest
             obj.transform.localScale = prefab.transform.localScale * 190f;
             ScaleDownColliders(obj, 190f);
 
-            // Obstacle NavMesh dynamique pour que les unités contournent le bâtiment
             if (obj.GetComponent<NavMeshObstacle>() == null)
             {
                 NavMeshObstacle obstacle = obj.AddComponent<NavMeshObstacle>();
@@ -211,12 +204,9 @@ namespace SupKonQuest
                 }
             }
 
-            // Fallback : teinte couleur du joueur
             foreach (Renderer rend in obj.GetComponentsInChildren<Renderer>())
                 rend.material.color = owner.playerColor;
         }
-
-        // ── Helpers ───────────────────────────────────────────────────
 
         private static void ScaleDownColliders(GameObject obj, float factor)
         {
@@ -256,14 +246,11 @@ namespace SupKonQuest
             return false;
         }
 
-        // BFS sur les tuiles walkable connectées — retourne la taille de l'île.
-        // On utilise un large rayon de voisinage : les tuiles eau bloquent naturellement la BFS.
         public static int CountIslandSize(Vector3 origin)
         {
             var visited = new HashSet<HexTile>();
             var queue   = new Queue<HexTile>();
 
-            // Rayon généreux pour trouver la tuile de départ
             Collider[] seed = Physics.OverlapSphere(origin, 8f);
             foreach (Collider c in seed)
             {
@@ -279,7 +266,6 @@ namespace SupKonQuest
             while (queue.Count > 0)
             {
                 HexTile cur = queue.Dequeue();
-                // Rayon large : les tuiles eau sont filtrées, donc la BFS reste sur l'île
                 Collider[] neighbors = Physics.OverlapSphere(cur.transform.position, 10f);
                 foreach (Collider c in neighbors)
                 {

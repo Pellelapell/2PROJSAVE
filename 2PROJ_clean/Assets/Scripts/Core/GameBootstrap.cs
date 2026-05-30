@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    /// <summary>
-    /// Reads PlayerPrefs set by MainMenu and configures the scene before other scripts Start().
-    /// Attach this to a GameObject in the game scene with a higher execution order than HexGridGenerator.
-    /// </summary>
     [DefaultExecutionOrder(-20)]
     public class GameBootstrap : MonoBehaviour
     {
@@ -40,7 +36,6 @@ namespace SupKonQuest
             };
         }
 
-        // Ordre du menu : 0=Human, 1=Elf, 2=Demon (≠ ordre de l'enum Race)
         private static readonly Race[] MenuRaceOrder = { Race.Human, Race.Elf, Race.Demon };
 
         private void ApplyPlayerRace()
@@ -50,7 +45,6 @@ namespace SupKonQuest
 
             PlayerData[] allPlayers = FindObjectsByType<PlayerData>(FindObjectsSortMode.None);
 
-            // Joueur humain
             foreach (PlayerData p in allPlayers)
             {
                 if (p.isAI) continue;
@@ -59,7 +53,6 @@ namespace SupKonQuest
                 break;
             }
 
-            // Joueurs IA : chaque IA reçoit une race différente (cycle)
             int aiOffset = 1;
             foreach (PlayerData p in allPlayers)
             {

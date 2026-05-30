@@ -3,8 +3,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    // Composant santé pour les bâtiments non-camp (Scierie…).
-    // S'auto-enregistre dans une liste statique pour être trouvé sans layer.
     public class BuildingHealth : MonoBehaviour
     {
         public static readonly List<BuildingHealth> All = new List<BuildingHealth>();
@@ -20,8 +18,6 @@ namespace SupKonQuest
         private void Start()  { mainCam = Camera.main; All.Add(this); }
         private void OnDestroy() { All.Remove(this); }
 
-        // ── Dégâts ───────────────────────────────────────────────────
-
         public void TakeDamage(int amount)
         {
             currentHP = Mathf.Max(0, currentHP - amount);
@@ -32,8 +28,6 @@ namespace SupKonQuest
         {
             Destroy(gameObject);
         }
-
-        // ── Barre de vie (world-space via OnGUI) ─────────────────────
 
         private void OnGUI()
         {

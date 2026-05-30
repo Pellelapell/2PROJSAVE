@@ -70,7 +70,7 @@ public class HexGridGenerator : MonoBehaviour
 
     private readonly List<HexTile> walkableTiles = new List<HexTile>();
     private readonly Dictionary<Vector2Int, HexTile> tileMap = new Dictionary<Vector2Int, HexTile>();
-    private float hexW, hexD; // taille d'une tuile en world space (après scale)
+    private float hexW, hexD;
 
     public static List<Camp>[] CornerCamps { get; private set; }
     public static Bounds MapBounds { get; private set; }
@@ -92,7 +92,6 @@ public class HexGridGenerator : MonoBehaviour
         GenerateGrid(hexW, hexD);
         BuildNavMesh();
 
-        // Générer les régions AVANT les camps pour garantir 1 camp neutre par région
         if (RegionManager.Instance != null)
             RegionManager.Instance.GenerateRegions(MapBounds);
 
@@ -101,8 +100,6 @@ public class HexGridGenerator : MonoBehaviour
         if (RegionManager.Instance != null)
             RegionManager.Instance.AssignCampsToRegions();
     }
-
-    // ── 1. Mesure ────────────────────────────────────────────────────
 
     private void MeasureHex(out float hexW, out float hexD)
     {
@@ -114,14 +111,11 @@ public class HexGridGenerator : MonoBehaviour
         DestroyImmediate(tmp);
     }
 
-    // ── 2. Grille ────────────────────────────────────────────────────
-
     private void GenerateGrid(float hexW, float hexD)
     {
         float colSpacing = hexW * colSpacingFactor;
         float rowSpacing = hexD * rowSpacingFactor;
 
-        // Pré-calculer le terrain avec bruit + lissage
         HexTerrain[,] terrainGrid = BuildTerrainGrid();
 
         for (int x = 0; x < width; x++)
@@ -176,7 +170,7 @@ public class HexGridGenerator : MonoBehaviour
                 if (terrain == HexTerrain.Walkable)
                     mod.area = UnityEngine.AI.NavMesh.GetAreaFromName("Walkable");
                 else if (terrain == HexTerrain.Water && waterArea >= 0)
-                    mod.area = waterArea;   // navigable pour les bateaux uniquement
+                    mod.area = waterArea;
                 else
                     mod.area = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
 
@@ -188,8 +182,6 @@ public class HexGridGenerator : MonoBehaviour
         FixIsolatedTiles();
         ComputeMapBounds(hexW, hexD);
     }
-
-    // ── 3. Génération du terrain ─────────────────────────────────────
 
     private HexTerrain[,] BuildTerrainGrid()
     {
@@ -215,22 +207,17 @@ public class HexGridGenerator : MonoBehaviour
             BridgeCorners(grid);
         }
 
-        // Centre toujours walkable (5ème joueur possible)
         ForceCenterWalkable(grid);
 
         return grid;
     }
 
-    // ── Islands : majorité eau, archipels ────────────────────────────
-
     private void BuildIslandGrid(HexTerrain[,] grid, float ox, float oz)
     {
-        // Tout eau par défaut
         for (int x = 0; x < width; x++)
             for (int z = 0; z < height; z++)
                 grid[x, z] = HexTerrain.Water;
 
-        // Deux couches de bruit pour des formes d'îles organiques
         float scale1 = noiseScale * 2.2f;
         float scale2 = noiseScale * 4.5f;
         for (int x = 0; x < width; x++)
@@ -240,7 +227,6 @@ public class HexGridGenerator : MonoBehaviour
                 float v1 = Mathf.PerlinNoise((x + ox) * scale1, (z + oz) * scale1);
                 float v2 = Mathf.PerlinNoise((x + ox + 500f) * scale2, (z + oz + 500f) * scale2) * 0.35f;
                 float v  = v1 + v2;
-                // Seulement les pics → terres (~30% de la map)
                 if (v > 1.05f)      grid[x, z] = HexTerrain.Mountain;
                 else if (v > 0.88f) grid[x, z] = HexTerrain.Walkable;
             }
@@ -249,11 +235,8 @@ public class HexGridGenerator : MonoBehaviour
         for (int p = 0; p < smoothingPasses; p++)
             grid = SmoothPass(grid);
 
-        // Coins garantis walkable (camps de départ)
         ForceCornerWalkable(grid);
     }
-
-    // ── Classic / FrozenPeaks ────────────────────────────────────────
 
     private HexTerrain SampleTerrain(int x, int z, float ox, float oz)
     {
@@ -262,18 +245,15 @@ public class HexGridGenerator : MonoBehaviour
         switch (mapType)
         {
             case MapType.FrozenPeaks:
-                // ~55% walkable, 45% montagne (pas d'eau)
                 return v > 0.44f ? HexTerrain.Walkable : HexTerrain.Mountain;
 
-            default: // Classic
-                // ~55% walkable, ~20% montagne, ~25% eau
+            default:
                 if (v > 0.45f) return HexTerrain.Walkable;
                 if (v > 0.32f) return HexTerrain.Mountain;
                 return HexTerrain.Water;
         }
     }
 
-    // Lissage : chaque tuile prend le type majoritaire de ses voisins
     private HexTerrain[,] SmoothPass(HexTerrain[,] grid)
     {
         HexTerrain[,] next = new HexTerrain[width, height];
@@ -330,7 +310,6 @@ public class HexGridGenerator : MonoBehaviour
         }
     }
 
-    // Pont minimal uniquement si un coin est déconnecté du coin 0
     private void BridgeCorners(HexTerrain[,] grid)
     {
         Vector2Int[] corners =
@@ -347,7 +326,6 @@ public class HexGridGenerator : MonoBehaviour
         {
             if (reachable.Contains(corners[i])) continue;
 
-            // Trouver la tuile walkable la plus proche du coin isolé
             Vector2Int nearest = FindNearestInSet(reachable, corners[i]);
             CarvePath(grid, corners[i], nearest);
             reachable = BFSWalkable(grid, corners[0]);
@@ -421,8 +399,6 @@ public class HexGridGenerator : MonoBehaviour
         return walkablePrefabs[Random.Range(0, walkablePrefabs.Length)];
     }
 
-    // ── 4. Connexité BFS ─────────────────────────────────────────────
-
     private void FixIsolatedTiles()
     {
         if (walkableTiles.Count == 0) return;
@@ -434,12 +410,10 @@ public class HexGridGenerator : MonoBehaviour
 
         if (mapType == MapType.Island)
         {
-            // Islands : garder toutes les îles, supprimer seulement les tuiles isolées (1 seule)
             RemoveSingletonIslands(tileCoords);
             return;
         }
 
-        // Autres maps : garder seulement le composant connexe principal (coin 0)
         Vector2Int corner0 = new Vector2Int(0, 0);
         HexTile seedTile = ClosestWalkableTo(corner0);
         if (seedTile == null) return;
@@ -474,7 +448,6 @@ public class HexGridGenerator : MonoBehaviour
 
     private void RemoveSingletonIslands(Dictionary<HexTile, Vector2Int> tileCoords)
     {
-        // Trouver toutes les tuiles qui n'ont aucun voisin walkable → supprimer
         List<HexTile> singletons = new List<HexTile>();
         foreach (HexTile tile in walkableTiles)
         {
@@ -536,8 +509,6 @@ public class HexGridGenerator : MonoBehaviour
         }
     }
 
-    // ── 5. NavMesh ───────────────────────────────────────────────────
-
     private void BuildNavMesh()
     {
         NavMeshSurface surface = gameObject.AddComponent<NavMeshSurface>();
@@ -545,8 +516,6 @@ public class HexGridGenerator : MonoBehaviour
         surface.BuildNavMesh();
         Debug.Log("[HexGrid] NavMesh baked.");
     }
-
-    // ── 6. Placement des camps ───────────────────────────────────────
 
     private void PlaceCamps()
     {
@@ -565,10 +534,11 @@ public class HexGridGenerator : MonoBehaviour
             new Vector3(MapBounds.max.x, 0f, MapBounds.max.z),
         };
 
+        List<Vector3> allPlayerCamps = new List<Vector3>();
+
         if (normalCampPrefab != null)
         {
             float interPlayerDist = hexW * minInterPlayerCampTiles;
-            List<Vector3> allPlayerCamps = new List<Vector3>();
 
             for (int c = 0; c < 4; c++)
             {
@@ -584,7 +554,6 @@ public class HexGridGenerator : MonoBehaviour
                 {
                     if (spawned) break;
 
-                    // Distance minimale vis-à-vis des camps des autres joueurs déjà placés
                     bool tooCloseToOther = false;
                     foreach (Vector3 p in allPlayerCamps)
                         if (Vector3.Distance(tile.transform.position, p) < interPlayerDist)
@@ -606,24 +575,24 @@ public class HexGridGenerator : MonoBehaviour
 
         if (neutralCampPrefab != null)
         {
-            // Espacements automatiquement adaptés à l'échelle réelle de la map.
-            // minCampDistance (inspector) est en unités world. Si la map est petite
-            // (hexScale faible), on réduit pour ne pas bloquer tout le pool.
             float mapMin  = Mathf.Min(MapBounds.size.x, MapBounds.size.z);
             float effDist = Mathf.Min(minCampDistance,  mapMin / Mathf.Max(neutralCampCount + 3f, 5f));
             float effCornerExclude = Mathf.Min(minCampDistance * 2f, mapMin * 0.2f);
+
+            float playerExcludeRadius = hexW * 5f;
 
             List<HexTile> neutralPool = new List<HexTile>(walkableTiles);
             neutralPool.RemoveAll(t => used.Contains(t));
             foreach (Vector3 corner in corners)
                 neutralPool.RemoveAll(t => Vector3.Distance(t.transform.position, corner) < effCornerExclude);
+            neutralPool.RemoveAll(t => allPlayerCamps.Exists(p =>
+                Vector3.Distance(t.transform.position, p) < playerExcludeRadius));
 
             Debug.Log($"[HexGrid] neutralPool: {neutralPool.Count} tuiles candidates (effDist={effDist:F2}, cornerExcl={effCornerExclude:F2})");
 
             List<Vector3> neutralUsed = new List<Vector3>();
             int neutralPlaced = 0;
 
-            // ── 1. Au moins 1 camp neutre par région ─────────────────
             if (RegionManager.Instance != null)
             {
                 Region[] regions = RegionManager.Instance.GetAllRegions();
@@ -631,6 +600,7 @@ public class HexGridGenerator : MonoBehaviour
                 {
                     HexTile tile = FindWalkableTileInRegion(region, used, neutralUsed, effDist);
                     if (tile == null) continue;
+                    if (allPlayerCamps.Exists(p => Vector3.Distance(tile.transform.position, p) < playerExcludeRadius)) continue;
 
                     Camp camp = SpawnCamp(neutralCampPrefab, tile, CampType.NeutralSpecial);
                     if (camp != null)
@@ -643,7 +613,6 @@ public class HexGridGenerator : MonoBehaviour
                 }
             }
 
-            // ── 2. Camps neutres supplémentaires jusqu'à neutralCampCount ─
             ShuffleTiles(neutralPool);
             foreach (HexTile tile in neutralPool)
             {
@@ -696,7 +665,6 @@ public class HexGridGenerator : MonoBehaviour
             ScaleDownColliders(obj, neutralCampScaleFactor);
         }
 
-        // Après tout rescale, recentrer le spawnPoint enfant
         if (camp.spawnPoint != null)
             camp.spawnPoint.localPosition = Vector3.zero;
 
@@ -748,8 +716,6 @@ public class HexGridGenerator : MonoBehaviour
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────
-
     private HexTile FindWalkableTileInRegion(Region region, HashSet<HexTile> usedTiles, List<Vector3> neutralUsed, float spacing)
     {
         List<HexTile> candidates = new List<HexTile>();
@@ -784,7 +750,6 @@ public class HexGridGenerator : MonoBehaviour
 
         Vector3 campPos = campTile.transform.position;
 
-        // Tuiles proches : jusqu'à 1.5× la largeur d'une tuile (inclut la tuile du camp)
         float guardMax = hexW * 1.5f;
 
         float playerExclude = hexW * 3f;
@@ -818,15 +783,41 @@ public class HexGridGenerator : MonoBehaviour
                 ? new Vector3(r.bounds.center.x, r.bounds.max.y + 0.15f, r.bounds.center.z)
                 : tile.transform.position + Vector3.up * 0.2f;
 
-            // Snapper sur le NavMesh pour éviter "agent not close enough to NavMesh"
             if (NavMesh.SamplePosition(pos, out NavMeshHit navHit, 5f, NavMesh.AllAreas))
                 pos = navHit.position;
 
             GameObject obj = Instantiate(neutralGuardPrefab, pos, Quaternion.identity);
-
-            // Skin Démon Heavy + taille intimidante
-            ApplyDemonHeavySkin(obj);
             obj.transform.localScale *= neutralGuardScale;
+
+            RaceDefinition demonDef = RaceRegistry.Get(Race.Demon);
+            if (demonDef != null)
+            {
+                var skin = demonDef.GetUnitSkin(UnitType.Heavy);
+                if (skin.HasValue && skin.Value.modelPrefab != null)
+                {
+                    Renderer placeholder = obj.GetComponent<Renderer>();
+                    if (placeholder != null) placeholder.enabled = false;
+
+                    GameObject model = Instantiate(skin.Value.modelPrefab, obj.transform, false);
+                    model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    model.transform.localScale = Vector3.one;
+
+                    Animator wrapAnim = model.GetComponent<Animator>();
+                    if (wrapAnim != null && model.transform.childCount > 0)
+                    {
+                        Transform fbxRoot = model.transform.GetChild(0);
+                        RuntimeAnimatorController ctrl = wrapAnim.runtimeAnimatorController;
+                        Destroy(wrapAnim);
+                        Animator fbxAnim = fbxRoot.gameObject.AddComponent<Animator>();
+                        fbxAnim.runtimeAnimatorController = ctrl;
+                        fbxAnim.applyRootMotion = false;
+                    }
+                }
+                else
+                {
+                    ApplyDemonHeavySkin(obj);
+                }
+            }
 
             NeutralUnitAI ai = obj.GetComponent<NeutralUnitAI>();
             if (ai != null) ai.SetGuardedCamp(camp);

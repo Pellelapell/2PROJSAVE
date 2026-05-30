@@ -15,4 +15,3 @@ public class UnitDatabase : ScriptableObject
         return null;
     }
 }
-

@@ -100,6 +100,7 @@ GameObject:
   - component: {fileID: 7054387805698653068}
   - component: {fileID: 77718075950593998}
   - component: {fileID: 8457152886457965826}
+  - component: {fileID: 9100000000000000006}
   m_Layer: 3
   m_Name: Unit_Anti-Armor
   m_TagString: Untagged
@@ -291,3 +292,16 @@ MonoBehaviour:
   spellCooldown: 10
   price: 0
   healthBarPrefab: {fileID: 4727767408138536273, guid: d493fafa3f984904ba58cdd6d12ca9f2, type: 3}
+--- !u!114 &9100000000000000006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4258408347571373034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6ecf44a7ec16644a1ac2bd9a10d58c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 0}

@@ -15,7 +15,6 @@ namespace SupKonQuest
         [Tooltip("Rayon de détection pour l'embarquement automatique (m)")]
         public float autoEmbarkRadius = 1.8f;
 
-        // Événement déclenché à la mort : liste des noms des unités perdues
         public static event System.Action<List<string>> OnShipSunkWithPassengers;
 
         private readonly List<UnitStats> passengers = new List<UnitStats>();
@@ -48,7 +47,6 @@ namespace SupKonQuest
                 AutoEmbarkNeighbors();
         }
 
-        // Embarquement automatique quand le transport passe près d'unités alliées terrestres
         private void AutoEmbarkNeighbors()
         {
             Collider[] hits = Physics.OverlapSphere(transform.position, autoEmbarkRadius);
@@ -66,7 +64,6 @@ namespace SupKonQuest
             }
         }
 
-        // Appel depuis InputManager quand le joueur droit-clique sur ce transport avec des unités sélectionnées
         public bool Embark(UnitStats unit)
         {
             if (unit == null || IsFull) return false;
@@ -82,7 +79,6 @@ namespace SupKonQuest
             return true;
         }
 
-        // Débarquement sur une position walkable
         public void DisembarkAll(Vector3 targetPosition)
         {
             foreach (UnitStats unit in passengers)
@@ -109,7 +105,6 @@ namespace SupKonQuest
 
         private void OnShipSunk(UnitStats _)
         {
-            // Collecter les noms avant destruction
             var names = new List<string>();
             foreach (UnitStats unit in passengers)
             {

@@ -21,19 +21,23 @@ namespace SupKonQuest
         private Camp guardedCamp;
         private bool initialized;
 
+        private Animator animator;
+        private bool animDead;
+        private float attackAnimTimer;
+        private static readonly int HashIsMoving    = Animator.StringToHash("IsMoving");
+        private static readonly int HashIsAttacking = Animator.StringToHash("IsAttacking");
+        private static readonly int HashIsDead      = Animator.StringToHash("IsDead");
+
         private void Awake()
         {
             stats = GetComponent<UnitStats>();
             agent = GetComponent<NavMeshAgent>();
 
-            // Fallback si le masque n'est pas assigné dans le prefab
             if (unitLayerMask == 0) unitLayerMask = ~0;
 
-            // homePosition dès Awake pour avoir une valeur valide même si la coroutine échoue
             homePosition = transform.position;
         }
 
-        // Appelé par HexGridGenerator juste après Instantiate pour injecter le camp directement
         public void SetGuardedCamp(Camp camp) => guardedCamp = camp;
 
         private void Start()
@@ -46,7 +50,6 @@ namespace SupKonQuest
             var um = GetComponent<UnitMovement>();
             if (um != null) um.enabled = false;
 
-            // leashRange avant la coroutine pour éviter un leash=0
             if (leashRange <= 0f)
                 leashRange = stats != null ? stats.attackRange * 3f : 6f;
 
@@ -55,12 +58,19 @@ namespace SupKonQuest
             else
                 initialized = true;
 
-            // Fallback : si SetGuardedCamp n'a pas été appelé au spawn
             if (guardedCamp == null)
                 guardedCamp = FindNearestNeutralCamp();
 
             if (guardedCamp == null)
                 Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvé !", this);
+
+            StartCoroutine(FindAnimatorNextFrame());
+        }
+
+        private System.Collections.IEnumerator FindAnimatorNextFrame()
+        {
+            yield return null;
+            animator = GetComponentInChildren<Animator>();
         }
 
         private void InitAgentOnNavMesh()
@@ -86,16 +96,37 @@ namespace SupKonQuest
         private void Update()
         {
             if (!initialized) return;
+
+            if (animator != null)
+            {
+                if (!animDead && stats != null && stats.currentHealth <= 0)
+                {
+                    animDead = true;
+                    animator.SetBool(HashIsMoving,    false);
+                    animator.SetBool(HashIsAttacking, false);
+                    animator.SetBool(HashIsDead,      true);
+                }
+                else if (!animDead)
+                {
+                    attackAnimTimer = Mathf.Max(0f, attackAnimTimer - Time.deltaTime);
+                    bool isAttacking = attackAnimTimer > 0f;
+                    bool isMoving    = agent != null && agent.isOnNavMesh
+                                    && !agent.isStopped && agent.hasPath
+                                    && agent.remainingDistance > agent.stoppingDistance;
+                    animator.SetBool(HashIsAttacking, isAttacking);
+                    animator.SetBool(HashIsMoving,    isMoving);
+                    animator.speed = (isMoving || isAttacking) ? 1f : 0f;
+                }
+            }
+
             if (stats == null || stats.currentHealth <= 0) return;
 
             attackCooldown -= Time.deltaTime;
             bool canMove = agent != null && agent.isOnNavMesh;
 
-            // Retry si le camp n'était pas encore prêt au Start
             if (guardedCamp == null)
                 guardedCamp = FindNearestNeutralCamp();
 
-            // ── Priorité 1 : ennemi près du camp gardé → avancer pour engager ──────
             if (guardedCamp != null)
             {
                 float scanRange = stats.detectRange > 0f ? stats.detectRange * 2f : stats.attackRange * 4f;
@@ -128,7 +159,6 @@ namespace SupKonQuest
                 }
             }
 
-            // ── Priorité 2 : ennemi à portée d'attaque → frappe sur place ───────────
             UnitStats inRange = FindEnemyInRange(stats.attackRange);
             if (inRange != null)
             {
@@ -137,7 +167,6 @@ namespace SupKonQuest
                 return;
             }
 
-            // ── Priorité 3 : aucune menace → retour à la position d'origine ────────
             if (canMove)
             {
                 float distHome = Vector3.Distance(transform.position, homePosition);
@@ -148,14 +177,14 @@ namespace SupKonQuest
             }
         }
 
-        // ── Attaque ─────────────────────────────────────────────────────────────
-
         private void TryAttack(UnitStats target)
         {
             if (attackCooldown > 0f) return;
             if (stats.isAOE) PerformAOEAttack(target.transform.position);
             else             target.TakeDamage(stats.attackDamage);
-            attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed);
+            float cooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed);
+            attackCooldown  = cooldown;
+            attackAnimTimer = Mathf.Min(cooldown * 0.6f, 0.8f);
         }
 
         private void PerformAOEAttack(Vector3 impactPoint)
@@ -169,8 +198,6 @@ namespace SupKonQuest
                 other.TakeAOEDamage(stats.attackDamage, dist, stats.aoeRadius);
             }
         }
-
-        // ── Détection ────────────────────────────────────────────────────────────
 
         private UnitStats FindEnemyInRange(float range)
         {
@@ -216,8 +243,6 @@ namespace SupKonQuest
             }
             return nearest;
         }
-
-        // ── Mouvement ────────────────────────────────────────────────────────────
 
         private void MoveTo(Vector3 dest)
         {

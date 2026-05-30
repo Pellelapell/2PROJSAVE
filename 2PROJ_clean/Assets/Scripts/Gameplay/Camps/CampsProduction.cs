@@ -20,12 +20,10 @@ namespace SupKonQuest
         [Header("Unités disponibles")]
         public List<UnitProductionEntry> availableUnits = new List<UnitProductionEntry>();
 
-        // ── Queue ────────────────────────────────────────────────────
-
         private class QueueEntry
         {
             public UnitType type;
-            public UnitDefinition def;   // peut être null → UnitDefaults utilisé
+            public UnitDefinition def;
             public GameObject prefab;
             public float timeLeft;
             public float buildTime;
@@ -44,14 +42,10 @@ namespace SupKonQuest
             return 1f - (current.timeLeft / current.buildTime);
         }
 
-        // ── Init ─────────────────────────────────────────────────────
-
         private void Awake()
         {
             if (camp == null) camp = GetComponent<Camp>();
         }
-
-        // ── Update ───────────────────────────────────────────────────
 
         private void Update()
         {
@@ -65,13 +59,10 @@ namespace SupKonQuest
             }
         }
 
-        // ── API publique ─────────────────────────────────────────────
-
         public bool Produce(UnitType type)
         {
             if (camp == null || camp.owner == null) return false;
 
-            // Limite de population : 10 unités par camp possédé
             int popCap = camp.owner.ownedCamps.Count * 10;
             if (CountOwnerUnits() >= popCap)
             {
@@ -126,8 +117,6 @@ namespace SupKonQuest
             DoSpawn(new QueueEntry { type = type, def = null, prefab = prefab, buildTime = buildTime });
         }
 
-        // ── Spawn ────────────────────────────────────────────────────
-
         private void DoSpawn(QueueEntry entry)
         {
             if (camp == null || camp.owner == null || entry.prefab == null) return;
@@ -140,10 +129,8 @@ namespace SupKonQuest
                            entry.type == UnitType.Frigate   ||
                            entry.type == UnitType.Destroyer;
 
-            // Chercher une position valide sur le NavMesh selon le type d'unité
             spawnPos = FindValidSpawnPosition(spawnPos, isNaval);
 
-            // Snapper exactement sur le NavMesh avant Instantiate → supprime le warning "Failed to create agent"
             int waterIdx = NavMesh.GetAreaFromName("Water");
             int snapMask = isNaval
                 ? (waterIdx >= 0 ? (1 << waterIdx) : NavMesh.AllAreas)
@@ -194,8 +181,6 @@ namespace SupKonQuest
             }
         }
 
-        // Cherche la tuile walkable (ou eau si naval) la plus proche dans un rayon de 15 m.
-        // Sur la map Îles, les unités terrestres refusent les îles de moins de 4 tuiles.
         private static Vector3 FindValidSpawnPosition(Vector3 origin, bool naval)
         {
             HexTerrain targetTerrain = naval ? HexTerrain.Water : HexTerrain.Walkable;
@@ -209,7 +194,6 @@ namespace SupKonQuest
                 HexTile tile = c.GetComponentInParent<HexTile>();
                 if (tile == null || tile.terrain != targetTerrain) continue;
 
-                // Map îles + unité terrestre : ignorer les îles trop petites
                 if (!naval && islandMap && BuildingManager.CountIslandSize(tile.transform.position) < 4)
                     continue;
 

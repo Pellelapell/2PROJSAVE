@@ -2,12 +2,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    // À ajouter sur le même GameObject que UnitMovement / UnitAttack / UnitStats.
-    // Requiert un Animator sur le modèle 3D enfant (ou sur ce GameObject).
-    // Paramètres attendus dans l'Animator Controller :
-    //   bool  "IsMoving"   – marche / idle
-    //   bool  "IsAttacking"– frappe
-    //   bool  "IsDead"     – mort
     [RequireComponent(typeof(UnitStats))]
     public class UnitAnimator : MonoBehaviour
     {
@@ -18,13 +12,13 @@ namespace SupKonQuest
         private UnitAttack   attack;
         private UnitStats    stats;
 
-        // IDs mis en cache pour éviter les lookups string à chaque frame
         private static readonly int HashIsMoving    = Animator.StringToHash("IsMoving");
         private static readonly int HashIsAttacking = Animator.StringToHash("IsAttacking");
         private static readonly int HashIsDead      = Animator.StringToHash("IsDead");
         private static readonly int HashAttackSpeed = Animator.StringToHash("AttackSpeed");
 
-        private bool isDead;
+        private bool  isDead;
+        private float attackAnimTimer;
 
         private void Awake()
         {
@@ -40,7 +34,6 @@ namespace SupKonQuest
 
         private void Update()
         {
-            // on cherche l'animator en lazy car le modele est instancie apres le Awake
             if (animator == null)
             {
                 animator = GetComponentInChildren<Animator>();
@@ -50,24 +43,28 @@ namespace SupKonQuest
                     return;
             }
 
-            // Mort — état terminal, on joue une fois et on ne touche plus à rien
             if (!isDead && stats != null && stats.currentHealth <= 0)
             {
                 isDead = true;
-                animator.SetBool(HashIsDead, true);
+                animator.speed = 1f;
+                animator.SetBool(HashIsMoving,    false);
+                animator.SetBool(HashIsAttacking, false);
+                animator.SetBool(HashIsDead,      true);
                 return;
             }
             if (isDead) return;
 
-            // Déplacement
-            bool isMoving = movement != null && movement.IsMoving;
-            animator.SetBool(HashIsMoving, isMoving);
+            if (attack != null && attack.IsAttacking && stats != null)
+                attackAnimTimer = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+            attackAnimTimer = Mathf.Max(0f, attackAnimTimer - Time.deltaTime);
 
-            // Attaque
-            bool isAttacking = attack != null && attack.IsAttacking;
+            bool isAttacking = attackAnimTimer > 0f;
+            bool isMoving    = !isAttacking && movement != null && movement.IsMoving;
+
             animator.SetBool(HashIsAttacking, isAttacking);
+            animator.SetBool(HashIsMoving,    isMoving);
+            animator.speed = (isMoving || isAttacking) ? 1f : 0f;
 
-            // Vitesse d'attaque — utile pour synchroniser la durée du clip
             if (stats != null)
             {
                 float atkSpeed = Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);

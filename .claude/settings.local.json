@@ -4,7 +4,11 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\" -Recurse -Force)",
       "Bash(Select-Object -Property FullName, PSIsContainer)",
       "Bash(Sort-Object FullName)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(for f in \"Unit_Anti-Armor\" \"Unit_Heal\" \"Unit_Heavy\" \"Unit_Infantry\" \"Unit_Motar\" \"Unit_Range\" \"Unit_Support\"; do *)",
+      "Read(//c/Users/timde/Documents/GitHub/2PROJSAVE/2PROJ_clean/Assets/Data/Prefabs/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\timde\\\\Documents\\\\GitHub\\\\2PROJSAVE\\\\2PROJ_clean\\\\Assets\" -Recurse -Include \"*boat*\", \"*ship*\", \"*naval*\", \"*frigate*\", \"*destroyer*\", \"*transport*\", \"*bateau*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

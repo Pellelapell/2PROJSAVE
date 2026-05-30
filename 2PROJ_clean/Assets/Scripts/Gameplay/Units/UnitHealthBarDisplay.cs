@@ -28,7 +28,6 @@ namespace SupKonQuest
                 return;
             }
 
-            // Masquer la barre quand l'unité est dans un transport (GameObject inactif)
             if (!target.gameObject.activeInHierarchy)
             {
                 gameObject.SetActive(false);

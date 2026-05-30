@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace SupKonQuest
 {
-    // AoE-style AI: Economy → Military → Attack phases with difficulty scaling.
-    // Difficulty 0 (Easy)   : slow, infantry-only, chaotic attacks, no buildings.
-    // Difficulty 1 (Medium) : sawmill + port on island maps, mixed army, smart targeting.
-    // Difficulty 2 (Hard)   : full building tree, counters enemy comp, transports, defenders.
     public class AIController : MonoBehaviour
     {
         [Header("Player")]
@@ -15,28 +11,22 @@ namespace SupKonQuest
         [Header("Difficulty")]
         [Range(0, 2)] public int difficultyLevel = 0;
 
-        // ── Difficulty tables ────────────────────────────────────────
         private static readonly float[] ThinkDelay      = { 6.0f, 3.0f, 1.5f };
         private static readonly int[]   MaxUnits        = { 8,   16,   26   };
         private static readonly int[]   MaxQueue        = { 1,    2,    4   };
-        // Seuil d'attaque = AttackBase + ownedCamps.Count (IA attend d'être vraiment forte)
         private static readonly int[]   AttackBase      = { 8,    6,    4   };
         private static readonly float[] AttackCooldown  = { 40f, 25f, 14f  };
         private static readonly int[]   MaxSawmills     = { 0,    1,    2   };
-        // Durée minimale de la phase économique avant de passer à Military
-        private static readonly float[] EconomyMinTime  = { 999f, 60f, 40f }; // Easy ne passe jamais en mode bâtiments
+        private static readonly float[] EconomyMinTime  = { 999f, 60f, 40f };
 
-        // ── State ────────────────────────────────────────────────────
         private float thinkTimer;
         private float attackCooldownLeft;
-        private float economyTimer;     // temps passé en phase Economy
+        private float economyTimer;
         private GameManager gameManager;
         private bool isIslandMap;
 
         private enum Phase { Economy, Military, Attack }
         private Phase phase = Phase.Economy;
-
-        // ── Init ─────────────────────────────────────────────────────
 
         private void Start()
         {
@@ -58,11 +48,8 @@ namespace SupKonQuest
             Think();
         }
 
-        // ── AI brain ─────────────────────────────────────────────────
-
         private void Think()
         {
-            // Medium/Hard: defend camps that are being attacked before doing anything else
             if (difficultyLevel >= 1 && CheckAndDefend()) return;
 
             UpdatePhase();
@@ -85,8 +72,6 @@ namespace SupKonQuest
                 ManageTransports();
         }
 
-        // ── Phase transitions ─────────────────────────────────────────
-
         private void UpdatePhase()
         {
             int units = CountMyUnits();
@@ -94,10 +79,8 @@ namespace SupKonQuest
 
             if (phase == Phase.Economy)
             {
-                // Passe en Military seulement quand l'économie est établie ET le timer minimum écoulé
                 bool timerOk  = economyTimer >= EconomyMinTime[difficultyLevel];
                 bool hasSaw   = CountOwnedSawmills() > 0;
-                // Easy : passe directement en Military (pas de bâtiments, mais attaque lente)
                 bool ready = difficultyLevel == 0 || (timerOk && hasSaw) || timerOk;
                 if (ready) phase = Phase.Military;
             }
@@ -106,32 +89,23 @@ namespace SupKonQuest
                 if (units >= threshold && attackCooldownLeft <= 0f)
                     phase = Phase.Attack;
             }
-            // Attack transitions back to Military inside RunAttack
         }
-
-        // ── Economy phase ─────────────────────────────────────────────
 
         private void RunEconomy()
         {
             if (difficultyLevel >= 1) TryBuildSawmill();
             if (difficultyLevel >= 1) TryBuildPort();
-            // Capturer les camps neutres très proches uniquement (pas de rush agressif)
             TryCaptureNeutral(minUnits: 3, maxDistToNeutral: 18f);
         }
-
-        // ── Military phase ────────────────────────────────────────────
 
         private void RunMilitary()
         {
             if (difficultyLevel >= 1) TryBuildSawmill();
             if (difficultyLevel >= 1) TryBuildPort();
             if (difficultyLevel >= 2) TryBuildCastle();
-            // En phase Military : capturer les neutres seulement si on a un surplus d'unités
             int surplus = CountMyUnits() - (AttackBase[difficultyLevel] + player.ownedCamps.Count - 2);
             if (surplus >= 3) TryCaptureNeutral(minUnits: 4, maxDistToNeutral: 25f);
         }
-
-        // ── Attack phase ──────────────────────────────────────────────
 
         private void RunAttack()
         {
@@ -141,7 +115,6 @@ namespace SupKonQuest
             List<UnitMovement> units = GetMyMovableUnits();
             if (units.Count < AttackBase[difficultyLevel]) { phase = Phase.Military; return; }
 
-            // Hard: leave one defender per owned camp
             List<UnitMovement> attackers = difficultyLevel == 2
                 ? RemoveDefenders(units)
                 : units;
@@ -158,8 +131,6 @@ namespace SupKonQuest
             attackCooldownLeft = AttackCooldown[difficultyLevel];
             phase = Phase.Military;
         }
-
-        // ── Defense ───────────────────────────────────────────────────
 
         private bool CheckAndDefend()
         {
@@ -189,8 +160,6 @@ namespace SupKonQuest
             }
             return false;
         }
-
-        // ── Neutral capture ───────────────────────────────────────────
 
         private void TryCaptureNeutral(int minUnits, float maxDistToNeutral)
         {
@@ -229,8 +198,6 @@ namespace SupKonQuest
             }
             return nearest;
         }
-
-        // ── Building ──────────────────────────────────────────────────
 
         private void TryBuildSawmill()
         {
@@ -274,8 +241,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Unit production ───────────────────────────────────────────
-
         private void ProduceUnits()
         {
             int popCap = player.ownedCamps.Count * 10;
@@ -315,7 +280,6 @@ namespace SupKonQuest
             {
                 if (difficultyLevel < 2) return UnitType.Frigate;
                 float r = Random.value;
-                // Transports are only useful on island maps for cross-water assaults
                 if (isIslandMap && r < 0.30f) return UnitType.Transport;
                 if (r < 0.65f) return UnitType.Frigate;
                 return UnitType.Destroyer;
@@ -323,7 +287,6 @@ namespace SupKonQuest
 
             if (camp.campType == CampType.Castle)
             {
-                // Hard: produce anti-armor when enemy has many heavies
                 bool manyHeavies = comp.total > 0 && comp.heavy > comp.total * 0.3f;
                 float r = Random.value;
                 if (difficultyLevel == 2 && manyHeavies)
@@ -334,7 +297,6 @@ namespace SupKonQuest
                 return UnitType.Heal;
             }
 
-            // Normal camp
             if (difficultyLevel == 0)
                 return Random.value < 0.20f ? UnitType.Range : UnitType.Infantry;
 
@@ -347,7 +309,6 @@ namespace SupKonQuest
                 return UnitType.Heal;
             }
 
-            // Hard: full mix with enemy adaptation
             bool needAntiArmor = comp.total > 0 && comp.heavy > comp.total * 0.25f;
             float r2 = Random.value;
             if (needAntiArmor && r2 < 0.30f) return UnitType.AntiArmor;
@@ -358,8 +319,6 @@ namespace SupKonQuest
             if (r2 < 0.82f) return UnitType.Heal;
             return UnitType.Support;
         }
-
-        // ── Transport management (island map only) ────────────────────
 
         private void ManageTransports()
         {
@@ -386,7 +345,6 @@ namespace SupKonQuest
                 }
                 else
                 {
-                    // Return to port to auto-embark new troops
                     Camp port = GetMyPort();
                     if (port != null) mov.MoveTo(port.transform.position);
                 }
@@ -399,8 +357,6 @@ namespace SupKonQuest
                 if (c.campType == CampType.Port) return c;
             return null;
         }
-
-        // ── Target selection ──────────────────────────────────────────
 
         private Camp FindBestAttackTarget()
         {
@@ -416,16 +372,14 @@ namespace SupKonQuest
                 if (camp.owner == player) continue;
                 float dist = Vector3.Distance(camp.transform.position, refPos);
 
-                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.55f;      // prefer neutral
-                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.20f;     // cautious vs enemy
-                if (difficultyLevel == 0 && Random.value < 0.25f) dist *= Random.Range(0.5f, 2f); // chaotic
+                if (difficultyLevel >= 1 && camp.isNeutral) dist *= 0.55f;
+                if (difficultyLevel == 2 && !camp.isNeutral) dist *= 1.20f;
+                if (difficultyLevel == 0 && Random.value < 0.25f) dist *= Random.Range(0.5f, 2f);
 
                 if (dist < bestScore) { bestScore = dist; best = camp; }
             }
             return best;
         }
-
-        // ── Unit helpers ──────────────────────────────────────────────
 
         private List<UnitMovement> GetMyMovableUnits()
         {
@@ -434,7 +388,7 @@ namespace SupKonQuest
             foreach (UnitStats us in all)
             {
                 if (us.ownerId != player.playerId) continue;
-                if (!us.gameObject.activeInHierarchy) continue; // skip embarked units
+                if (!us.gameObject.activeInHierarchy) continue;
                 UnitMovement mov = us.GetComponent<UnitMovement>();
                 if (mov != null) result.Add(mov);
             }
@@ -486,8 +440,6 @@ namespace SupKonQuest
                 if (s.owner == player) count++;
             return count;
         }
-
-        // ── Tile helpers ──────────────────────────────────────────────
 
         private HexTile FindFreeTileNear(Vector3 center, float radius, bool requireWaterNeighbor)
         {

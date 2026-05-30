@@ -9,8 +9,8 @@ namespace SupKonQuest
         public static GameManager Instance { get; private set; }
 
         [Header("Players")]
-        public PlayerData[] players;          // assigné dans l'éditeur, ne pas modifier à runtime
-        [System.NonSerialized] public PlayerData[] activePlayers; // liste filtrée à runtime
+        public PlayerData[] players;
+        [System.NonSerialized] public PlayerData[] activePlayers;
         public int localPlayerId = 1;
 
         [Header("Camps")]
@@ -41,8 +41,6 @@ namespace SupKonQuest
             gameStarted = true;
         }
 
-
-        // Chaque joueur reçoit les camps du coin qui lui correspond (coin 0 → joueur 0, etc.)
         private void AssignCampsByCorner()
         {
             List<Camp>[] corners = HexGridGenerator.CornerCamps;

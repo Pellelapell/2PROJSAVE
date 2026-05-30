@@ -19,22 +19,13 @@ namespace SupKonQuest
 
         private static readonly Dictionary<UnitType, Def> Data = new Dictionary<UnitType, Def>
         {
-            // ── Unités terrestres ──────────────────────────────────────────────────────────────
-            // Infantry: solide et polyvalent, base de toute armée
             [UnitType.Infantry]  = new Def { hp=80,  damage=10, price=50,  attackSpeed=1.00f, range=1.5f, moveSpeed=4.0f, buildTime=4f,  damageType=DamageType.Physical, displayName="Infanterie" },
-            // Support: fragile mais booste les alliés avec son sort actif
             [UnitType.Support]   = new Def { hp=60,  damage=6,  price=45,  attackSpeed=0.80f, range=2.0f, moveSpeed=4.0f, buildTime=3f,  damageType=DamageType.Physical, hasActivable=true, spellDuration=5f,  spellCooldown=15f, displayName="Soutien" },
-            // Heal: soigne les alliés, aucune attaque
             [UnitType.Heal]      = new Def { hp=55,  damage=0,  price=55,  attackSpeed=0.50f, range=4.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Healing,  hasActivable=true, spellDuration=6f,  spellCooldown=12f, displayName="Soigneur" },
-            // Range: longue portée, fragile; contre infanterie et support
             [UnitType.Range]     = new Def { hp=45,  damage=14, price=65,  attackSpeed=0.75f, range=5.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Physical, displayName="Archer" },
-            // Heavy: tank lent avec réduction 30% des dégâts physiques
             [UnitType.Heavy]     = new Def { hp=150, damage=12, price=85,  attackSpeed=0.65f, range=1.5f, moveSpeed=2.0f, buildTime=6f,  damageType=DamageType.Physical, displayName="Lourd" },
-            // AntiArmor: perce les tanks (x2 vs Heavy), moins efficace ailleurs
             [UnitType.AntiArmor] = new Def { hp=55,  damage=18, price=75,  attackSpeed=0.55f, range=3.5f, moveSpeed=3.0f, buildTime=5f,  damageType=DamageType.Piercing, displayName="Anti-Armure" },
-            // Mortar: AOE dévastateur mais lent et cher; nécessite protection
             [UnitType.Mortar]    = new Def { hp=55,  damage=30, price=100, attackSpeed=0.30f, range=8.0f, moveSpeed=2.0f, buildTime=7f,  damageType=DamageType.Siege,    isAOE=true, aoeRadius=2.5f, aoeFalloff=0.5f, displayName="Mortier" },
-            // ── Unités navales ─────────────────────────────────────────────────────────────────
             [UnitType.Transport] = new Def { hp=100, damage=0,  price=90,  attackSpeed=0f,    range=0f,   moveSpeed=3.5f, buildTime=10f, damageType=DamageType.Physical, displayName="Transport" },
             [UnitType.Frigate]   = new Def { hp=110, damage=18, price=110, attackSpeed=0.80f, range=5.0f, moveSpeed=3.0f, buildTime=9f,  damageType=DamageType.Physical, displayName="Frégate" },
             [UnitType.Destroyer] = new Def { hp=200, damage=28, price=150, attackSpeed=0.65f, range=6.0f, moveSpeed=3.5f, buildTime=14f, damageType=DamageType.Physical, displayName="Destroyer" },
@@ -63,10 +54,6 @@ namespace SupKonQuest
             ApplyRaceBonus(stats, type);
         }
 
-        // ── Bonus raciaux ─────────────────────────────────────────────
-        // Human  – Endurance  : +10% HP ; archers et soigneurs +0.5 portée
-        // Elf    – Agilité    : +20% vitesse ; +0.5 portée ; soigneur -20% cooldown
-        // Demon  – Berserk    : +20% dégâts ; +15% vitesse d'attaque ; -10% HP
         private static void ApplyRaceBonus(UnitStats stats, UnitType type)
         {
             switch (stats.race)

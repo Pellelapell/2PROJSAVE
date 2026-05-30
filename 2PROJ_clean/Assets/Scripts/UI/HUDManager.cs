@@ -20,12 +20,10 @@ namespace SupKonQuest
         private bool showEndScreen;
         private bool localPlayerWon;
 
-        // Notification transport coulé
         private List<string> sunkPassengers;
         private float sunkNotifTimer;
         private const float SunkNotifDuration = 6f;
 
-        // Population (mise à jour 1×/s pour limiter FindObjectsByType)
         private int cachedPop;
         private int cachedPopCap;
         private float popRefreshTimer;
@@ -113,8 +111,6 @@ namespace SupKonQuest
                 DrawEndScreen();
         }
 
-        // ── Barre de ressources (local player) ───────────────────────
-
         private void DrawTopBar()
         {
             if (gameManager.activePlayers == null) return;
@@ -151,7 +147,6 @@ namespace SupKonQuest
 
             GUI.color = Color.white;
 
-            // Bouton langue (coin haut-droit) : cycle FR → EN → ES → FR
             if (LocalizationManager.Instance != null)
             {
                 string cur = LocalizationManager.Instance.CurrentLanguage;
@@ -160,8 +155,6 @@ namespace SupKonQuest
                     LocalizationManager.Instance.LoadLanguage(next);
             }
         }
-
-        // ── Classement ───────────────────────────────────────────────
 
         private void DrawLeaderboard()
         {
@@ -194,8 +187,6 @@ namespace SupKonQuest
             if (regionManager != null)
                 DrawRegionPanel();
         }
-
-        // ── Régions ──────────────────────────────────────────────────
 
         private void DrawRegionPanel()
         {
@@ -234,8 +225,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Stats unité sélectionnée ─────────────────────────────────
-
         private void DrawUnitStats()
         {
             UnitStats u = InputManager.Instance?.SelectedUnitStats;
@@ -255,7 +244,6 @@ namespace SupKonQuest
             GUI.color = prev;
             y += 24f;
 
-            // Barre de vie
             float ratio = u.maxHealth > 0 ? (float)u.currentHealth / u.maxHealth : 1f;
             GUI.color = new Color(0.15f, 0.15f, 0.15f, 0.9f);
             GUI.DrawTexture(new Rect(x, y, w, 20f), Texture2D.whiteTexture);
@@ -285,7 +273,6 @@ namespace SupKonQuest
                 y += 18f;
             }
 
-            // Transport ship
             TransportShip ship = u.GetComponent<TransportShip>();
             if (ship != null)
             {
@@ -311,8 +298,6 @@ namespace SupKonQuest
                 y += 22f;
             }
         }
-
-        // ── Info bâtiment sélectionné ────────────────────────────────
 
         private void DrawBuildingInfo()
         {
@@ -360,8 +345,6 @@ namespace SupKonQuest
             GUI.color = Color.white;
         }
 
-        // ── Notification transport coulé ─────────────────────────────
-
         private void DrawSunkNotification()
         {
             const float w = 320f;
@@ -389,8 +372,6 @@ namespace SupKonQuest
             GUI.color = Color.white;
         }
 
-        // ── Écran de fin ─────────────────────────────────────────────
-
         private void DrawEndScreen()
         {
             Color prev = GUI.color;
@@ -408,11 +389,8 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, h), msg, endStyle);
         }
 
-        // ── Helpers ──────────────────────────────────────────────────
-
         private static string L(string key) => LocalizationManager.Get(key);
 
-        // Retourne la position de la tuile walkable la plus proche dans un rayon donné
         private static Vector3 FindNearLand(Vector3 from, float range)
         {
             Collider[] hits = Physics.OverlapSphere(from, range);
@@ -427,8 +405,6 @@ namespace SupKonQuest
             }
             return best;
         }
-
-        // ── Styles ───────────────────────────────────────────────────
 
         private void InitStyles()
         {
