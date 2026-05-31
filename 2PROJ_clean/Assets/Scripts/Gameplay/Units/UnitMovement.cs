@@ -25,6 +25,7 @@ namespace SupKonQuest
         private GameObject rangeIndicator;
         private static Material selectionCircleMat;
         private static Material rangeIndicatorMat;
+        private static Material unitRingMat;
 
         private void Awake()
         {
@@ -70,6 +71,10 @@ namespace SupKonQuest
         private void Start()
         {
             CreateRangeIndicator();
+
+            UnitStats us = GetComponent<UnitStats>();
+            if (us != null && GameManager.Instance != null && us.ownerId == GameManager.Instance.localPlayerId)
+                CreateUnitRing();
         }
 
         private void Update()
@@ -222,6 +227,47 @@ namespace SupKonQuest
             return stats.unitType == UnitType.Transport
                 || stats.unitType == UnitType.Frigate
                 || stats.unitType == UnitType.Destroyer;
+        }
+
+        private void CreateUnitRing()
+        {
+            if (unitRingMat == null)
+            {
+                Shader sh = Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Lit");
+                unitRingMat = new Material(sh);
+                unitRingMat.SetFloat("_Mode", 3);
+                unitRingMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                unitRingMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                unitRingMat.SetInt("_ZWrite", 0);
+                unitRingMat.EnableKeyword("_ALPHABLEND_ON");
+                unitRingMat.renderQueue = 3000;
+            }
+
+            GameObject ringObj = new GameObject("UnitRing");
+            ringObj.transform.SetParent(transform);
+            ringObj.transform.localPosition = Vector3.zero;
+            ringObj.transform.localRotation = Quaternion.identity;
+
+            LineRenderer lr = ringObj.AddComponent<LineRenderer>();
+            lr.useWorldSpace             = false;
+            lr.loop                      = true;
+            lr.widthMultiplier           = 0.05f;
+            lr.shadowCastingMode         = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lr.receiveShadows            = false;
+            lr.material                  = unitRingMat;
+
+            Color ringColor = new Color(0.45f, 0.78f, 1f, 0.65f);
+            lr.startColor = ringColor;
+            lr.endColor   = ringColor;
+
+            const int   segments = 32;
+            const float radius   = 0.48f;
+            lr.positionCount = segments;
+            for (int i = 0; i < segments; i++)
+            {
+                float a = i * Mathf.PI * 2f / segments;
+                lr.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, 0.04f, Mathf.Sin(a) * radius));
+            }
         }
     }
 }

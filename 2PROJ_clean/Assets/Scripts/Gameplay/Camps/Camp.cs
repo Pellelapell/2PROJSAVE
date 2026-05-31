@@ -18,7 +18,7 @@ namespace SupKonQuest
         public int maxHP = 300;
         public int currentHP = 300;
 
-        [Header("Skin neutre (assigné dans l'Inspector du prefab)")]
+        [Header("Skin neutre (assignÃ© dans l'Inspector du prefab)")]
         public Mesh neutralMesh;
         public Material neutralMaterial;
 
@@ -40,7 +40,7 @@ namespace SupKonQuest
             {
                 case CampType.Port:    return 200;
                 case CampType.Castle:  return 800;
-                default:               return 400;   // Normal
+                default:               return 400;
             }
         }
 
@@ -62,8 +62,6 @@ namespace SupKonQuest
                 }
                 targetHighlight = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 targetHighlight.name = "CampTargetHighlight";
-                // World-space : au niveau du sol au centre du camp, sans être enfant du camp
-                // (évite les problèmes de scale/rotation du parent)
                 targetHighlight.transform.position   = new Vector3(transform.position.x, 0.05f, transform.position.z);
                 targetHighlight.transform.rotation   = Quaternion.identity;
                 const float wr = 4f;
@@ -226,17 +224,14 @@ namespace SupKonQuest
 
             Color prev = GUI.color;
 
-            // Fond sombre
             GUI.color = new Color(0.05f, 0.05f, 0.05f, 0.92f);
             GUI.DrawTexture(new Rect(x - 1, y - 1, barW + 2, barH + 2), Texture2D.whiteTexture);
 
-            // Remplissage couleur
             float ratio = maxHP > 0 ? (float)currentHP / maxHP : 1f;
             Color fill  = Color.Lerp(new Color(0.9f, 0.1f, 0.1f), new Color(0.1f, 0.9f, 0.2f), ratio);
             GUI.color   = new Color(fill.r, fill.g, fill.b, 0.95f);
             GUI.DrawTexture(new Rect(x, y, barW * ratio, barH), Texture2D.whiteTexture);
 
-            // Texte HP
             GUI.color = Color.white;
             GUIStyle hpStyle = new GUIStyle(GUI.skin.label)
             { fontSize = 10, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,

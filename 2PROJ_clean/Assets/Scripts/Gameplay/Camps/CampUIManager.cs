@@ -4,8 +4,7 @@ namespace SupKonQuest
 {
     public class CampUIManager : MonoBehaviour
     {
-        // Ancien panel Canvas — désactivé au démarrage, tout est rendu via OnGUI
-        [Header("Legacy Canvas (peut être supprimé de la scène)")]
+        [Header("Legacy Canvas (peut Ãªtre supprimÃ© de la scÃ¨ne)")]
         [SerializeField] private GameObject panel;
 
         private Camp           selectedCamp;
@@ -25,7 +24,6 @@ namespace SupKonQuest
 
         private void Awake()
         {
-            // Masquer l'ancienne UI Canvas sans désactiver le GameObject
             if (panel != null) panel.SetActive(false);
             foreach (UnityEngine.UI.Graphic g in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
                 g.enabled = false;
@@ -133,13 +131,11 @@ namespace SupKonQuest
                 y += lineH;
             }
 
-            // Séparateur
             GUI.color = new Color(0.35f, 0.35f, 0.35f, 0.8f);
             GUI.DrawTexture(new Rect(x, y + 2f, w, 1f), Texture2D.whiteTexture);
             GUI.color = Color.white;
             y += 8f;
 
-            // En production
             UnitType? current = selectedProduction.CurrentType();
             GUI.Label(new Rect(x + 4, y, w - 8f, 16f),
                 current.HasValue ? $"{L("hud_producing")} : {UnitDefaults.GetName(current.Value)}"
@@ -147,7 +143,6 @@ namespace SupKonQuest
                 costStyle);
             y += 18f;
 
-            // Barre de progression
             float progress = selectedProduction.GetProgress01();
             GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
             GUI.DrawTexture(new Rect(x, y, w, 12f), Texture2D.whiteTexture);
@@ -159,7 +154,6 @@ namespace SupKonQuest
             GUI.color = Color.white;
             y += 16f;
 
-            // File d'attente
             int queue = selectedProduction.GetQueueCount();
             GUI.color = new Color(0.65f, 0.65f, 0.65f);
             GUI.Label(new Rect(x + 4, y, w, 16f), $"{L("hud_queue")} : {queue}", costStyle);
@@ -177,7 +171,7 @@ namespace SupKonQuest
             GUI.color = new Color(0.4f, 0.95f, 1f);
             string hint = L("spawn_pick_hint");
             if (string.IsNullOrEmpty(hint) || hint == "spawn_pick_hint")
-                hint = "Clic sur une tuile pour définir l'apparition";
+                hint = "Clic sur une tuile pour dÃ©finir l'apparition";
             GUI.Label(new Rect(x + 6, y + 4f, w - 80f, 22f), hint, hintStyle);
             GUI.color = Color.white;
             if (GUI.Button(new Rect(x + w - 74f, y + 8f, 70f, 24f), L("builder_cancel"), hintStyle))
@@ -189,10 +183,9 @@ namespace SupKonQuest
             if (selectedCamp == null) return NormalUnits;
             switch (selectedCamp.campType)
             {
-                case CampType.NeutralSpecial: return SpecialUnits;
-                case CampType.Port:           return PortUnits;
-                case CampType.Castle:         return CastleUnits;
-                default:                      return NormalUnits;
+                case CampType.Port:    return PortUnits;
+                case CampType.Castle:  return CastleUnits;
+                default:               return NormalUnits;
             }
         }
 

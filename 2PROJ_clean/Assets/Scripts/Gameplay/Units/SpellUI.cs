@@ -4,8 +4,7 @@ namespace SupKonQuest
 {
     public class SpellUI : MonoBehaviour
     {
-        // Ancien panel Canvas — désactivé au démarrage, tout est rendu via OnGUI
-        [Header("Legacy Canvas (peut être supprimé de la scène)")]
+        [Header("Legacy Canvas (peut Ãªtre supprimÃ© de la scÃ¨ne)")]
         [SerializeField] private GameObject spellPanel;
 
         private UnitSpell trackedSpell;
@@ -16,8 +15,6 @@ namespace SupKonQuest
 
         private void Awake()
         {
-            // Masquer l'ancienne UI Canvas sans désactiver le GameObject
-            // (désactiver le GO tuerait OnGUI)
             foreach (UnityEngine.UI.Graphic g in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
                 g.enabled = false;
             foreach (Canvas c in GetComponentsInChildren<Canvas>(true))
@@ -60,11 +57,9 @@ namespace SupKonQuest
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
 
-            // Titre
             GUI.Label(new Rect(x + 4, y, w, 24f), spellName, titleStyle);
             y += 28f;
 
-            // Calcul de l'état
             float  fill;
             string statusText;
             Color  barColor;
@@ -84,11 +79,10 @@ namespace SupKonQuest
             else
             {
                 fill       = 1f;
-                statusText = "Prêt";
+                statusText = "PrÃªt";
                 barColor   = new Color(0.2f, 0.55f, 1f);
             }
 
-            // Barre de statut
             GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
             GUI.DrawTexture(new Rect(x, y, w, 16f), Texture2D.whiteTexture);
             GUI.color = barColor;
@@ -105,7 +99,6 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, 16f), statusText, statusStyle);
             y += 20f;
 
-            // Durée / cooldown restant
             float remaining = 0f;
             if (trackedSpell.IsActive)
                 remaining = stats.spellDuration * (1f - trackedSpell.DurationProgress);
@@ -124,7 +117,6 @@ namespace SupKonQuest
                 y += 4f;
             }
 
-            // Bouton activer
             bool ready = !trackedSpell.IsActive && !trackedSpell.IsOnCooldown;
             string keyHint = LocalizationManager.Get("tuto_k_attack_key");
             if (string.IsNullOrEmpty(keyHint) || keyHint == "tuto_k_attack_key") keyHint = "A";

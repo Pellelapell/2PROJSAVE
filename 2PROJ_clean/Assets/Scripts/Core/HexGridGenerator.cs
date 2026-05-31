@@ -31,34 +31,39 @@ public class HexGridGenerator : MonoBehaviour
     public float colSpacingFactor = 0.75f;
     public float rowSpacingFactor = 1f;
 
-    [Header("Génération")]
+    [Header("GÃ©nÃ©ration")]
     public int seed = 0;
     [Tooltip("Echelle du bruit de Perlin (plus petit = zones plus larges)")]
     [Range(0.05f, 0.3f)]
     public float noiseScale = 0.12f;
-    [Tooltip("Passes de lissage cellulaire (2-3 recommandé)")]
+    [Tooltip("Passes de lissage cellulaire (2-3 recommandÃ©)")]
     [Range(0, 5)]
     public int smoothingPasses = 2;
-    [Tooltip("Tuiles forcées walkable dans chaque coin pour les camps de départ")]
+    [Tooltip("Tuiles forcÃ©es walkable dans chaque coin pour les camps de dÃ©part")]
     [Range(1, 4)]
     public int cornerMargin = 2;
 
     [Header("Map Type")]
     public MapType mapType = MapType.Classic;
 
+    [Header("Bordure")]
+    [Tooltip("Nombre de tuiles de bordure inaccessibles autour de la map")]
+    [Range(1, 8)]
+    public int borderWidth = 4;
+
     [Header("Camps")]
     public GameObject normalCampPrefab;
     public GameObject neutralCampPrefab;
-    [Tooltip("Camps placés dans chaque coin (un coin = un joueur)")]
+    [Tooltip("Camps placÃ©s dans chaque coin (un coin = un joueur)")]
     public int campsPerCorner = 1;
     public int neutralCampCount = 12;
-    [Tooltip("Distance min entre deux camps (en unités world)")]
+    [Tooltip("Distance min entre deux camps (en unitÃ©s world)")]
     public float minCampDistance = 4f;
     [Tooltip("Hauteur au-dessus de la surface de la tuile")]
     public float campYOffset = 0.2f;
-    [Tooltip("Facteur de scale des camps neutres (même logique que ×190 pour les camps joueur)")]
+    [Tooltip("Facteur de scale des camps neutres (mÃªme logique que Ã—190 pour les camps joueur)")]
     public float neutralCampScaleFactor = 190f;
-    [Tooltip("Distance minimale entre camps de joueurs différents, en nombre de tuiles")]
+    [Tooltip("Distance minimale entre camps de joueurs diffÃ©rents, en nombre de tuiles")]
     public int minInterPlayerCampTiles = 5;
 
     [Header("Gardes neutres")]
@@ -82,7 +87,7 @@ public class HexGridGenerator : MonoBehaviour
     {
         if (walkablePrefabs == null || walkablePrefabs.Length == 0)
         {
-            Debug.LogError("[HexGrid] Aucun prefab walkable assigné !");
+            Debug.LogError("[HexGrid] Aucun prefab walkable assignÃ© !");
             return;
         }
 
@@ -90,6 +95,7 @@ public class HexGridGenerator : MonoBehaviour
 
         MeasureHex(out hexW, out hexD);
         GenerateGrid(hexW, hexD);
+        GenerateBorder(hexW, hexD);
         BuildNavMesh();
 
         if (RegionManager.Instance != null)
@@ -443,7 +449,7 @@ public class HexGridGenerator : MonoBehaviour
 
         ConvertToMountain(isolated);
         if (isolated.Count > 0)
-            Debug.Log($"[HexGrid] {isolated.Count} tuile(s) isolée(s) converties.");
+            Debug.Log($"[HexGrid] {isolated.Count} tuile(s) isolÃ©e(s) converties.");
     }
 
     private void RemoveSingletonIslands(Dictionary<HexTile, Vector2Int> tileCoords)
@@ -506,6 +512,55 @@ public class HexGridGenerator : MonoBehaviour
             yield return new Vector2Int(x-1, z);   yield return new Vector2Int(x-1, z+1);
             yield return new Vector2Int(x,   z-1); yield return new Vector2Int(x,   z+1);
             yield return new Vector2Int(x+1, z);   yield return new Vector2Int(x+1, z+1);
+        }
+    }
+
+    private void GenerateBorder(float hexW, float hexD)
+    {
+        float colSpacing = hexW * colSpacingFactor;
+        float rowSpacing = hexD * rowSpacingFactor;
+
+        bool         useWater = (mapType == MapType.Island);
+        GameObject[] prefabs  = useWater ? waterPrefabs : mountainPrefabs;
+        if (prefabs == null || prefabs.Length == 0) return;
+
+        Material mat = useWater
+            ? (mapType == MapType.FrozenPeaks ? iceMaterial ?? waterMaterial : waterMaterial)
+            : (mapType == MapType.FrozenPeaks ? snowMaterial ?? mountainMaterial : mountainMaterial);
+
+        float yOffset = useWater ? waterYOffset : mountainYOffset;
+        int   notWalkable = UnityEngine.AI.NavMesh.GetAreaFromName("Not Walkable");
+
+        for (int x = -borderWidth; x < width + borderWidth; x++)
+        {
+            for (int z = -borderWidth; z < height + borderWidth; z++)
+            {
+                if (x >= 0 && x < width && z >= 0 && z < height) continue;
+
+                float xPos = x * colSpacing;
+                float zPos = z * rowSpacing + ((x & 1) == 1 ? rowSpacing * 0.5f : 0f);
+
+                GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
+                GameObject tile   = Instantiate(prefab,
+                    new Vector3(xPos, yOffset, zPos),
+                    Quaternion.identity, transform);
+                tile.transform.localScale = Vector3.one * hexScale;
+
+                if (mat != null)
+                    foreach (Renderer r in tile.GetComponentsInChildren<Renderer>())
+                        r.sharedMaterial = mat;
+
+                foreach (MeshFilter mf in tile.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (mf.sharedMesh == null) continue;
+                    MeshCollider mc = mf.gameObject.AddComponent<MeshCollider>();
+                    mc.sharedMesh = mf.sharedMesh;
+                }
+
+                NavMeshModifier mod = tile.AddComponent<NavMeshModifier>();
+                mod.overrideArea = true;
+                mod.area         = notWalkable;
+            }
         }
     }
 
@@ -633,7 +688,7 @@ public class HexGridGenerator : MonoBehaviour
                     used.Add(tile);
                 }
             }
-            Debug.Log($"[HexGrid] {neutralPlaced} camps neutres placés ({RegionManager.Instance?.GetAllRegions().Length ?? 0} régions garanties).");
+            Debug.Log($"[HexGrid] {neutralPlaced} camps neutres placÃ©s ({RegionManager.Instance?.GetAllRegions().Length ?? 0} rÃ©gions garanties).");
         }
     }
 

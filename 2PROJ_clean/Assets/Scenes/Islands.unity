@@ -666,10 +666,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spellPanel: {fileID: 118261565}
-  spellButton: {fileID: 2060173847}
-  cooldownOverlay: {fileID: 1744873017}
-  spellLabel: {fileID: 1415458258}
-  cooldownText: {fileID: 1808877077}
 --- !u!1 &204842270
 GameObject:
   m_ObjectHideFlags: 0
@@ -1727,22 +1723,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panel: {fileID: 514456008}
-  titleText: {fileID: 1597550297}
-  currentUnitText: {fileID: 1856186571}
-  queueText: {fileID: 638743111}
-  progressBarFill: {fileID: 71886496}
-  unitDatabase: {fileID: 11400000, guid: e57e31f138ec1ea4e8965164598a56c0, type: 2}
-  infantryButton: {fileID: 1953721655}
-  supportButton: {fileID: 2056529797}
-  healButton: {fileID: 461554907}
-  rangeButton: {fileID: 1478374696}
-  heavyButton: {fileID: 1621229627}
-  antiArmorButton: {fileID: 909813016}
-  mortarButton: {fileID: 777607426}
-  transportButton: {fileID: 204842272}
-  frigateButton: {fileID: 992172644}
-  destroyerButton: {fileID: 1410976549}
-  spawnPointButton: {fileID: 0}
 --- !u!114 &534388193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1761,6 +1741,8 @@ MonoBehaviour:
   - {fileID: 3637096172939143290, guid: 253bd66f55ba3c64aa9825ea2896b609, type: 3}
   waterPrefabs:
   - {fileID: 2413447369293234240, guid: 3b042d658ba55d940a649b33c122fbca, type: 3}
+  waterYOffset: 0
+  mountainYOffset: 0
   grassMaterial: {fileID: 2100000, guid: 7410e1e9220ccb04f87aac49ffbf3ff2, type: 2}
   mountainMaterial: {fileID: 2100000, guid: d2d0511d994dbdb4dacddc5b45506c87, type: 2}
   waterMaterial: {fileID: 2100000, guid: bf728ebcecca70142b54477940f0cec9, type: 2}
@@ -1777,14 +1759,18 @@ MonoBehaviour:
   smoothingPasses: 2
   cornerMargin: 2
   mapType: 0
+  borderWidth: 8
   normalCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   neutralCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   campsPerCorner: 2
   neutralCampCount: 3
   minCampDistance: 2
   campYOffset: 0
+  neutralCampScaleFactor: 190
+  minInterPlayerCampTiles: 5
   neutralGuardPrefab: {fileID: 4258408347571373034, guid: 5ec93be3c3ceca948807bc47ad32148f, type: 3}
   guardsPerNeutralCamp: 1
+  neutralGuardScale: 2
 --- !u!114 &534388194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1820,7 +1806,7 @@ MonoBehaviour:
     onWalkable: 0
     onMountain: 1
     onWater: 0
-    scaleRange: {x: 0.05, y: 0.09}
+    scaleRange: {x: 3.5, y: 0}
   placementRadius: 0.15
   yOffset: 0.05
 --- !u!114 &534388196

@@ -89,7 +89,6 @@ namespace SupKonQuest
             foreach (Camp c in highlightedCamps) if (c != null) c.SetAsTarget(false);
             highlightedCamps.Clear();
 
-            // Unités ennemies
             UnitStats[] allUnits = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
             foreach (UnitStats other in allUnits)
             {
@@ -98,7 +97,6 @@ namespace SupKonQuest
                 highlightedTargets.Add(other);
             }
 
-            // Camps ennemis / neutres
             Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
             foreach (Camp camp in allCamps)
             {
@@ -141,7 +139,6 @@ namespace SupKonQuest
 
             if (IsAttackMoveMode && selectedUnits.Count > 0)
             {
-                // Tout ce que le rayon touche, sans filtre de layer
                 RaycastHit[] atkHits = Physics.RaycastAll(ray, 1000f);
                 System.Array.Sort(atkHits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -165,7 +162,6 @@ namespace SupKonQuest
                     if (firstUnit != null && firstCamp != null) break;
                 }
 
-                // Priorité au camp : les gardes neutres bloquaient le bâtiment
                 if (firstCamp != null)
                 {
                     foreach (UnitMovement u in selectedUnits)
@@ -299,7 +295,6 @@ namespace SupKonQuest
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-            // Transport embark (propre transport uniquement)
             if (Physics.Raycast(ray, out RaycastHit hitTransport, 1000f, unitLayerMask))
             {
                 TransportShip transport = hitTransport.collider.GetComponentInParent<TransportShip>();
@@ -317,7 +312,6 @@ namespace SupKonQuest
                 }
             }
 
-            // Camp ennemi/neutre → déplacement + capture
             if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
             {
                 Camp camp = hitCamp.collider.GetComponentInParent<Camp>();
@@ -333,7 +327,6 @@ namespace SupKonQuest
                 }
             }
 
-            // Déplacement au sol (le clic passe à travers les unités et camps)
             int ignoreMask = unitLayerMask | campLayerMask;
             if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, ~ignoreMask))
             {

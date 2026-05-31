@@ -5,7 +5,7 @@ namespace SupKonQuest
 {
     public class GameOptionsMenu : MonoBehaviour
     {
-        [Header("Touche d'ouverture (défaut : Escape)")]
+        [Header("Touche d'ouverture (dÃ©faut : Escape)")]
         public KeyCode toggleKey = KeyCode.Escape;
 
         private bool isOpen;

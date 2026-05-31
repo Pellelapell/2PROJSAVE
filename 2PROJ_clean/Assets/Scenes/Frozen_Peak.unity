@@ -672,10 +672,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spellPanel: {fileID: 118261565}
-  spellButton: {fileID: 2060173847}
-  cooldownOverlay: {fileID: 1744873017}
-  spellLabel: {fileID: 1415458258}
-  cooldownText: {fileID: 1808877077}
 --- !u!1 &204523526
 GameObject:
   m_ObjectHideFlags: 0
@@ -1851,22 +1847,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panel: {fileID: 514456008}
-  titleText: {fileID: 1597550297}
-  currentUnitText: {fileID: 1856186571}
-  queueText: {fileID: 638743111}
-  progressBarFill: {fileID: 71886496}
-  unitDatabase: {fileID: 11400000, guid: e57e31f138ec1ea4e8965164598a56c0, type: 2}
-  infantryButton: {fileID: 1953721655}
-  supportButton: {fileID: 2056529797}
-  healButton: {fileID: 461554907}
-  rangeButton: {fileID: 1478374696}
-  heavyButton: {fileID: 1621229627}
-  antiArmorButton: {fileID: 909813016}
-  mortarButton: {fileID: 777607426}
-  transportButton: {fileID: 204842272}
-  frigateButton: {fileID: 992172644}
-  destroyerButton: {fileID: 1410976549}
-  spawnPointButton: {fileID: 0}
 --- !u!114 &534388193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1903,6 +1883,7 @@ MonoBehaviour:
   smoothingPasses: 2
   cornerMargin: 2
   mapType: 1
+  borderWidth: 8
   normalCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   neutralCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   campsPerCorner: 2
@@ -1949,7 +1930,7 @@ MonoBehaviour:
     onWalkable: 0
     onMountain: 1
     onWater: 0
-    scaleRange: {x: 0.05, y: 0.09}
+    scaleRange: {x: 3.5, y: 0}
   placementRadius: 0.15
   yOffset: 0.05
 --- !u!114 &534388196
