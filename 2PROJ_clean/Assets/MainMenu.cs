@@ -25,9 +25,10 @@ public class MainMenu : MonoBehaviour
 
     private float musicVolume = 1f;
     private float sfxVolume   = 1f;
+    private float hudScale    = 1f;
+    private float menuScale   = 1f;
 
-    private const float ReferenceWidth  = 1920f;
-    private const float ReferenceHeight = 1080f;
+    private float _sw, _sh;
 
     private Texture2D backgroundTexture;
 
@@ -86,6 +87,8 @@ public class MainMenu : MonoBehaviour
 
         musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
         sfxVolume   = PlayerPrefs.GetFloat("SFXVolume",   1f);
+        hudScale    = PlayerPrefs.GetFloat("HUDScale",    1f);
+        menuScale   = PlayerPrefs.GetFloat("MenuScale",   1f);
         AudioManager.Instance?.SetMusicVolume(musicVolume);
         AudioManager.Instance?.SetSFXVolume(sfxVolume);
         AudioManager.Instance?.PlayMenuMusic();
@@ -135,14 +138,16 @@ public class MainMenu : MonoBehaviour
     {
         InitStyles();
 
-
         if (backgroundTexture != null)
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), backgroundTexture, ScaleMode.ScaleAndCrop);
-
 
         if (texVignette != null)
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), texVignette, ScaleMode.StretchToFill);
 
+        Matrix4x4 oldMatrix = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(new Vector2(menuScale, menuScale), Vector2.zero);
+        _sw = Screen.width  / menuScale;
+        _sh = Screen.height / menuScale;
 
         switch (current)
         {
@@ -151,6 +156,8 @@ public class MainMenu : MonoBehaviour
             case MenuScreen.Options:   DrawOptionsScreen();   break;
             case MenuScreen.Tutorial:  DrawTutorialScreen();  break;
         }
+
+        GUI.matrix = oldMatrix;
     }
 
     private void DrawMedievalTitle(string text, float x, float y, float w, float h)
@@ -181,8 +188,8 @@ public class MainMenu : MonoBehaviour
 
     private void DrawTitleScreen()
     {
-        float sw = Screen.width;
-        float sh = Screen.height;
+        float sw = _sw;
+        float sh = _sh;
 
 
         float titleAreaH = 175f;
@@ -276,8 +283,8 @@ public class MainMenu : MonoBehaviour
 
     private void DrawSelectionScreen()
     {
-        float sw = Screen.width;
-        float sh = Screen.height;
+        float sw = _sw;
+        float sh = _sh;
 
 
         GUI.color = new Color(0f, 0f, 0f, 0.70f);
@@ -444,8 +451,8 @@ public class MainMenu : MonoBehaviour
 
     private void DrawTutorialScreen()
     {
-        float sw = Screen.width;
-        float sh = Screen.height;
+        float sw = _sw;
+        float sh = _sh;
 
         GUI.color = new Color(0f, 0f, 0f, 0.70f);
         GUI.DrawTexture(new Rect(0, 0, sw, 110f), Texture2D.whiteTexture);
@@ -589,8 +596,8 @@ public class MainMenu : MonoBehaviour
 
     private void DrawOptionsScreen()
     {
-        float sw = Screen.width;
-        float sh = Screen.height;
+        float sw = _sw;
+        float sh = _sh;
 
 
         GUI.color = new Color(0f, 0f, 0f, 0.70f);
@@ -605,7 +612,7 @@ public class MainMenu : MonoBehaviour
         GUI.Label(new Rect(0, 80f, sw, 25f), "Ajustez vos sens", subtitleStyle);
 
         float panelW = 500f;
-        float panelH = Mathf.Min(400f, sh - 140f);
+        float panelH = Mathf.Min(430f, sh - 140f);
         float panelX = (sw - panelW) / 2f;
         float panelY = 125f;
 
@@ -652,21 +659,25 @@ public class MainMenu : MonoBehaviour
         GUI.Label(new Rect(panelX, y, panelW, 24f), "⬛ Interface", headerStyle);
         y += 30f;
 
-        float currentHudScale = PlayerPrefs.GetFloat("HUDScale", 1f);
-        GUI.Label(new Rect(contentX, y, contentW, 24f),
-            $"Taille HUD : {Mathf.RoundToInt(currentHudScale * 100f)}%  " +
-            $"(écran : {Screen.width}×{Screen.height})", labelStyle);
-        y += 34f;
-
-        if (GUI.Button(new Rect(contentX, y, contentW, 40f), "Adapter automatiquement à la résolution", backBtnStyle))
+        GUI.Label(new Rect(contentX, y, contentW, 24f), $"Taille menus : {Mathf.RoundToInt(menuScale * 100f)}%", labelStyle);
+        y += 30f;
+        float newMenu = GUI.HorizontalSlider(new Rect(contentX, y, contentW, 24f), menuScale, 0.7f, 1.4f, sliderStyle, sliderThumbStyle);
+        if (!Mathf.Approximately(newMenu, menuScale))
         {
-            AudioManager.Instance?.PlayClick();
-            float scaleX = Screen.width  / ReferenceWidth;
-            float scaleY = Screen.height / ReferenceHeight;
-            float scale  = Mathf.Clamp(Mathf.Min(scaleX, scaleY), 0.5f, 3f);
-            PlayerPrefs.SetFloat("HUDScale", scale);
-            PlayerPrefs.Save();
+            menuScale = newMenu;
+            PlayerPrefs.SetFloat("MenuScale", menuScale);
         }
+        y += 40f;
+
+        GUI.Label(new Rect(contentX, y, contentW, 24f), $"Taille HUD : {Mathf.RoundToInt(hudScale * 100f)}%", labelStyle);
+        y += 30f;
+        float newHud = GUI.HorizontalSlider(new Rect(contentX, y, contentW, 24f), hudScale, 0.5f, 2f, sliderStyle, sliderThumbStyle);
+        if (!Mathf.Approximately(newHud, hudScale))
+        {
+            hudScale = newHud;
+            PlayerPrefs.SetFloat("HUDScale", hudScale);
+        }
+        y += 20f;
 
         float bw = 240f;
         float bx = (sw - bw) * 0.5f;

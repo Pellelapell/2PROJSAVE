@@ -35,11 +35,17 @@ namespace SupKonQuest
             if (localPlayer == null) { localPlayer = FindLocalPlayer(); return; }
             InitStyles();
 
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float s = HUDManager.HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
+            float sw = Screen.width  / s;
+            float sh = Screen.height / s;
+
             float w = 280f;
             float lineH = 72f;
             float h = 30f + Types.Length * lineH + 10f;
-            float x = (Screen.width  - w) * 0.5f;
-            float y = Screen.height - h - 120f;
+            float x = (sw - w) * 0.5f;
+            float y = sh - h - 120f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.Label(new Rect(x, y, w, 24f), "  Construire", titleStyle);
@@ -77,6 +83,8 @@ namespace SupKonQuest
 
             if (GUI.Button(new Rect(x + w - 28f, y - Types.Length * lineH - 32f, 24f, 20f), "✕", costStyle))
                 selectedTile = null;
+
+            GUI.matrix = oldMatrix;
         }
 
         private PlayerData FindLocalPlayer()

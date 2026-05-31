@@ -27,22 +27,27 @@ namespace SupKonQuest
             get
             {
                 if (trackedUnit == null) return false;
-                float mx  = Input.mousePosition.x;
-                float mgy = Screen.height - Input.mousePosition.y;
+                float s   = HUDManager.HudScale;
+                float sh  = Screen.height / s;
+                float sw  = Screen.width  / s;
+                float mx  = Input.mousePosition.x / s;
+                float mgy = (Screen.height - Input.mousePosition.y) / s;
 
                 float bh = 28f + Types.Length * 72f + 8f + 12f;
-                float by = Screen.height - bh - 10f;
+                float by = sh - bh - 10f;
                 if (new Rect(4f, by, 272f, bh).Contains(new Vector2(mx, mgy))) return true;
 
                 float pw = 352f, ph = 70f;
-                float px = (Screen.width - pw) * 0.5f;
-                float py = Screen.height - ph - 10f;
+                float px = (sw - pw) * 0.5f;
+                float py = sh - ph - 10f;
                 return new Rect(px, py, pw, ph).Contains(new Vector2(mx, mgy));
             }
         }
 
         private GUIStyle panelStyle, titleStyle, btnStyle, disabledStyle, costStyle, hintStyle;
         private bool     stylesReady;
+
+        private float _sw, _sh, _s;
 
         private static readonly BuildingType[] Types =
             { BuildingType.Camp, BuildingType.Sawmill, BuildingType.Port, BuildingType.Castle };
@@ -192,17 +197,26 @@ namespace SupKonQuest
 
         private void OnGUI()
         {
+            Matrix4x4 oldMatrix = GUI.matrix;
+            _s  = HUDManager.HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(_s, _s), Vector2.zero);
+            _sw = Screen.width  / _s;
+            _sh = Screen.height / _s;
+
             DrawAllProgressBars();
 
-            if (trackedUnit == null || BuildingManager.Instance == null) return;
-            InitStyles();
+            if (trackedUnit != null && BuildingManager.Instance != null)
+            {
+                InitStyles();
+                PlayerData owner = GameManager.Instance?.GetPlayerById(trackedUnit.ownerId);
+                if (owner != null)
+                {
+                    if (pendingType.HasValue) DrawPendingHint();
+                    else                      DrawBuildPanel(owner);
+                }
+            }
 
-            PlayerData owner = GameManager.Instance?.GetPlayerById(trackedUnit.ownerId);
-            if (owner == null) return;
-
-            if (pendingType.HasValue) { DrawPendingHint(); return; }
-
-            DrawBuildPanel(owner);
+            GUI.matrix = oldMatrix;
         }
 
         private void DrawAllProgressBars()
@@ -221,8 +235,8 @@ namespace SupKonQuest
                 if (sp.z < 0f) continue;
 
                 const float bw = 80f, bh = 10f;
-                float bx = sp.x - bw * 0.5f;
-                float by = Screen.height - sp.y - bh - 4f;
+                float bx = sp.x / _s - bw * 0.5f;
+                float by = (Screen.height - sp.y) / _s - bh - 4f;
 
                 GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
                 GUI.DrawTexture(new Rect(bx, by, bw, bh), Texture2D.whiteTexture);
@@ -238,7 +252,7 @@ namespace SupKonQuest
             const float lineH = 72f;
             float h = 28f + Types.Length * lineH + 8f;
             float x = 10f;
-            float y = Screen.height - h - 10f;
+            float y = _sh - h - 10f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.Label(new Rect(x + 4, y, w, 24f), L("builder_title"), titleStyle);
@@ -292,8 +306,8 @@ namespace SupKonQuest
 
             const float w = 340f;
             const float h = 58f;
-            float x = (Screen.width  - w) * 0.5f;
-            float y = Screen.height - h - 10f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh - h - 10f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
 

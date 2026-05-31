@@ -75,6 +75,9 @@ namespace SupKonQuest
             UnitStats us = GetComponent<UnitStats>();
             if (us != null && GameManager.Instance != null && us.ownerId == GameManager.Instance.localPlayerId)
                 CreateUnitRing();
+
+            if (selectionCircle != null && IsNavalUnit())
+                selectionCircle.transform.localPosition = new Vector3(0f, -1f, 0f);
         }
 
         private void Update()
@@ -119,7 +122,10 @@ namespace SupKonQuest
             agent.speed    = speed;
             agent.areaMask = areaMask;
             if (IsNavalUnit())
+            {
                 agent.updateRotation = false;
+                agent.baseOffset     = 1.2f;
+            }
 
             if (hasPending && agent.isOnNavMesh)
             {

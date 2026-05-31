@@ -17,6 +17,8 @@ namespace SupKonQuest
         private GUIStyle panelStyle, titleStyle, btnStyle, disabledStyle, costStyle, hintStyle;
         private bool     stylesReady;
 
+        private float _sw, _sh;
+
         private static readonly UnitType[] NormalUnits  = { UnitType.Infantry, UnitType.Range, UnitType.Support };
         private static readonly UnitType[] SpecialUnits = { UnitType.AntiArmor, UnitType.Mortar, UnitType.Support };
         private static readonly UnitType[] PortUnits    = { UnitType.Transport, UnitType.Frigate, UnitType.Destroyer };
@@ -69,10 +71,20 @@ namespace SupKonQuest
 
         private void OnGUI()
         {
-            if (_isPickingSpawnPoint) { DrawPickSpawnHint(); return; }
-            if (!isVisible || selectedCamp == null || selectedProduction == null) return;
-            InitStyles();
-            DrawProductionPanel();
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float s = HUDManager.HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
+            _sw = Screen.width  / s;
+            _sh = Screen.height / s;
+
+            if (_isPickingSpawnPoint) { DrawPickSpawnHint(); }
+            else if (isVisible && selectedCamp != null && selectedProduction != null)
+            {
+                InitStyles();
+                DrawProductionPanel();
+            }
+
+            GUI.matrix = oldMatrix;
         }
 
         private void DrawProductionPanel()
@@ -84,7 +96,7 @@ namespace SupKonQuest
             const float infoH  = 50f;
             float h = 28f + units.Length * lineH + 8f + infoH;
             float x = 10f;
-            float y = Screen.height - h - 10f;
+            float y = _sh - h - 10f;
 
             string campName = L(selectedCamp.campType == CampType.Port   ? "building_port"
                               : selectedCamp.campType == CampType.Castle ? "building_castle"
@@ -164,8 +176,8 @@ namespace SupKonQuest
         {
             InitStyles();
             const float w = 360f, h = 44f;
-            float x = (Screen.width  - w) * 0.5f;
-            float y = Screen.height - h - 10f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh - h - 10f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.color = new Color(0.4f, 0.95f, 1f);

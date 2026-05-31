@@ -17,6 +17,8 @@ namespace SupKonQuest
         private GUIStyle btnStyle;
         private GUIStyle sunkStyle;
 
+        private float _sw, _sh;
+
         private bool showEndScreen;
         private bool localPlayerWon;
 
@@ -104,6 +106,8 @@ namespace SupKonQuest
             Matrix4x4 oldMatrix = GUI.matrix;
             float s = HudScale;
             GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
+            _sw = Screen.width  / s;
+            _sh = Screen.height / s;
 
             DrawTopBar();
             DrawLeaderboard();
@@ -126,8 +130,8 @@ namespace SupKonQuest
 
             const float w = 220f;
             const float h = 30f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.5f - 60f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh * 0.5f - 60f;
 
             GUI.color = new Color(1f, 0.2f, 0.2f, 0.9f);
             GUI.DrawTexture(new Rect(x - 6, y - 4, w + 12, h + 8), Texture2D.whiteTexture);
@@ -145,8 +149,8 @@ namespace SupKonQuest
             if (local == null) return;
 
             float barH = 32f;
-            float barW = Screen.width * 0.65f;
-            float barX = (Screen.width - barW) * 0.5f;
+            float barW = _sw * 0.65f;
+            float barX = (_sw - barW) * 0.5f;
 
             GUI.color = new Color(0f, 0f, 0f, 0.7f);
             GUI.DrawTexture(new Rect(barX - 8, 0, barW + 16, barH + 4), Texture2D.whiteTexture);
@@ -176,7 +180,7 @@ namespace SupKonQuest
             {
                 string cur = LocalizationManager.Instance.CurrentLanguage;
                 string next = cur == "fr" ? "en" : cur == "en" ? "es" : "fr";
-                if (GUI.Button(new Rect(Screen.width - 52f, 4f, 44f, 24f), next.ToUpper(), titleStyle))
+                if (GUI.Button(new Rect(_sw - 52f, 4f, 44f, 24f), next.ToUpper(), titleStyle))
                     LocalizationManager.Instance.LoadLanguage(next);
             }
         }
@@ -186,7 +190,7 @@ namespace SupKonQuest
             if (gameManager.activePlayers == null) return;
             float rowH = 40f;
             float panelHeight = HeaderHeight + gameManager.activePlayers.Length * rowH + Margin;
-            float x = Screen.width - PanelWidth - Margin;
+            float x = _sw - PanelWidth - Margin;
             float y = Margin + 40f;
 
             GUI.Box(new Rect(x - 5, y - 5, PanelWidth + 10, panelHeight), "", boxStyle);
@@ -258,8 +262,8 @@ namespace SupKonQuest
             bool isLocalUnit = u.ownerId == (InputManager.Instance?.localPlayerId ?? -1);
             const float w = 320f;
             float h = isLocalUnit ? 240f : 200f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - h - 10f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh - h - 10f;
 
             GUI.Box(new Rect(x - 5, y - 5, w + 10, h + 10), "", boxStyle);
 
@@ -398,8 +402,8 @@ namespace SupKonQuest
 
             const float w = 200f;
             const float h = 60f;
-            float x = (Screen.width  - w) * 0.5f;
-            float y = Screen.height - h - 10f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh - h - 10f;
 
             GUI.Box(new Rect(x - 5, y - 5, w + 10, h + 10), "", boxStyle);
 
@@ -423,8 +427,8 @@ namespace SupKonQuest
             const float w = 320f;
             float lineH = 18f;
             float h = 28f + sunkPassengers.Count * lineH + 8f;
-            float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.3f;
+            float x = (_sw - w) * 0.5f;
+            float y = _sh * 0.3f;
 
             float alpha = Mathf.Clamp01(sunkNotifTimer / 1.5f);
             GUI.color = new Color(0f, 0f, 0f, 0.75f * alpha);
@@ -449,12 +453,12 @@ namespace SupKonQuest
         {
             Color prev = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.65f);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0, 0, _sw, _sh), Texture2D.whiteTexture);
             GUI.color = prev;
 
             float w = 500f, h = 160f;
-            float x = (Screen.width  - w) * 0.5f;
-            float y = (Screen.height - h) * 0.5f;
+            float x = (_sw - w) * 0.5f;
+            float y = (_sh - h) * 0.5f;
 
             string msg = localPlayerWon ? L("victory") : L("defeat");
             endStyle.normal.textColor = localPlayerWon ? new Color(1f, 0.9f, 0.1f) : new Color(1f, 0.25f, 0.25f);

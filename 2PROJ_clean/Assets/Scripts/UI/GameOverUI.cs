@@ -39,14 +39,20 @@ namespace SupKonQuest
             if (!isVisible) return;
             InitStyles();
 
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float s = HUDManager.HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
+            float sw = Screen.width  / s;
+            float sh = Screen.height / s;
+
             GUI.color = new Color(0f, 0f, 0f, 0.7f);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0, 0, sw, sh), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
             float w = 420f;
             float h = 220f;
-            float x = (Screen.width - w) / 2f;
-            float y = (Screen.height - h) / 2f;
+            float x = (sw - w) / 2f;
+            float y = (sh - h) / 2f;
 
             GUI.Box(new Rect(x - 10, y - 10, w + 20, h + 20), "", overlayStyle);
 
@@ -68,6 +74,8 @@ namespace SupKonQuest
                 Time.timeScale = 1f;
                 SceneManager.LoadScene("MainMenu");
             }
+
+            GUI.matrix = oldMatrix;
         }
 
         private void InitStyles()

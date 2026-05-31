@@ -130,7 +130,6 @@ namespace SupKonQuest
                            entry.type == UnitType.Destroyer;
 
             spawnPos = FindValidSpawnPosition(spawnPos, isNaval);
-            if (isNaval) spawnPos.y = 3f;
 
             int waterIdx = NavMesh.GetAreaFromName("Water");
             int snapMask = isNaval
@@ -138,8 +137,14 @@ namespace SupKonQuest
                 : (waterIdx >= 0 ? NavMesh.AllAreas & ~(1 << waterIdx) : NavMesh.AllAreas);
             if (NavMesh.SamplePosition(spawnPos, out NavMeshHit navHit, 5f, snapMask))
                 spawnPos = navHit.position;
+            if (isNaval) spawnPos.y = 3f;
 
             GameObject unitObj = Instantiate(entry.prefab, spawnPos, Quaternion.identity);
+            if (isNaval)
+            {
+                Vector3 p = unitObj.transform.position;
+                unitObj.transform.position = new Vector3(p.x, 3f, p.z);
+            }
 
             UnitStats stats = unitObj.GetComponent<UnitStats>();
             if (stats != null)

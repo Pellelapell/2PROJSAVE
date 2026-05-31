@@ -54,7 +54,7 @@ namespace SupKonQuest
             }
 
             UnitMovement mov = GetComponent<UnitMovement>();
-            if (mov != null && mov.HasPlayerMoveOrder) return;
+            if (mov != null && (mov.HasPlayerMoveOrder || mov.IsLocked)) return;
 
             UnitStats autoEnemy = FindClosestEnemyInRange(stats.detectRange);
             if (autoEnemy != null) HandleAutoAttack(autoEnemy);
@@ -98,6 +98,7 @@ namespace SupKonQuest
             if (attacker == null || attacker.currentHealth <= 0) return;
             if (currentUnitTarget != null) return;
             UnitMovement mov = GetComponent<UnitMovement>();
+            if (mov != null && (mov.HasPlayerMoveOrder || mov.IsLocked)) return;
             if (mov != null) mov.Stop();
             SetUnitTarget(attacker);
         }
@@ -202,6 +203,8 @@ namespace SupKonQuest
                 if (other == null || other == stats) continue;
                 if (other.ownerId == stats.ownerId || other.ownerId == GameConstants.NEUTRAL_ID) continue;
                 if (other.currentHealth <= 0) continue;
+                UnitMovement otherMov = other.GetComponent<UnitMovement>();
+                if (otherMov != null && otherMov.IsLocked) continue;
                 float d = Vector3.Distance(transform.position, other.transform.position);
                 if (d < closestDist) { closestDist = d; closest = other; }
             }

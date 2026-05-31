@@ -12,6 +12,7 @@ namespace SupKonQuest
 
         private float musicVolume;
         private float sfxVolume;
+        private float hudScale;
 
         private GUIStyle panelStyle;
         private GUIStyle titleStyle;
@@ -27,6 +28,7 @@ namespace SupKonQuest
         {
             musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
             sfxVolume   = PlayerPrefs.GetFloat("SFXVolume",   1f);
+            hudScale    = PlayerPrefs.GetFloat("HUDScale",    1f);
         }
 
         private void Update()
@@ -48,14 +50,20 @@ namespace SupKonQuest
             if (!isOpen) return;
             InitStyles();
 
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float s = HUDManager.HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
+            float sw = Screen.width  / s;
+            float sh = Screen.height / s;
+
             GUI.color = new Color(0f, 0f, 0f, 0.6f);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0, 0, sw, sh), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
             float pw = 420f;
-            float ph = 320f;
-            float px = (Screen.width  - pw) * 0.5f;
-            float py = (Screen.height - ph) * 0.5f;
+            float ph = 390f;
+            float px = (sw - pw) * 0.5f;
+            float py = (sh - ph) * 0.5f;
 
             GUI.Box(new Rect(px - 15, py - 15, pw + 30, ph + 30), GUIContent.none, panelStyle);
 
@@ -83,12 +91,22 @@ namespace SupKonQuest
                 AudioManager.Instance?.SetSFXVolume(sfxVolume);
                 PlayerPrefs.SetFloat("SFXVolume", sfxVolume);
             }
+            y += 32f;
+
+            GUI.Label(new Rect(px, y, pw, 22f), $"Taille HUD : {Mathf.RoundToInt(hudScale * 100f)}%", labelStyle);
+            y += 26f;
+            float newHud = GUI.HorizontalSlider(new Rect(px, y, pw, 18f), hudScale, 0.5f, 2f);
+            if (!Mathf.Approximately(newHud, hudScale))
+            {
+                hudScale = newHud;
+                PlayerPrefs.SetFloat("HUDScale", hudScale);
+            }
             y += 40f;
 
             float bw = 190f;
             float gap = 20f;
             float totalW = bw * 2f + gap;
-            float bx = (Screen.width - totalW) * 0.5f;
+            float bx = (sw - totalW) * 0.5f;
 
             if (GUI.Button(new Rect(bx, y, bw, 44f), L("options_close"), btnStyle))
             {
@@ -109,7 +127,7 @@ namespace SupKonQuest
             y += 56f;
 
             float qw = 200f;
-            float qx = (Screen.width - qw) * 0.5f;
+            float qx = (sw - qw) * 0.5f;
             GUI.color = new Color(1f, 0.35f, 0.35f);
             if (GUI.Button(new Rect(qx, y, qw, 36f), L("quit_game"), quitBtnStyle))
             {
@@ -122,6 +140,7 @@ namespace SupKonQuest
 #endif
             }
             GUI.color = Color.white;
+            GUI.matrix = oldMatrix;
         }
 
         private void InitStyles()
