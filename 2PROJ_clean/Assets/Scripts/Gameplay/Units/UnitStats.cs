@@ -74,7 +74,7 @@ namespace SupKonQuest
             CreateHealthBar();
         }
 
-        public void TakeDamage(int amount)
+public void TakeDamage(int amount)
         {
             ApplyDamage(ComputeReceivedDamage(amount));
         }

@@ -218,7 +218,7 @@ namespace SupKonQuest
                 if (unit != null)
                 {
                     UnitStats stats = unit.GetComponent<UnitStats>();
-                    if (stats != null && stats.ownerId == localPlayerId)
+                    if (stats != null && stats.ownerId == localPlayerId && !unit.IsLocked)
                     {
                         if (!Input.GetKey(KeyCode.LeftShift)) ClearSelection();
                         SelectUnit(unit);
@@ -284,7 +284,7 @@ namespace SupKonQuest
             foreach (UnitMovement unit in allUnits)
             {
                 UnitStats stats = unit.GetComponent<UnitStats>();
-                if (stats == null || stats.ownerId != localPlayerId) continue;
+                if (stats == null || stats.ownerId != localPlayerId || unit.IsLocked) continue;
                 Vector3 screenPos = mainCamera.WorldToScreenPoint(unit.transform.position);
                 if (screenPos.z > 0f && selectionRect.Contains(new Vector2(screenPos.x, screenPos.y)))
                     SelectUnit(unit);
