@@ -94,10 +94,16 @@ namespace SupKonQuest
             sunkNotifTimer  = SunkNotifDuration;
         }
 
+        public static float HudScale => PlayerPrefs.GetFloat("HUDScale", 1f);
+
         private void OnGUI()
         {
             if (gameManager == null) return;
             InitStyles();
+
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float s = HudScale;
+            GUIUtility.ScaleAroundPivot(new Vector2(s, s), Vector2.zero);
 
             DrawTopBar();
             DrawLeaderboard();
@@ -110,6 +116,8 @@ namespace SupKonQuest
 
             if (showEndScreen)
                 DrawEndScreen();
+
+            GUI.matrix = oldMatrix;
         }
 
         private void DrawAttackModeIndicator()
