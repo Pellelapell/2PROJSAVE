@@ -233,8 +233,8 @@ namespace SupKonQuest
                 GUI.color = owner != null ? owner.playerColor : new Color(0.6f, 0.6f, 0.6f);
 
                 string label = owner != null
-                    ? $"{region.GetDisplayName()} → {owner.playerName} (+{region.GetBonusGold()}g)"
-                    : $"{region.GetDisplayName()} — {L("hud_region_free")}";
+                    ? $"{region.GetDisplayName()} â†’ {owner.playerName} (+{region.GetBonusGold()}g)"
+                    : $"{region.GetDisplayName()} â€” {L("hud_region_free")}";
 
                 GUI.Label(new Rect(x, y, w, lineH), label, regionStyle);
                 GUI.color = prev;
@@ -258,7 +258,7 @@ namespace SupKonQuest
             PlayerData owner = GameManager.Instance?.GetPlayerById(u.ownerId);
             Color prev = GUI.color;
             GUI.color = owner != null ? owner.playerColor : Color.white;
-            GUI.Label(new Rect(x, y, w, 22f), $"{UnitDefaults.GetName(u.unitType)}  —  {(owner != null ? owner.playerName : L("hud_neutral"))}", titleStyle);
+            GUI.Label(new Rect(x, y, w, 22f), $"{UnitDefaults.GetName(u.unitType)}  â€”  {(owner != null ? owner.playerName : L("hud_neutral"))}", titleStyle);
             GUI.color = prev;
             y += 24f;
 
@@ -331,9 +331,9 @@ namespace SupKonQuest
                 y += 5f;
 
                 GUI.color = new Color(0.6f, 0.85f, 1f);
-                GUI.Label(new Rect(x, y, w * 0.5f, 17f), "  Clic droit → Déplacer", rowStyle);
+                GUI.Label(new Rect(x, y, w * 0.5f, 17f), "  Clic droit â†’ DÃ©placer", rowStyle);
                 GUI.color = new Color(1f, 0.75f, 0.3f);
-                GUI.Label(new Rect(x + w * 0.5f, y, w * 0.5f, 17f), $"[{L("tuto_k_attack_key")}] → Mode attaque", rowStyle);
+                GUI.Label(new Rect(x + w * 0.5f, y, w * 0.5f, 17f), $"[{L("tuto_k_attack_key")}] â†’ Mode attaque", rowStyle);
                 GUI.color = Color.white;
                 y += 17f;
             }
@@ -422,7 +422,7 @@ namespace SupKonQuest
             GUI.color = new Color(0f, 0f, 0f, 0.75f * alpha);
             GUI.DrawTexture(new Rect(x - 8, y - 8, w + 16, h + 16), Texture2D.whiteTexture);
             GUI.color = new Color(1f, 0.3f, 0.3f, alpha);
-            GUI.Label(new Rect(x, y, w, 26f), $"⚓ {L("transport_sunk")}", sunkStyle ?? titleStyle);
+            GUI.Label(new Rect(x, y, w, 26f), $"âš“ {L("transport_sunk")}", sunkStyle ?? titleStyle);
             y += 28f;
 
             GUI.color = new Color(1f, 0.85f, 0.85f, alpha);
@@ -431,7 +431,7 @@ namespace SupKonQuest
 
             foreach (string name in sunkPassengers)
             {
-                GUI.Label(new Rect(x + 10f, y, w, lineH), $"• {name}", rowStyle);
+                GUI.Label(new Rect(x + 10f, y, w, lineH), $"â€¢ {name}", rowStyle);
                 y += lineH;
             }
             GUI.color = Color.white;
@@ -464,7 +464,7 @@ namespace SupKonQuest
                 alignment = TextAnchor.MiddleCenter,
                 normal    = { textColor = new Color(1f, 1f, 1f, 0.6f) }
             };
-            GUI.Label(new Rect(x, y + h, w, 28f), "— Cliquez pour revenir au menu —", hint);
+            GUI.Label(new Rect(x, y + h, w, 28f), "â€” Cliquez pour revenir au menu â€”", hint);
         }
 
         private static string L(string key) => LocalizationManager.Get(key);

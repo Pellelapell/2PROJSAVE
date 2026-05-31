@@ -14,8 +14,6 @@ namespace SupKonQuest
         private Camp           currentCampTarget;
         private BuildingHealth currentBuildingTarget;
 
-        // Une fois la portée atteinte, l'unité s'arrête et ne relance plus de déplacement.
-        // Seul un ClearTargets() (clic droit) réinitialise ce flag.
         private bool hasReachedRange;
 
         public bool IsAttacking { get; private set; }
@@ -31,6 +29,7 @@ namespace SupKonQuest
         private void Update()
         {
             if (stats == null) return;
+            if (stats.attackDamage <= 0) { IsAttacking = false; return; }
 
             attackCooldown -= Time.deltaTime;
             IsAttacking = false;
@@ -41,22 +40,26 @@ namespace SupKonQuest
                 HandleUnitTarget();
                 return;
             }
-
             if (currentCampTarget != null)
             {
                 if (!IsEnemyCamp(currentCampTarget)) { currentCampTarget = null; return; }
                 HandleCampTarget();
                 return;
             }
-
             if (currentBuildingTarget != null)
             {
                 if (currentBuildingTarget.currentHP <= 0) { currentBuildingTarget = null; return; }
                 HandleBuildingTarget();
+                return;
             }
+
+            UnitMovement mov = GetComponent<UnitMovement>();
+            if (mov != null && mov.HasPlayerMoveOrder) return;
+
+            UnitStats autoEnemy = FindClosestEnemyInRange(stats.detectRange);
+            if (autoEnemy != null) HandleAutoAttack(autoEnemy);
         }
 
-        // ── Commandes publiques ──────────────────────────────────────────────────
 
         public void SetUnitTarget(UnitStats target)
         {
@@ -90,15 +93,15 @@ namespace SupKonQuest
             hasReachedRange       = false;
         }
 
-        // Appelé quand l'unité reçoit un coup : contre-attaque si pas de cible en cours.
         public void TriggerCounterAttack(UnitStats attacker)
         {
             if (attacker == null || attacker.currentHealth <= 0) return;
-            if (currentUnitTarget != null) return; // déjà une cible, on ne change pas
+            if (currentUnitTarget != null) return;
+            UnitMovement mov = GetComponent<UnitMovement>();
+            if (mov != null) mov.Stop();
             SetUnitTarget(attacker);
         }
 
-        // ── Logique de combat ────────────────────────────────────────────────────
 
         private void HandleUnitTarget()
         {
@@ -118,23 +121,20 @@ namespace SupKonQuest
             }
             else if (!hasReachedRange && agent != null && agent.isOnNavMesh)
             {
-                // Pas encore atteint la portée : on approche sans dépasser la range
                 agent.stoppingDistance = stats.attackRange * 0.9f;
                 agent.isStopped = false;
                 if (Vector3.Distance(agent.destination, currentUnitTarget.transform.position) > 0.5f)
                     agent.SetDestination(currentUnitTarget.transform.position);
             }
-            // hasReachedRange = true et cible hors portée → l'unité reste sur place
         }
+
 
         private void HandleCampTarget()
         {
-            bool playerMoving = GetComponent<UnitMovement>()?.HasPlayerMoveOrder ?? false;
             float dist = Vector3.Distance(transform.position, currentCampTarget.transform.position);
-
             if (dist <= stats.attackRange)
             {
-                if (!playerMoving) StopMoving();
+                StopMoving();
                 FaceTarget(currentCampTarget.transform);
                 IsAttacking = true;
                 if (attackCooldown <= 0f)
@@ -143,16 +143,16 @@ namespace SupKonQuest
                     currentCampTarget.TakeDamage(Mathf.RoundToInt(stats.attackDamage * RegionMultiplier()), stats);
                 }
             }
-            else if (!playerMoving)
+            else
             {
                 MoveAgent(currentCampTarget.transform.position);
             }
         }
 
+
         private void HandleBuildingTarget()
         {
             float dist = Vector3.Distance(transform.position, currentBuildingTarget.transform.position);
-
             if (dist <= stats.attackRange)
             {
                 StopMoving();
@@ -169,6 +169,45 @@ namespace SupKonQuest
                 MoveAgent(currentBuildingTarget.transform.position);
             }
         }
+
+
+        private void HandleAutoAttack(UnitStats target)
+        {
+            float dist = Vector3.Distance(transform.position, target.transform.position);
+            if (dist <= stats.attackRange)
+            {
+                StopMoving();
+                FaceTarget(target.transform);
+                IsAttacking = true;
+                if (attackCooldown <= 0f)
+                {
+                    attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+                    PerformAttackOnUnit(target);
+                }
+            }
+            else
+            {
+                MoveAgent(target.transform.position);
+            }
+        }
+
+        private UnitStats FindClosestEnemyInRange(float range)
+        {
+            Collider[] hits = Physics.OverlapSphere(transform.position, range);
+            UnitStats closest = null;
+            float closestDist = float.MaxValue;
+            foreach (Collider c in hits)
+            {
+                UnitStats other = c.GetComponentInParent<UnitStats>();
+                if (other == null || other == stats) continue;
+                if (other.ownerId == stats.ownerId || other.ownerId == GameConstants.NEUTRAL_ID) continue;
+                if (other.currentHealth <= 0) continue;
+                float d = Vector3.Distance(transform.position, other.transform.position);
+                if (d < closestDist) { closestDist = d; closest = other; }
+            }
+            return closest;
+        }
+
 
         private void PerformAttackOnUnit(UnitStats target)
         {
@@ -196,7 +235,6 @@ namespace SupKonQuest
             }
         }
 
-        // ── Utilitaires ─────────────────────────────────────────────────────────
 
         private bool IsEnemyCamp(Camp camp)
         {
@@ -241,6 +279,8 @@ namespace SupKonQuest
             if (stats == null) return;
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, stats.attackRange);
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, stats.detectRange);
         }
     }
 }

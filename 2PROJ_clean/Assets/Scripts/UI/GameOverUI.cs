@@ -50,7 +50,7 @@ namespace SupKonQuest
 
             GUI.Box(new Rect(x - 10, y - 10, w + 20, h + 20), "", overlayStyle);
 
-            string headline = localPlayerWon ? "Victoire !" : "Défaite !";
+            string headline = localPlayerWon ? "Victoire !" : "DÃ©faite !";
             GUI.color = localPlayerWon ? Color.yellow : new Color(1f, 0.4f, 0.4f);
             GUI.Label(new Rect(x, y, w, 70f), headline, titleStyle);
             GUI.color = Color.white;

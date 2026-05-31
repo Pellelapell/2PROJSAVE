@@ -47,7 +47,7 @@ namespace SupKonQuest
 
             if (corners == null)
             {
-                Debug.LogWarning("[GameManager] CornerCamps null — aucun camp assigné.");
+                Debug.LogWarning("[GameManager] CornerCamps null â€” aucun camp assignÃ©.");
                 return;
             }
 
@@ -60,7 +60,7 @@ namespace SupKonQuest
                 foreach (Camp camp in corners[i])
                     camp.SetOwner(activePlayers[i]);
 
-                Debug.Log($"[GameManager] {activePlayers[i].playerName} → {corners[i].Count} camp(s) coin {i}.");
+                Debug.Log($"[GameManager] {activePlayers[i].playerName} â†’ {corners[i].Count} camp(s) coin {i}.");
             }
         }
 

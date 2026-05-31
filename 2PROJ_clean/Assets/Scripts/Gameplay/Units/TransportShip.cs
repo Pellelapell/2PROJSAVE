@@ -12,7 +12,7 @@ namespace SupKonQuest
         public int capacity = 6;
 
         [Header("Auto-embark")]
-        [Tooltip("Rayon de détection pour l'embarquement automatique (m)")]
+        [Tooltip("Rayon de dÃ©tection pour l'embarquement automatique (m)")]
         public float autoEmbarkRadius = 1.8f;
 
         public static event System.Action<List<string>> OnShipSunkWithPassengers;

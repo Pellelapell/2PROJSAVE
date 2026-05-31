@@ -163,7 +163,6 @@ namespace SupKonQuest
         {
             if (!pendingType.HasValue || trackedUnit == null || BuildingManager.Instance == null) return false;
 
-            // Si ce builder a déjà un chantier, on l'annule
             for (int i = activeSites.Count - 1; i >= 0; i--)
             {
                 if (activeSites[i].builder != trackedUnit) continue;

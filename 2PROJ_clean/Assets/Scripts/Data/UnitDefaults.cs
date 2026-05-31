@@ -27,7 +27,7 @@ namespace SupKonQuest
             [UnitType.AntiArmor] = new Def { hp=55,  damage=18, price=75,  attackSpeed=0.55f, range=3.5f, moveSpeed=3.0f, buildTime=5f,  damageType=DamageType.Piercing, displayName="Anti-Armure" },
             [UnitType.Mortar]    = new Def { hp=55,  damage=30, price=100, attackSpeed=0.30f, range=8.0f, moveSpeed=2.0f, buildTime=7f,  damageType=DamageType.Siege,    isAOE=true, aoeRadius=2.5f, aoeFalloff=0.5f, displayName="Mortier" },
             [UnitType.Transport] = new Def { hp=100, damage=0,  price=90,  attackSpeed=0f,    range=0f,   moveSpeed=3.5f, buildTime=10f, damageType=DamageType.Physical, displayName="Transport" },
-            [UnitType.Frigate]   = new Def { hp=110, damage=18, price=110, attackSpeed=0.80f, range=5.0f, moveSpeed=3.0f, buildTime=9f,  damageType=DamageType.Physical, displayName="Frégate" },
+            [UnitType.Frigate]   = new Def { hp=110, damage=18, price=110, attackSpeed=0.80f, range=5.0f, moveSpeed=3.0f, buildTime=9f,  damageType=DamageType.Physical, displayName="FrÃ©gate" },
             [UnitType.Destroyer] = new Def { hp=200, damage=28, price=150, attackSpeed=0.65f, range=6.0f, moveSpeed=3.5f, buildTime=14f, damageType=DamageType.Physical, displayName="Destroyer" },
         };
 

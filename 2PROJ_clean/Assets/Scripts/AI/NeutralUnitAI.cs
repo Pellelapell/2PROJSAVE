@@ -11,11 +11,11 @@ namespace SupKonQuest
         public LayerMask unitLayerMask;
 
         [Header("Animation (optionnel)")]
-        [Tooltip("Contrôleur d'animation à utiliser. Laissez vide pour prendre celui du Démon Lourd automatiquement.")]
+        [Tooltip("ContrÃ´leur d'animation Ã  utiliser. Laissez vide pour prendre celui du DÃ©mon Lourd automatiquement.")]
         public RuntimeAnimatorController fallbackController;
 
-        [Header("Défense")]
-        [Tooltip("Distance max depuis la position d'origine (leash). 0 = automatique (3× attackRange)")]
+        [Header("DÃ©fense")]
+        [Tooltip("Distance max depuis la position d'origine (leash). 0 = automatique (3Ã— attackRange)")]
         public float leashRange = 0f;
 
         private UnitStats stats;
@@ -69,7 +69,7 @@ namespace SupKonQuest
                 guardedCamp = FindNearestNeutralCamp();
 
             if (guardedCamp == null)
-                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvé !", this);
+                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvÃ© !", this);
 
             StartCoroutine(FindAnimatorNextFrame());
         }
@@ -82,9 +82,9 @@ namespace SupKonQuest
             RuntimeAnimatorController ctrl = GetFallbackController();
             if (ctrl == null)
             {
-                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun animator controller trouvé. " +
+                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun animator controller trouvÃ©. " +
                     "Assignez 'Fallback Controller' dans l'Inspector ou configurez animatorController " +
-                    "dans RaceDefinition Démon > Heavy.", this);
+                    "dans RaceDefinition DÃ©mon > Heavy.", this);
                 yield break;
             }
 
@@ -93,7 +93,6 @@ namespace SupKonQuest
                 animator = gameObject.AddComponent<Animator>();
                 animator.applyRootMotion = false;
             }
-            // Toujours forcer le controller (le prefab peut en avoir un mauvais)
             animator.runtimeAnimatorController = ctrl;
         }
 
@@ -126,7 +125,7 @@ namespace SupKonQuest
             agent.speed                  = speed;
             agent.angularSpeed           = 360f;
             agent.stoppingDistance       = stats != null ? stats.attackRange * 0.85f : 0.5f;
-            agent.radius                 = 0.3f;   // petit rayon pour ne pas bloquer les attaquants
+            agent.radius                 = 0.3f;
             agent.obstacleAvoidanceType  = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
 
             initialized = true;

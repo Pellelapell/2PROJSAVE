@@ -2,8 +2,6 @@ namespace SupKonQuest
 {
     public static class GameConstants
     {
-        // ownerId réservé aux unités neutres (gardes de camp).
-        // 0 est utilisé par les unités d'un joueur éliminé — ne pas confondre les deux.
         public const int NEUTRAL_ID = 99;
     }
 

@@ -7,7 +7,7 @@ namespace SupKonQuest
     {
         public RegionData data;
 
-        [Header("Zone géographique (world space)")]
+        [Header("Zone gÃ©ographique (world space)")]
         public Vector3 center = Vector3.zero;
         public Vector3 size = new Vector3(10f, 100f, 10f);
 

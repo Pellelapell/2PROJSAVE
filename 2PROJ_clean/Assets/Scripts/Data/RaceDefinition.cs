@@ -16,7 +16,7 @@ public class RaceDefinition : ScriptableObject
         public Material  material;
         public RuntimeAnimatorController animatorController;
         public GameObject modelPrefab;
-        [Tooltip("Échelle du modèle (1 = normal). Ajustez pour corriger la taille des meshes importés.")]
+        [Tooltip("Ã‰chelle du modÃ¨le (1 = normal). Ajustez pour corriger la taille des meshes importÃ©s.")]
         public Vector3 modelScale;
 
         public Vector3 GetScale() => modelScale == Vector3.zero ? Vector3.one : modelScale;

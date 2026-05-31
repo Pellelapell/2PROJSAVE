@@ -17,7 +17,7 @@ namespace SupKonQuest
         public Camp camp;
         public UnitDatabase unitDatabase;
 
-        [Header("Unités disponibles")]
+        [Header("UnitÃ©s disponibles")]
         public List<UnitProductionEntry> availableUnits = new List<UnitProductionEntry>();
 
         private class QueueEntry
@@ -130,6 +130,7 @@ namespace SupKonQuest
                            entry.type == UnitType.Destroyer;
 
             spawnPos = FindValidSpawnPosition(spawnPos, isNaval);
+            if (isNaval) spawnPos.y = 3f;
 
             int waterIdx = NavMesh.GetAreaFromName("Water");
             int snapMask = isNaval
@@ -157,21 +158,17 @@ namespace SupKonQuest
 
             if (isNaval)
             {
-                // Root intact (scale 1, rotation 0) → collider et NavMesh non affectés
-                // Seul le mesh enfant est scalé et orienté
                 Transform model = FindVisualModel(unitObj.transform);
                 if (model != null)
                 {
-                    // Supprimer les colliders du mesh enfant (évite double détection)
                     foreach (Collider c in model.GetComponentsInChildren<Collider>())
                         Destroy(c);
 
                     model.localScale    = Vector3.one * 190f;
-                    model.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                    model.localRotation = Quaternion.Euler(-90f, 270f, 0f);
                 }
 
-                // Scaler le collider de la racine pour correspondre à la taille visuelle
-                ScaleUpRootColliders(unitObj, 190f);
+                ScaleDownRootColliders(unitObj, 190f);
             }
 
             if (stats != null && stats.hasActivable && unitObj.GetComponent<UnitSpell>() == null)
@@ -230,7 +227,6 @@ namespace SupKonQuest
             return null;
         }
 
-        // Trouve le premier enfant visuel (mesh du modèle), ignore les helpers Unity
         private static Transform FindVisualModel(Transform root)
         {
             Transform named = root.Find("Model");
@@ -243,14 +239,23 @@ namespace SupKonQuest
             return null;
         }
 
-        // Scale les colliders de la RACINE uniquement (pas les enfants)
         private static void ScaleUpRootColliders(GameObject obj, float factor)
         {
             foreach (Collider col in obj.GetComponents<Collider>())
             {
-                if (col is BoxCollider bc)      { bc.size *= factor; bc.center *= factor; }
-                else if (col is SphereCollider sc) sc.radius *= factor;
-                else if (col is CapsuleCollider cc){ cc.radius *= factor; cc.height *= factor; }
+                if (col is BoxCollider bc)         { bc.size *= factor; bc.center *= factor; }
+                else if (col is SphereCollider sc)   sc.radius *= factor;
+                else if (col is CapsuleCollider cc) { cc.radius *= factor; cc.height *= factor; }
+            }
+        }
+
+        private static void ScaleDownRootColliders(GameObject obj, float factor)
+        {
+            foreach (Collider col in obj.GetComponents<Collider>())
+            {
+                if (col is BoxCollider bc)         { bc.size /= factor; bc.center /= factor; }
+                else if (col is SphereCollider sc)   sc.radius /= factor;
+                else if (col is CapsuleCollider cc) { cc.radius /= factor; cc.height /= factor; }
             }
         }
 
