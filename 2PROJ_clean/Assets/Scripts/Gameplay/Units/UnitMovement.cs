@@ -75,6 +75,9 @@ namespace SupKonQuest
             UnitStats us = GetComponent<UnitStats>();
             if (us != null && GameManager.Instance != null && us.ownerId == GameManager.Instance.localPlayerId)
                 CreateUnitRing();
+
+            if (selectionCircle != null && IsNavalUnit())
+                selectionCircle.transform.localPosition = new Vector3(0f, -1f, 0f);
         }
 
         private void Update()

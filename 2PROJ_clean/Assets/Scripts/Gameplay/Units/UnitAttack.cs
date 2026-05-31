@@ -54,7 +54,7 @@ namespace SupKonQuest
             }
 
             UnitMovement mov = GetComponent<UnitMovement>();
-            if (mov != null && mov.HasPlayerMoveOrder) return;
+            if (mov != null && (mov.HasPlayerMoveOrder || mov.IsLocked)) return;
 
             UnitStats autoEnemy = FindClosestEnemyInRange(stats.detectRange);
             if (autoEnemy != null) HandleAutoAttack(autoEnemy);
@@ -98,6 +98,7 @@ namespace SupKonQuest
             if (attacker == null || attacker.currentHealth <= 0) return;
             if (currentUnitTarget != null) return;
             UnitMovement mov = GetComponent<UnitMovement>();
+            if (mov != null && (mov.HasPlayerMoveOrder || mov.IsLocked)) return;
             if (mov != null) mov.Stop();
             SetUnitTarget(attacker);
         }
