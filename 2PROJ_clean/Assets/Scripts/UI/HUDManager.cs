@@ -248,8 +248,8 @@ namespace SupKonQuest
             if (u == null || u.currentHealth <= 0) return;
 
             bool isLocalUnit = u.ownerId == (InputManager.Instance?.localPlayerId ?? -1);
-            const float w = 260f;
-            float h = isLocalUnit ? 224f : 188f;
+            const float w = 320f;
+            float h = isLocalUnit ? 240f : 200f;
             float x = (Screen.width - w) * 0.5f;
             float y = Screen.height - h - 10f;
 

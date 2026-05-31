@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SupKonQuest
@@ -6,14 +7,18 @@ namespace SupKonQuest
     {
         public static BuilderHUD Instance { get; private set; }
 
-        private UnitStats trackedUnit;
+        private UnitStats    trackedUnit;
         private BuildingType? pendingType;
-        private bool justActivated;
+        private bool          justActivated;
 
-        private UnitStats builderUnit;
-        private HexTile   activeSiteTile;
-        private bool      builderLocked;
-        private bool      constructionStarted;
+        private class BuildSite
+        {
+            public UnitStats builder;
+            public HexTile   tile;
+            public bool      started;
+        }
+
+        private readonly List<BuildSite> activeSites = new List<BuildSite>();
 
         public bool HasPendingBuild => pendingType.HasValue && !justActivated;
 
@@ -25,9 +30,9 @@ namespace SupKonQuest
                 float mx  = Input.mousePosition.x;
                 float mgy = Screen.height - Input.mousePosition.y;
 
-                float bh = 28f + Types.Length * 58f + 8f + 12f;
+                float bh = 28f + Types.Length * 72f + 8f + 12f;
                 float by = Screen.height - bh - 10f;
-                if (new Rect(4f, by, 270f, bh).Contains(new Vector2(mx, mgy))) return true;
+                if (new Rect(4f, by, 272f, bh).Contains(new Vector2(mx, mgy))) return true;
 
                 float pw = 352f, ph = 70f;
                 float px = (Screen.width - pw) * 0.5f;
@@ -37,9 +42,10 @@ namespace SupKonQuest
         }
 
         private GUIStyle panelStyle, titleStyle, btnStyle, disabledStyle, costStyle, hintStyle;
-        private bool stylesReady;
+        private bool     stylesReady;
 
-        private static readonly BuildingType[] Types = { BuildingType.Camp, BuildingType.Sawmill, BuildingType.Port, BuildingType.Castle };
+        private static readonly BuildingType[] Types =
+            { BuildingType.Camp, BuildingType.Sawmill, BuildingType.Port, BuildingType.Castle };
 
         private static string L(string key) => LocalizationManager.Get(key);
 
@@ -81,54 +87,63 @@ namespace SupKonQuest
             if (trackedUnit != null && trackedUnit.gameObject == null)
                 Hide();
 
-            UpdateBuilderState();
+            UpdateBuilderStates();
         }
 
-        private void UpdateBuilderState()
+        private void UpdateBuilderStates()
         {
-            if (activeSiteTile == null || builderUnit == null) return;
-            if (builderUnit.gameObject == null) { CancelAndRelease(); return; }
-            if (BuildingManager.Instance == null) { CancelAndRelease(); return; }
+            if (BuildingManager.Instance == null) return;
 
-            float progress = BuildingManager.Instance.GetProgress01(activeSiteTile);
-            if (progress < 0f) { ReleaseBuilder(); return; }
-
-            // Déclenche la construction quand l'ouvrier s'immobilise sur le site
-            if (!constructionStarted)
+            for (int i = activeSites.Count - 1; i >= 0; i--)
             {
-                UnitMovement mov = builderUnit.GetComponent<UnitMovement>();
-                if (mov != null && !mov.IsMoving)
+                BuildSite site = activeSites[i];
+
+                if (site.builder == null || site.builder.gameObject == null)
                 {
-                    constructionStarted = true;
-                    BuildingManager.Instance.BeginConstruction(activeSiteTile);
+                    BuildingManager.Instance.CancelBuild(site.tile);
+                    activeSites.RemoveAt(i);
+                    continue;
+                }
+
+                float progress = BuildingManager.Instance.GetProgress01(site.tile);
+                if (progress < 0f)
+                {
+                    ReleaseSite(site);
+                    activeSites.RemoveAt(i);
+                    continue;
+                }
+
+                if (!site.started)
+                {
+                    UnitMovement mov = site.builder.GetComponent<UnitMovement>();
+                    if (mov != null && !mov.IsMoving)
+                    {
+                        site.started = true;
+                        BuildingManager.Instance.BeginConstruction(site.tile);
+                    }
                 }
             }
         }
 
-        private void ReleaseBuilder()
+        public void NotifyBuildComplete(HexTile tile)
         {
-            if (builderUnit != null)
+            for (int i = activeSites.Count - 1; i >= 0; i--)
             {
-                UnitMovement mov = builderUnit.GetComponent<UnitMovement>();
-                if (mov != null) mov.IsLocked = false;
+                if (activeSites[i].tile != tile) continue;
+                ReleaseSite(activeSites[i]);
+                activeSites.RemoveAt(i);
+                return;
             }
-            builderUnit          = null;
-            activeSiteTile       = null;
-            builderLocked        = false;
-            constructionStarted  = false;
         }
 
-        private void CancelAndRelease()
+        private void ReleaseSite(BuildSite site)
         {
-            if (activeSiteTile != null)
-                BuildingManager.Instance?.CancelBuild(activeSiteTile);
-            ReleaseBuilder();
+            if (site.builder == null) return;
+            UnitMovement mov = site.builder.GetComponent<UnitMovement>();
+            if (mov != null) mov.IsLocked = false;
         }
 
-        private void LateUpdate()
-        {
-            justActivated = false;
-        }
+        private void LateUpdate() => justActivated = false;
 
         public void ShowForUnit(UnitStats stats)
         {
@@ -148,11 +163,14 @@ namespace SupKonQuest
         {
             if (!pendingType.HasValue || trackedUnit == null || BuildingManager.Instance == null) return false;
 
-            // Si ce même constructeur était déjà en train de construire, annuler l'ancien chantier
-            if (activeSiteTile != null && builderUnit == trackedUnit)
+            // Si ce builder a déjà un chantier, on l'annule
+            for (int i = activeSites.Count - 1; i >= 0; i--)
             {
-                BuildingManager.Instance.CancelBuild(activeSiteTile);
-                ReleaseBuilder();
+                if (activeSites[i].builder != trackedUnit) continue;
+                BuildingManager.Instance.CancelBuild(activeSites[i].tile);
+                ReleaseSite(activeSites[i]);
+                activeSites.RemoveAt(i);
+                break;
             }
 
             PlayerData owner = GameManager.Instance?.GetPlayerById(trackedUnit.ownerId);
@@ -167,18 +185,15 @@ namespace SupKonQuest
                     mov.MoveToForced(tile.transform.position);
                     mov.IsLocked = true;
                 }
-                builderUnit         = trackedUnit;
-                activeSiteTile      = tile;
-                builderLocked       = true;
-                constructionStarted = false;
-                pendingType         = null;
+                activeSites.Add(new BuildSite { builder = trackedUnit, tile = tile, started = false });
+                pendingType = null;
             }
             return built;
         }
 
         private void OnGUI()
         {
-            DrawConstructionProgress();
+            DrawAllProgressBars();
 
             if (trackedUnit == null || BuildingManager.Instance == null) return;
             InitStyles();
@@ -191,35 +206,37 @@ namespace SupKonQuest
             DrawBuildPanel(owner);
         }
 
-        private void DrawConstructionProgress()
+        private void DrawAllProgressBars()
         {
-            if (activeSiteTile == null || builderUnit == null || BuildingManager.Instance == null) return;
-            if (builderUnit.gameObject == null) return;
-
-            float progress = BuildingManager.Instance.GetProgress01(activeSiteTile);
-            if (progress < 0f) return;
-
+            if (BuildingManager.Instance == null) return;
             Camera cam = Camera.main;
             if (cam == null) return;
 
-            Vector3 sp = cam.WorldToScreenPoint(builderUnit.transform.position + Vector3.up * 2.5f);
-            if (sp.z < 0f) return;
+            foreach (BuildSite site in activeSites)
+            {
+                if (site.builder == null) continue;
+                float progress = BuildingManager.Instance.GetProgress01(site.tile);
+                if (progress < 0f) continue;
 
-            const float bw = 80f, bh = 10f;
-            float bx = sp.x - bw * 0.5f;
-            float by = Screen.height - sp.y - bh - 4f;
+                Vector3 sp = cam.WorldToScreenPoint(site.builder.transform.position + Vector3.up * 2.5f);
+                if (sp.z < 0f) continue;
 
-            GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-            GUI.DrawTexture(new Rect(bx, by, bw, bh), Texture2D.whiteTexture);
-            GUI.color = new Color(1f, 0.55f, 0f);
-            GUI.DrawTexture(new Rect(bx, by, bw * progress, bh), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+                const float bw = 80f, bh = 10f;
+                float bx = sp.x - bw * 0.5f;
+                float by = Screen.height - sp.y - bh - 4f;
+
+                GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+                GUI.DrawTexture(new Rect(bx, by, bw, bh), Texture2D.whiteTexture);
+                GUI.color = new Color(1f, 0.55f, 0f);
+                GUI.DrawTexture(new Rect(bx, by, bw * progress, bh), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+            }
         }
 
         private void DrawBuildPanel(PlayerData owner)
         {
-            const float w     = 280f;
-            const float lineH = 58f;
+            const float w     = 260f;
+            const float lineH = 72f;
             float h = 28f + Types.Length * lineH + 8f;
             float x = 10f;
             float y = Screen.height - h - 10f;
@@ -227,6 +244,8 @@ namespace SupKonQuest
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.Label(new Rect(x + 4, y, w, 24f), L("builder_title"), titleStyle);
             y += 28f;
+
+            GUIStyle descStyle = new GUIStyle(costStyle) { wordWrap = true };
 
             for (int i = 0; i < Types.Length; i++)
             {
@@ -238,16 +257,16 @@ namespace SupKonQuest
                 GUI.Box(new Rect(x, y, w, lineH - 4f), GUIContent.none, panelStyle);
 
                 GUI.color = canBuild ? Color.white : new Color(1f, 1f, 1f, 0.4f);
-                GUI.Label(new Rect(x + 6, y + 2f,  w - 70f, 18f), GetBuildingName(i), titleStyle);
-                GUI.Label(new Rect(x + 6, y + 19f, w - 70f, 14f), GetBuildingDesc(i), costStyle);
+                GUI.Label(new Rect(x + 6, y + 4f,  w - 68f, 20f), GetBuildingName(i), titleStyle);
+                GUI.Label(new Rect(x + 6, y + 24f, w - 68f, 16f), GetBuildingDesc(i), descStyle);
 
                 GUI.color = new Color(1f, 0.85f, 0.2f);
-                GUI.Label(new Rect(x + 6, y + 33f, w - 70f, 14f), $"{gold}g  {wood}b", costStyle);
+                GUI.Label(new Rect(x + 6, y + 40f, w - 68f, 16f), $"{gold}g  {wood}b", costStyle);
                 GUI.color = Color.white;
 
                 if (canBuild)
                 {
-                    if (GUI.Button(new Rect(x + w - 66f, y + 15f, 60f, 26f), L("builder_place"), btnStyle))
+                    if (GUI.Button(new Rect(x + w - 62f, y + 20f, 56f, 28f), L("builder_place"), btnStyle))
                     {
                         pendingType   = type;
                         justActivated = true;
@@ -255,10 +274,11 @@ namespace SupKonQuest
                 }
                 else
                 {
-                    GUIStyle reasonStyle = new GUIStyle(costStyle) { normal = { textColor = new Color(1f, 0.4f, 0.4f) }, wordWrap = true };
-                    GUI.Label(new Rect(x + 6, y + 43f, w - 12f, 14f), blockReason, reasonStyle);
+                    GUIStyle reasonStyle = new GUIStyle(costStyle)
+                        { normal = { textColor = new Color(1f, 0.4f, 0.4f) }, wordWrap = true };
+                    GUI.Label(new Rect(x + 6, y + 54f, w - 12f, 16f), blockReason, reasonStyle);
                     GUI.color = new Color(1f, 1f, 1f, 0.3f);
-                    GUI.Box(new Rect(x + w - 66f, y + 15f, 60f, 26f), L("builder_lack"), disabledStyle);
+                    GUI.Box(new Rect(x + w - 62f, y + 20f, 56f, 28f), L("builder_lack"), disabledStyle);
                     GUI.color = Color.white;
                 }
 

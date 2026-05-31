@@ -57,8 +57,10 @@ namespace SupKonQuest
                 queue[i].timeLeft -= Time.deltaTime;
                 if (queue[i].timeLeft <= 0f)
                 {
+                    HexTile completedTile = queue[i].tile;
                     Complete(queue[i]);
                     queue.RemoveAt(i);
+                    BuilderHUD.Instance?.NotifyBuildComplete(completedTile);
                 }
             }
         }

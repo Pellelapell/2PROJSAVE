@@ -1,147 +1,214 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
 namespace SupKonQuest
 {
     public class CampUIManager : MonoBehaviour
     {
-        [Header("Panel")]
-        public GameObject panel;
-        public TMP_Text titleText;
+        // Ancien panel Canvas — désactivé au démarrage, tout est rendu via OnGUI
+        [Header("Legacy Canvas (peut être supprimé de la scène)")]
+        [SerializeField] private GameObject panel;
 
-        [Header("Production Info")]
-        public TMP_Text currentUnitText;
-        public TMP_Text queueText;
-        public Image progressBarFill;
-
-        [Header("Database")]
-        public UnitDatabase unitDatabase;
-
-        [Header("Buttons – Camp")]
-        public Button infantryButton;
-        public Button supportButton;
-        public Button healButton;
-        public Button rangeButton;
-        public Button heavyButton;
-        public Button antiArmorButton;
-        public Button mortarButton;
-
-        [Header("Buttons – Port")]
-        public Button transportButton;
-        public Button frigateButton;
-        public Button destroyerButton;
-
-        [Header("Spawn Point")]
-        public Button spawnPointButton;
-
-        private Camp selectedCamp;
+        private Camp           selectedCamp;
         private CampProduction selectedProduction;
-        private bool isPickingSpawnPoint;
+        private bool           isVisible;
+        private bool           _isPickingSpawnPoint;
 
-        public bool IsPickingSpawnPoint => isPickingSpawnPoint;
+        public bool IsPickingSpawnPoint => _isPickingSpawnPoint;
 
-        private GUIStyle hintStyle;
-        private GUIStyle panelStyle;
+        private GUIStyle panelStyle, titleStyle, btnStyle, disabledStyle, costStyle, hintStyle;
+        private bool     stylesReady;
 
-        private void Start()
+        private static readonly UnitType[] NormalUnits  = { UnitType.Infantry, UnitType.Range, UnitType.Support };
+        private static readonly UnitType[] SpecialUnits = { UnitType.AntiArmor, UnitType.Mortar, UnitType.Support };
+        private static readonly UnitType[] PortUnits    = { UnitType.Transport, UnitType.Frigate, UnitType.Destroyer };
+        private static readonly UnitType[] CastleUnits  = { UnitType.AntiArmor, UnitType.Mortar, UnitType.Heal, UnitType.Heavy };
+
+        private void Awake()
         {
-            HideUI();
-
-            BindButton(infantryButton,  UnitType.Infantry);
-            BindButton(supportButton,   UnitType.Support);
-            BindButton(healButton,      UnitType.Heal);
-            BindButton(rangeButton,     UnitType.Range);
-            BindButton(heavyButton,     UnitType.Heavy);
-            BindButton(antiArmorButton, UnitType.AntiArmor);
-            BindButton(mortarButton,    UnitType.Mortar);
-            BindButton(transportButton, UnitType.Transport);
-            BindButton(frigateButton,   UnitType.Frigate);
-            BindButton(destroyerButton, UnitType.Destroyer);
-
-            if (spawnPointButton != null)
-                spawnPointButton.onClick.AddListener(StartPickingSpawnPoint);
+            // Masquer l'ancienne UI Canvas sans désactiver le GameObject
+            if (panel != null) panel.SetActive(false);
+            foreach (UnityEngine.UI.Graphic g in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+                g.enabled = false;
+            foreach (Canvas c in GetComponentsInChildren<Canvas>(true))
+                c.enabled = false;
         }
 
         private void Update()
         {
-            RefreshProductionInfo();
-
-            if (isPickingSpawnPoint && Input.GetKeyDown(KeyCode.Escape))
+            if (_isPickingSpawnPoint && Input.GetKeyDown(KeyCode.Escape))
                 CancelPickingSpawnPoint();
         }
 
         public void SelectCamp(Camp camp)
         {
-            isPickingSpawnPoint = false;
-            selectedCamp = camp;
-            selectedProduction = camp != null ? camp.GetComponent<CampProduction>() : null;
-
-            if (selectedCamp == null || selectedProduction == null)
-            {
-                HideUI();
-                return;
-            }
-
-            panel.SetActive(true);
-            titleText.text = L(selectedCamp.campType == CampType.Port   ? "building_port"
-                             : selectedCamp.campType == CampType.Castle  ? "building_castle"
-                             :                                             "building_camp");
-
-            RefreshButtons();
-            RefreshProductionInfo();
+            _isPickingSpawnPoint = false;
+            selectedCamp        = camp;
+            selectedProduction  = camp != null ? camp.GetComponent<CampProduction>() : null;
+            isVisible           = selectedCamp != null && selectedProduction != null;
         }
 
         public void HideUI()
         {
-            isPickingSpawnPoint = false;
-            selectedCamp = null;
-            selectedProduction = null;
-            if (panel != null) panel.SetActive(false);
+            _isPickingSpawnPoint = false;
+            isVisible           = false;
+            selectedCamp        = null;
+            selectedProduction  = null;
         }
 
         public void StartPickingSpawnPoint()
         {
             if (selectedCamp == null) return;
-            isPickingSpawnPoint = true;
+            _isPickingSpawnPoint = true;
         }
 
-        public void CancelPickingSpawnPoint()
-        {
-            isPickingSpawnPoint = false;
-        }
+        public void CancelPickingSpawnPoint() => _isPickingSpawnPoint = false;
 
         public void ConfirmSpawnPoint(Vector3 worldPos)
         {
-            if (selectedCamp != null)
-                selectedCamp.SetSpawnPosition(worldPos);
-            isPickingSpawnPoint = false;
+            if (selectedCamp != null) selectedCamp.SetSpawnPosition(worldPos);
+            _isPickingSpawnPoint = false;
         }
 
         private void OnGUI()
         {
-            if (!isPickingSpawnPoint) return;
+            if (_isPickingSpawnPoint) { DrawPickSpawnHint(); return; }
+            if (!isVisible || selectedCamp == null || selectedProduction == null) return;
+            InitStyles();
+            DrawProductionPanel();
+        }
 
-            InitGuiStyles();
+        private void DrawProductionPanel()
+        {
+            UnitType[] units = GetUnitTypes();
 
+            const float lineH  = 70f;
+            const float w      = 270f;
+            const float infoH  = 50f;
+            float h = 28f + units.Length * lineH + 8f + infoH;
+            float x = 10f;
+            float y = Screen.height - h - 10f;
+
+            string campName = L(selectedCamp.campType == CampType.Port   ? "building_port"
+                              : selectedCamp.campType == CampType.Castle ? "building_castle"
+                              :                                            "building_camp");
+
+            GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
+            GUI.Label(new Rect(x + 4, y, w, 24f), campName, titleStyle);
+            y += 28f;
+
+            PlayerData owner = selectedCamp.owner;
+
+            for (int i = 0; i < units.Length; i++)
+            {
+                UnitType type      = units[i];
+                int      price     = UnitDefaults.GetPrice(type);
+                float    buildTime = UnitDefaults.GetBuildTime(type);
+                string   name      = UnitDefaults.GetName(type);
+                bool     canAfford = owner != null && owner.money >= price;
+
+                GUI.Box(new Rect(x, y, w, lineH - 4f), GUIContent.none, panelStyle);
+
+                GUI.color = canAfford ? Color.white : new Color(1f, 1f, 1f, 0.4f);
+                GUI.Label(new Rect(x + 6, y + 5f,  w - 72f, 20f), name, titleStyle);
+
+                GUI.color = new Color(0.65f, 0.65f, 0.65f);
+                GUI.Label(new Rect(x + 6, y + 26f, w - 72f, 16f), $"{buildTime:F0}s", costStyle);
+
+                GUI.color = new Color(1f, 0.85f, 0.2f);
+                GUI.Label(new Rect(x + 6, y + 44f, w - 72f, 16f), $"{price}g", costStyle);
+                GUI.color = Color.white;
+
+                if (canAfford)
+                {
+                    if (GUI.Button(new Rect(x + w - 66f, y + 19f, 60f, 28f), L("builder_place"), btnStyle))
+                        selectedProduction.Produce(type);
+                }
+                else
+                {
+                    GUI.color = new Color(1f, 1f, 1f, 0.3f);
+                    GUI.Box(new Rect(x + w - 66f, y + 19f, 60f, 28f), L("builder_lack"), disabledStyle);
+                    GUI.color = Color.white;
+                }
+
+                y += lineH;
+            }
+
+            // Séparateur
+            GUI.color = new Color(0.35f, 0.35f, 0.35f, 0.8f);
+            GUI.DrawTexture(new Rect(x, y + 2f, w, 1f), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            y += 8f;
+
+            // En production
+            UnitType? current = selectedProduction.CurrentType();
+            GUI.Label(new Rect(x + 4, y, w - 8f, 16f),
+                current.HasValue ? $"{L("hud_producing")} : {UnitDefaults.GetName(current.Value)}"
+                                 : L("hud_idle"),
+                costStyle);
+            y += 18f;
+
+            // Barre de progression
+            float progress = selectedProduction.GetProgress01();
+            GUI.color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
+            GUI.DrawTexture(new Rect(x, y, w, 12f), Texture2D.whiteTexture);
+            if (progress > 0f)
+            {
+                GUI.color = Color.Lerp(new Color(0.15f, 0.55f, 0.2f), new Color(0.1f, 0.9f, 0.3f), progress);
+                GUI.DrawTexture(new Rect(x, y, w * progress, 12f), Texture2D.whiteTexture);
+            }
+            GUI.color = Color.white;
+            y += 16f;
+
+            // File d'attente
+            int queue = selectedProduction.GetQueueCount();
+            GUI.color = new Color(0.65f, 0.65f, 0.65f);
+            GUI.Label(new Rect(x + 4, y, w, 16f), $"{L("hud_queue")} : {queue}", costStyle);
+            GUI.color = Color.white;
+        }
+
+        private void DrawPickSpawnHint()
+        {
+            InitStyles();
             const float w = 360f, h = 44f;
             float x = (Screen.width  - w) * 0.5f;
             float y = Screen.height - h - 10f;
 
             GUI.Box(new Rect(x - 6, y - 6, w + 12, h + 12), GUIContent.none, panelStyle);
             GUI.color = new Color(0.4f, 0.95f, 1f);
-            GUI.Label(new Rect(x + 6, y + 4f, w - 80f, 22f), LocalizationManager.Get("spawn_pick_hint"), hintStyle);
+            string hint = L("spawn_pick_hint");
+            if (string.IsNullOrEmpty(hint) || hint == "spawn_pick_hint")
+                hint = "Clic sur une tuile pour définir l'apparition";
+            GUI.Label(new Rect(x + 6, y + 4f, w - 80f, 22f), hint, hintStyle);
             GUI.color = Color.white;
-            if (GUI.Button(new Rect(x + w - 74f, y + 8f, 70f, 24f), LocalizationManager.Get("builder_cancel"), hintStyle))
+            if (GUI.Button(new Rect(x + w - 74f, y + 8f, 70f, 24f), L("builder_cancel"), hintStyle))
                 CancelPickingSpawnPoint();
         }
 
-        private void InitGuiStyles()
+        private UnitType[] GetUnitTypes()
         {
-            if (hintStyle != null) return;
-            hintStyle  = new GUIStyle(GUI.skin.label)  { fontSize = 13, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
-            panelStyle = new GUIStyle(GUI.skin.box)    { normal   = { background = MakeTex(new Color(0.05f, 0.05f, 0.12f, 0.95f)) } };
+            if (selectedCamp == null) return NormalUnits;
+            switch (selectedCamp.campType)
+            {
+                case CampType.NeutralSpecial: return SpecialUnits;
+                case CampType.Port:           return PortUnits;
+                case CampType.Castle:         return CastleUnits;
+                default:                      return NormalUnits;
+            }
         }
+
+        private void InitStyles()
+        {
+            if (stylesReady) return;
+            stylesReady   = true;
+            panelStyle    = new GUIStyle(GUI.skin.box)    { normal = { background = MakeTex(new Color(0.05f, 0.05f, 0.12f, 0.95f)) } };
+            titleStyle    = new GUIStyle(GUI.skin.label)  { fontSize = 13, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
+            btnStyle      = new GUIStyle(GUI.skin.button) { fontSize = 11, fontStyle = FontStyle.Bold };
+            disabledStyle = new GUIStyle(GUI.skin.button) { fontSize = 11, normal   = { textColor = new Color(0.5f, 0.5f, 0.5f) } };
+            costStyle     = new GUIStyle(GUI.skin.label)  { fontSize = 11, normal   = { textColor = new Color(0.75f, 0.75f, 0.75f) } };
+            hintStyle     = new GUIStyle(GUI.skin.label)  { fontSize = 13, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
+        }
+
+        private static string L(string key) => LocalizationManager.Get(key);
 
         private static Texture2D MakeTex(Color col)
         {
@@ -149,123 +216,6 @@ namespace SupKonQuest
             t.SetPixel(0, 0, col);
             t.Apply();
             return t;
-        }
-
-        private void RefreshButtons()
-        {
-            SetButtonActive(infantryButton,  false);
-            SetButtonActive(supportButton,   false);
-            SetButtonActive(healButton,      false);
-            SetButtonActive(rangeButton,     false);
-            SetButtonActive(heavyButton,     false);
-            SetButtonActive(antiArmorButton, false);
-            SetButtonActive(mortarButton,    false);
-            SetButtonActive(transportButton, false);
-            SetButtonActive(frigateButton,   false);
-            SetButtonActive(destroyerButton, false);
-            if (selectedCamp == null) return;
-
-            switch (selectedCamp.campType)
-            {
-                case CampType.Normal:
-                    SetButtonActive(infantryButton, true);
-                    SetButtonActive(rangeButton,    true);
-                    SetButtonActive(supportButton,  true);
-                    break;
-
-                case CampType.NeutralSpecial:
-                    SetButtonActive(antiArmorButton, true);
-                    SetButtonActive(mortarButton,    true);
-                    SetButtonActive(supportButton,   true);
-                    break;
-
-                case CampType.Port:
-                    SetButtonActive(transportButton, true);
-                    SetButtonActive(frigateButton,   true);
-                    SetButtonActive(destroyerButton, true);
-                    break;
-
-                case CampType.Castle:
-                    SetButtonActive(antiArmorButton, true);
-                    SetButtonActive(mortarButton,    true);
-                    SetButtonActive(healButton,      true);
-                    SetButtonActive(heavyButton,     true);
-                    break;
-            }
-        }
-
-        private void SetButtonActive(Button btn, bool active)
-        {
-            if (btn == null) return;
-            btn.gameObject.SetActive(active);
-            if (active) RefreshButtonLabel(btn);
-        }
-
-        private void RefreshButtonLabel(Button btn)
-        {
-            if (btn == null) return;
-
-            UnitType type  = GetUnitTypeFromButton(btn);
-            string name    = UnitDefaults.GetName(type);
-            int price      = UnitDefaults.GetPrice(type);
-
-            TMP_Text label = btn.GetComponentInChildren<TMP_Text>();
-            if (label != null)
-                label.text = $"{name}\n<size=70%>{price}g</size>";
-        }
-
-        private UnitType GetUnitTypeFromButton(Button btn)
-        {
-            if (btn == infantryButton)  return UnitType.Infantry;
-            if (btn == supportButton)   return UnitType.Support;
-            if (btn == healButton)      return UnitType.Heal;
-            if (btn == rangeButton)     return UnitType.Range;
-            if (btn == heavyButton)     return UnitType.Heavy;
-            if (btn == antiArmorButton) return UnitType.AntiArmor;
-            if (btn == mortarButton)    return UnitType.Mortar;
-            if (btn == transportButton) return UnitType.Transport;
-            if (btn == frigateButton)   return UnitType.Frigate;
-            if (btn == destroyerButton) return UnitType.Destroyer;
-            return UnitType.Infantry;
-        }
-
-        private static string L(string key) => LocalizationManager.Get(key);
-
-        private void RefreshProductionInfo()
-        {
-            if (selectedProduction == null)
-            {
-                if (currentUnitText  != null) currentUnitText.text  = "";
-                if (queueText        != null) queueText.text        = "";
-                if (progressBarFill  != null) progressBarFill.fillAmount = 0f;
-                return;
-            }
-
-            UnitType? currentType = selectedProduction.CurrentType();
-
-            if (currentUnitText != null)
-                currentUnitText.text = currentType.HasValue
-                    ? $"{L("hud_producing")} : {UnitDefaults.GetName(currentType.Value)}"
-                    : L("hud_idle");
-
-            if (queueText != null)
-                queueText.text = $"{L("hud_queue")} : {selectedProduction.GetQueueCount()}";
-
-            if (progressBarFill != null)
-                progressBarFill.fillAmount = selectedProduction.GetProgress01();
-        }
-
-        private void BindButton(Button btn, UnitType type)
-        {
-            if (btn == null) return;
-            btn.onClick.AddListener(() => Produce(type));
-        }
-
-        private void Produce(UnitType type)
-        {
-            if (selectedProduction == null) return;
-            selectedProduction.Produce(type);
-            RefreshProductionInfo();
         }
     }
 }
