@@ -18,7 +18,7 @@ namespace SupKonQuest
         public int maxHP = 300;
         public int currentHP = 300;
 
-        [Header("Skin neutre (assignÃ© dans l'Inspector du prefab)")]
+        [Header("Skin neutre (assigné dans l'Inspector du prefab)")]
         public Mesh neutralMesh;
         public Material neutralMaterial;
 

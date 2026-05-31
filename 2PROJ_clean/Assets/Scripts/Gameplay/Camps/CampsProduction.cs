@@ -17,7 +17,7 @@ namespace SupKonQuest
         public Camp camp;
         public UnitDatabase unitDatabase;
 
-        [Header("UnitÃ©s disponibles")]
+        [Header("Unités disponibles")]
         public List<UnitProductionEntry> availableUnits = new List<UnitProductionEntry>();
 
         private class QueueEntry

@@ -47,7 +47,7 @@ namespace SupKonQuest
 
             if (corners == null)
             {
-                Debug.LogWarning("[GameManager] CornerCamps null â€” aucun camp assignÃ©.");
+                Debug.LogWarning("[GameManager] CornerCamps null — aucun camp assigné.");
                 return;
             }
 
@@ -60,18 +60,41 @@ namespace SupKonQuest
                 foreach (Camp camp in corners[i])
                     camp.SetOwner(activePlayers[i]);
 
-                Debug.Log($"[GameManager] {activePlayers[i].playerName} â†’ {corners[i].Count} camp(s) coin {i}.");
+                Debug.Log($"[GameManager] {activePlayers[i].playerName} → {corners[i].Count} camp(s) coin {i}.");
             }
+        }
+
+        private float eliminationCheckTimer;
+
+        private void Update()
+        {
+            if (!gameStarted || gameOver) return;
+            eliminationCheckTimer -= Time.deltaTime;
+            if (eliminationCheckTimer > 0f) return;
+            eliminationCheckTimer = 3f;
+
+            foreach (PlayerData p in activePlayers)
+            {
+                if (p.eliminated) continue;
+                if (p.ownedCamps.Count == 0 && CountUnits(p) == 0)
+                    EliminatePlayer(p);
+            }
+            CheckWinCondition();
         }
 
         public void NotifyCampCaptured(Camp camp, PlayerData previousOwner)
         {
             if (!gameStarted || gameOver) return;
-
-            if (previousOwner != null && !previousOwner.eliminated && previousOwner.ownedCamps.Count == 0)
-                EliminatePlayer(previousOwner);
-
             CheckWinCondition();
+        }
+
+        private int CountUnits(PlayerData p)
+        {
+            int n = 0;
+            foreach (UnitStats us in FindObjectsByType<UnitStats>(FindObjectsSortMode.None))
+                if (us.ownerId == p.playerId && us.gameObject.activeInHierarchy && us.currentHealth > 0)
+                    n++;
+            return n;
         }
 
         private void EliminatePlayer(PlayerData player)

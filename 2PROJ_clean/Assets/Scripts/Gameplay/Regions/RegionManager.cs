@@ -8,10 +8,10 @@ namespace SupKonQuest
     {
         public static RegionManager Instance { get; private set; }
 
-        [Header("Pool de donnÃ©es (optionnel)")]
+        [Header("Pool de données (optionnel)")]
         public RegionData[] regionDataPool;
 
-        [Header("DÃ©coupage de la map")]
+        [Header("Découpage de la map")]
         public int regionsX = 2;
         public int regionsZ = 2;
 
@@ -79,7 +79,7 @@ namespace SupKonQuest
                 }
             }
 
-            Debug.Log($"[RegionManager] {regionList.Count} rÃ©gions ({regionsX}Ã—{regionsZ}).");
+            Debug.Log($"[RegionManager] {regionList.Count} régions ({regionsX}×{regionsZ}).");
         }
 
         public void AssignCampsToRegions()

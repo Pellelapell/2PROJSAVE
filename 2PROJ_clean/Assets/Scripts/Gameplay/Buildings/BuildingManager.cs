@@ -14,7 +14,7 @@ namespace SupKonQuest
         public GameObject portPrefab;
         public GameObject castlePrefab;
 
-        [Header("CoÃ»ts (Or / Bois)")]
+        [Header("Coûts (Or / Bois)")]
         public int campGold    = 250; public int campWood    = 80;
         public int sawmillGold = 80;  public int sawmillWood = 30;
         public int portGold    = 200; public int portWood    = 80;
@@ -29,7 +29,7 @@ namespace SupKonQuest
         [Header("Production scierie")]
         public int sawmillWoodPerTick = 5;
 
-        [Header("Rayon de construction autour d'un camp alliÃ©")]
+        [Header("Rayon de construction autour d'un camp allié")]
         public float buildRadius = 12f;
 
         private class Site
@@ -79,17 +79,17 @@ namespace SupKonQuest
 
         public string GetTypeBlockReason(BuildingType type, PlayerData owner)
         {
-            if (type == BuildingType.Castle && owner.ownedCamps.Count < 3) return "ChÃ¢teau : 3 camps requis";
+            if (type == BuildingType.Castle && owner.ownedCamps.Count < 3) return "Château : 3 camps requis";
             if (!owner.CanAfford(GoldCost(type), WoodCost(type)))          return L("builder_lack");
             return null;
         }
 
         public string GetTileBlockReason(HexTile tile, BuildingType type, PlayerData owner)
         {
-            if (tile == null || tile.isOccupied)                           return "Case occupÃ©e";
+            if (tile == null || tile.isOccupied)                           return "Case occupée";
             if (tile.terrain == HexTerrain.Water)                          return "Case aquatique";
             if (tile.terrain == HexTerrain.Mountain)                       return "Case montagneuse";
-            if (type == BuildingType.Port && !HasWaterNeighbor(tile))      return "Port : adjacent Ã  l'eau requis";
+            if (type == BuildingType.Port && !HasWaterNeighbor(tile))      return "Port : adjacent à l'eau requis";
             return null;
         }
 
@@ -100,7 +100,7 @@ namespace SupKonQuest
 
             tile.isOccupied = true;
             queue.Add(new Site { tile = tile, owner = owner, type = type, timeLeft = BuildTime(type), started = false });
-            Debug.Log($"[Build] {type} rÃ©servÃ©e par {owner.playerName} â€” en attente de l'ouvrier");
+            Debug.Log($"[Build] {type} réservée par {owner.playerName} — en attente de l'ouvrier");
             return true;
         }
 
@@ -108,13 +108,13 @@ namespace SupKonQuest
         {
             if (tile == null) { Debug.LogWarning($"[AI Build] tuile null pour {type}"); return false; }
             string typeBlock = GetTypeBlockReason(type, owner);
-            if (typeBlock != null) { Debug.LogWarning($"[AI Build] {type} bloquÃ© (type) : {typeBlock} â€” or={owner.money} bois={owner.wood}"); return false; }
+            if (typeBlock != null) { Debug.LogWarning($"[AI Build] {type} bloqué (type) : {typeBlock} — or={owner.money} bois={owner.wood}"); return false; }
             string tileBlock = GetTileBlockReason(tile, type, owner);
-            if (tileBlock != null) { Debug.LogWarning($"[AI Build] {type} bloquÃ© (tuile) : {tileBlock} @ {tile.transform.position}"); return false; }
+            if (tileBlock != null) { Debug.LogWarning($"[AI Build] {type} bloqué (tuile) : {tileBlock} @ {tile.transform.position}"); return false; }
             if (!owner.SpendResources(GoldCost(type), WoodCost(type))) { Debug.LogWarning($"[AI Build] {type} : ressources insuffisantes or={owner.money}/{GoldCost(type)} bois={owner.wood}/{WoodCost(type)}"); return false; }
             tile.isOccupied = true;
             queue.Add(new Site { tile = tile, owner = owner, type = type, timeLeft = BuildTime(type), started = true });
-            Debug.Log($"[AI Build] {type} lancÃ©e pour {owner.playerName} en {tile.transform.position}");
+            Debug.Log($"[AI Build] {type} lancée pour {owner.playerName} en {tile.transform.position}");
             return true;
         }
 

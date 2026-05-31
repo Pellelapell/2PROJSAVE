@@ -4,7 +4,7 @@ namespace SupKonQuest
 {
     public class SpellUI : MonoBehaviour
     {
-        [Header("Legacy Canvas (peut Ãªtre supprimÃ© de la scÃ¨ne)")]
+        [Header("Legacy Canvas (peut être supprimé de la scène)")]
         [SerializeField] private GameObject spellPanel;
 
         private UnitSpell trackedSpell;
@@ -79,7 +79,7 @@ namespace SupKonQuest
             else
             {
                 fill       = 1f;
-                statusText = "PrÃªt";
+                statusText = "Prêt";
                 barColor   = new Color(0.2f, 0.55f, 1f);
             }
 
