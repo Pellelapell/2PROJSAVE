@@ -4,7 +4,7 @@ namespace SupKonQuest
 {
     public class CampUIManager : MonoBehaviour
     {
-        [Header("Legacy Canvas (peut Ãªtre supprimÃ© de la scÃ¨ne)")]
+        [Header("Legacy Canvas (peut être supprimé de la scène)")]
         [SerializeField] private GameObject panel;
 
         private Camp           selectedCamp;
@@ -171,7 +171,7 @@ namespace SupKonQuest
             GUI.color = new Color(0.4f, 0.95f, 1f);
             string hint = L("spawn_pick_hint");
             if (string.IsNullOrEmpty(hint) || hint == "spawn_pick_hint")
-                hint = "Clic sur une tuile pour dÃ©finir l'apparition";
+                hint = "Clic sur une tuile pour définir l'apparition";
             GUI.Label(new Rect(x + 6, y + 4f, w - 80f, 22f), hint, hintStyle);
             GUI.color = Color.white;
             if (GUI.Button(new Rect(x + w - 74f, y + 8f, 70f, 24f), L("builder_cancel"), hintStyle))

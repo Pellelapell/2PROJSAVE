@@ -4,7 +4,7 @@ namespace SupKonQuest
 {
     public class CameraController : MonoBehaviour
     {
-        [Header("DÃ©placement clavier / bord d'Ã©cran")]
+        [Header("Déplacement clavier / bord d'écran")]
         [SerializeField] private float moveSpeed = 40f;
         [SerializeField] private float edgeScrollSpeed = 35f;
         [SerializeField] private float edgeSize = 20f;

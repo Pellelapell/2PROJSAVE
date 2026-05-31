@@ -75,7 +75,7 @@ namespace SupKonQuest
                 y += lineH;
             }
 
-            if (GUI.Button(new Rect(x + w - 28f, y - Types.Length * lineH - 32f, 24f, 20f), "âœ•", costStyle))
+            if (GUI.Button(new Rect(x + w - 28f, y - Types.Length * lineH - 32f, 24f, 20f), "✕", costStyle))
                 selectedTile = null;
         }
 

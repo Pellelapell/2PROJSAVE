@@ -11,14 +11,14 @@ public class MapDecorator : MonoBehaviour
         public GameObject[] prefabs;
 
         [Range(0f, 1f)]
-        [Tooltip("ProbabilitÃ© qu'au moins une dÃ©coration de ce set apparaisse sur un hex Ã©ligible")]
+        [Tooltip("Probabilité qu'au moins une décoration de ce set apparaisse sur un hex éligible")]
         public float spawnChance = 0.3f;
 
         [Range(1, 5)]
-        [Tooltip("Nombre max de dÃ©corations placÃ©es par hex quand le set se dÃ©clenche")]
+        [Tooltip("Nombre max de décorations placées par hex quand le set se déclenche")]
         public int maxPerHex = 2;
 
-        [Header("Terrains autorisÃ©s")]
+        [Header("Terrains autorisés")]
         public bool onWalkable = true;
         public bool onMountain = false;
         public bool onWater = false;
@@ -28,16 +28,16 @@ public class MapDecorator : MonoBehaviour
     }
 
     [Header("Source")]
-    [Tooltip("Laisser vide pour trouver automatiquement le HexGridGenerator dans la scÃ¨ne")]
+    [Tooltip("Laisser vide pour trouver automatiquement le HexGridGenerator dans la scène")]
     public HexGridGenerator hexGrid;
 
-    [Header("Sets de dÃ©coration")]
+    [Header("Sets de décoration")]
     public DecorationSet[] decorationSets;
 
     [Header("Placement")]
-    [Tooltip("Distance max du centre de l'hex pour placer une dÃ©coration")]
+    [Tooltip("Distance max du centre de l'hex pour placer une décoration")]
     public float placementRadius = 0.15f;
-    [Tooltip("DÃ©calage vertical des dÃ©corations (ajuster selon la hauteur du modÃ¨le hex)")]
+    [Tooltip("Décalage vertical des décorations (ajuster selon la hauteur du modèle hex)")]
     public float yOffset = 0f;
 
     void Start()
@@ -47,7 +47,7 @@ public class MapDecorator : MonoBehaviour
 
         if (hexGrid == null)
         {
-            Debug.LogWarning("MapDecorator : aucun HexGridGenerator trouvÃ© dans la scÃ¨ne.");
+            Debug.LogWarning("MapDecorator : aucun HexGridGenerator trouvé dans la scène.");
             return;
         }
 

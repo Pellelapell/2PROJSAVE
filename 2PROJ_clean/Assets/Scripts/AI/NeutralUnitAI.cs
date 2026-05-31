@@ -11,11 +11,11 @@ namespace SupKonQuest
         public LayerMask unitLayerMask;
 
         [Header("Animation (optionnel)")]
-        [Tooltip("ContrÃ´leur d'animation Ã  utiliser. Laissez vide pour prendre celui du DÃ©mon Lourd automatiquement.")]
+        [Tooltip("Contrôleur d'animation à utiliser. Laissez vide pour prendre celui du Démon Lourd automatiquement.")]
         public RuntimeAnimatorController fallbackController;
 
-        [Header("DÃ©fense")]
-        [Tooltip("Distance max depuis la position d'origine (leash). 0 = automatique (3Ã— attackRange)")]
+        [Header("Défense")]
+        [Tooltip("Distance max depuis la position d'origine (leash). 0 = automatique (3× attackRange)")]
         public float leashRange = 0f;
 
         private UnitStats stats;
@@ -69,7 +69,7 @@ namespace SupKonQuest
                 guardedCamp = FindNearestNeutralCamp();
 
             if (guardedCamp == null)
-                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvÃ© !", this);
+                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun camp neutre trouvé !", this);
 
             StartCoroutine(FindAnimatorNextFrame());
         }
@@ -82,9 +82,9 @@ namespace SupKonQuest
             RuntimeAnimatorController ctrl = GetFallbackController();
             if (ctrl == null)
             {
-                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun animator controller trouvÃ©. " +
+                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun animator controller trouvé. " +
                     "Assignez 'Fallback Controller' dans l'Inspector ou configurez animatorController " +
-                    "dans RaceDefinition DÃ©mon > Heavy.", this);
+                    "dans RaceDefinition Démon > Heavy.", this);
                 yield break;
             }
 
