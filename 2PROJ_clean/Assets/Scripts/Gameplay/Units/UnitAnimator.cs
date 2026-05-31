@@ -17,8 +17,7 @@ namespace SupKonQuest
         private static readonly int HashIsDead      = Animator.StringToHash("IsDead");
         private static readonly int HashAttackSpeed = Animator.StringToHash("AttackSpeed");
 
-        private bool  isDead;
-        private float attackAnimTimer;
+        private bool isDead;
 
         private void Awake()
         {
@@ -29,7 +28,7 @@ namespace SupKonQuest
             if (animator == null)
                 animator = GetComponentInChildren<Animator>();
 
-            Debug.Log($"[UnitAnimator] Awake sur {gameObject.name}");
+
         }
 
         private void Update()
@@ -37,10 +36,7 @@ namespace SupKonQuest
             if (animator == null)
             {
                 animator = GetComponentInChildren<Animator>();
-                if (animator != null)
-                    Debug.Log($"[UnitAnimator] Animator trouve sur {animator.gameObject.name}, controller = {animator.runtimeAnimatorController?.name}");
-                else
-                    return;
+                if (animator == null) return;
             }
 
             if (!isDead && stats != null && stats.currentHealth <= 0)
@@ -54,16 +50,19 @@ namespace SupKonQuest
             }
             if (isDead) return;
 
-            if (attack != null && attack.IsAttacking && stats != null)
-                attackAnimTimer = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
-            attackAnimTimer = Mathf.Max(0f, attackAnimTimer - Time.deltaTime);
-
-            bool isAttacking = attackAnimTimer > 0f;
+            bool isAttacking = attack != null && attack.IsAttacking;
             bool isMoving    = !isAttacking && movement != null && movement.IsMoving;
 
             animator.SetBool(HashIsAttacking, isAttacking);
             animator.SetBool(HashIsMoving,    isMoving);
             animator.speed = (isMoving || isAttacking) ? 1f : 0f;
+
+            if (isMoving || isAttacking)
+            {
+                AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+                if (!state.loop && state.normalizedTime >= 1f)
+                    animator.Play(state.shortNameHash, 0, 0f);
+            }
 
             if (stats != null)
             {

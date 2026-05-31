@@ -23,12 +23,62 @@ namespace SupKonQuest
         public Material neutralMaterial;
 
         private Camera mainCam;
+        private GameObject targetHighlight;
+        private static Material campHighlightMat;
 
         private void Start()
         {
             mainCam = Camera.main;
+            maxHP    = GetMaxHP();
             currentHP = maxHP;
             UpdateCampVisual();
+        }
+
+        public int GetMaxHP()
+        {
+            switch (campType)
+            {
+                case CampType.Port:    return 200;
+                case CampType.Castle:  return 800;
+                default:               return 400;   // Normal
+            }
+        }
+
+        public void SetAsTarget(bool active)
+        {
+            if (active && targetHighlight == null)
+            {
+                if (campHighlightMat == null)
+                {
+                    Shader sh = Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Lit");
+                    campHighlightMat = new Material(sh);
+                    campHighlightMat.color = new Color(1f, 0.15f, 0.15f, 0.5f);
+                    campHighlightMat.SetFloat("_Mode", 3);
+                    campHighlightMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    campHighlightMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    campHighlightMat.SetInt("_ZWrite", 0);
+                    campHighlightMat.EnableKeyword("_ALPHABLEND_ON");
+                    campHighlightMat.renderQueue = 3000;
+                }
+                targetHighlight = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                targetHighlight.name = "CampTargetHighlight";
+                // World-space : au niveau du sol au centre du camp, sans être enfant du camp
+                // (évite les problèmes de scale/rotation du parent)
+                targetHighlight.transform.position   = new Vector3(transform.position.x, 0.05f, transform.position.z);
+                targetHighlight.transform.rotation   = Quaternion.identity;
+                const float wr = 4f;
+                targetHighlight.transform.localScale = new Vector3(wr * 2f, 0.05f, wr * 2f);
+
+                targetHighlight.GetComponent<Renderer>().sharedMaterial = campHighlightMat;
+                Destroy(targetHighlight.GetComponent<Collider>());
+                targetHighlight.SetActive(false);
+            }
+            if (targetHighlight != null) targetHighlight.SetActive(active);
+        }
+
+        private void OnDestroy()
+        {
+            if (targetHighlight != null) Destroy(targetHighlight);
         }
 
         public void TakeDamage(int amount, UnitStats attacker)
@@ -103,7 +153,7 @@ namespace SupKonQuest
                 NeutralUnitAI guard = c.GetComponentInParent<NeutralUnitAI>();
                 if (guard == null) continue;
                 UnitStats gs = guard.GetComponent<UnitStats>();
-                if (gs != null && gs.ownerId == 0)
+                if (gs != null && gs.ownerId == GameConstants.NEUTRAL_ID)
                     Destroy(guard.gameObject);
             }
         }
@@ -166,25 +216,32 @@ namespace SupKonQuest
         {
             if (mainCam == null) return;
 
-            Vector3 screenPos = mainCam.WorldToScreenPoint(transform.position + Vector3.up * 2f);
+            Vector3 screenPos = mainCam.WorldToScreenPoint(transform.position + Vector3.up * 3.5f);
             if (screenPos.z < 0f) return;
 
-            const float barW = 60f;
-            const float barH = 8f;
+            const float barW = 110f;
+            const float barH = 14f;
             float x = screenPos.x - barW * 0.5f;
             float y = Screen.height - screenPos.y - barH * 0.5f;
 
             Color prev = GUI.color;
-            GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-            GUI.DrawTexture(new Rect(x, y, barW, barH), Texture2D.whiteTexture);
 
+            // Fond sombre
+            GUI.color = new Color(0.05f, 0.05f, 0.05f, 0.92f);
+            GUI.DrawTexture(new Rect(x - 1, y - 1, barW + 2, barH + 2), Texture2D.whiteTexture);
+
+            // Remplissage couleur
             float ratio = maxHP > 0 ? (float)currentHP / maxHP : 1f;
-            Color fill = Color.Lerp(Color.red, Color.green, ratio);
-            GUI.color = new Color(fill.r, fill.g, fill.b, 0.9f);
+            Color fill  = Color.Lerp(new Color(0.9f, 0.1f, 0.1f), new Color(0.1f, 0.9f, 0.2f), ratio);
+            GUI.color   = new Color(fill.r, fill.g, fill.b, 0.95f);
             GUI.DrawTexture(new Rect(x, y, barW * ratio, barH), Texture2D.whiteTexture);
 
-            GUI.color = new Color(1f, 1f, 1f, 0.4f);
-            GUI.Box(new Rect(x - 1, y - 1, barW + 2, barH + 2), GUIContent.none);
+            // Texte HP
+            GUI.color = Color.white;
+            GUIStyle hpStyle = new GUIStyle(GUI.skin.label)
+            { fontSize = 10, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+              normal = { textColor = Color.white } };
+            GUI.Label(new Rect(x, y, barW, barH), $"{currentHP}/{maxHP}", hpStyle);
 
             GUI.color = prev;
         }

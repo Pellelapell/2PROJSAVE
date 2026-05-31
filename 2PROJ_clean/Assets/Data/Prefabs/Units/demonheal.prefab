@@ -107,7 +107,8 @@ PrefabInstance:
       value: DemonHeal
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: -8700617353114198275, guid: aeda3fc3577a106429cc250038b987d3, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: aeda3fc3577a106429cc250038b987d3, type: 3}

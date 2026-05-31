@@ -42,6 +42,9 @@ namespace SupKonQuest
 
         public event Action<UnitStats> OnDeath;
 
+        private GameObject targetHighlight;
+        private static Material targetHighlightMat;
+
         private UnitHealthBarUI spawnedHealthBar;
 
         public void InitFromDefinition(UnitDefinition def)
@@ -76,13 +79,26 @@ namespace SupKonQuest
             ApplyDamage(ComputeReceivedDamage(amount));
         }
 
+        public void TakeDamageFrom(int amount, UnitStats attacker)
+        {
+            TakeDamage(amount);
+            if (currentHealth <= 0 || attacker == null) return;
+            GetComponent<UnitAttack>()?.TriggerCounterAttack(attacker);
+        }
+
         public void TakeAOEDamage(int baseDamage, float distanceToCenter, float radius)
         {
             if (radius <= 0f) { TakeDamage(baseDamage); return; }
             float t = Mathf.Clamp01(distanceToCenter / radius);
             float mult = Mathf.Lerp(1f, 1f - aoeFalloff, t);
-            int final = ComputeReceivedDamage(Mathf.RoundToInt(baseDamage * mult));
-            ApplyDamage(final);
+            ApplyDamage(ComputeReceivedDamage(Mathf.RoundToInt(baseDamage * mult)));
+        }
+
+        public void TakeAOEDamageFrom(int baseDamage, float distanceToCenter, float radius, UnitStats attacker)
+        {
+            TakeAOEDamage(baseDamage, distanceToCenter, radius);
+            if (currentHealth <= 0 || attacker == null) return;
+            GetComponent<UnitAttack>()?.TriggerCounterAttack(attacker);
         }
 
         public void Heal(int amount)
@@ -103,8 +119,39 @@ namespace SupKonQuest
             if (currentHealth <= 0) Die();
         }
 
+        public void SetAsTarget(bool active)
+        {
+            if (active && targetHighlight == null) CreateTargetHighlight();
+            if (targetHighlight != null) targetHighlight.SetActive(active);
+        }
+
+        private void CreateTargetHighlight()
+        {
+            if (targetHighlightMat == null)
+            {
+                Shader sh = Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Lit");
+                targetHighlightMat = new Material(sh);
+                targetHighlightMat.color = new Color(1f, 0.15f, 0.15f, 0.55f);
+                targetHighlightMat.SetFloat("_Mode", 3);
+                targetHighlightMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                targetHighlightMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                targetHighlightMat.SetInt("_ZWrite", 0);
+                targetHighlightMat.EnableKeyword("_ALPHABLEND_ON");
+                targetHighlightMat.renderQueue = 3000;
+            }
+            targetHighlight = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            targetHighlight.name = "TargetHighlight";
+            targetHighlight.transform.SetParent(transform);
+            targetHighlight.transform.localPosition = new Vector3(0f, 0.06f, 0f);
+            targetHighlight.transform.localScale    = new Vector3(0.9f, 0.008f, 0.9f);
+            targetHighlight.GetComponent<Renderer>().sharedMaterial = targetHighlightMat;
+            Destroy(targetHighlight.GetComponent<Collider>());
+            targetHighlight.SetActive(false);
+        }
+
         private void Die()
         {
+            SetAsTarget(false);
             OnDeath?.Invoke(this);
             if (spawnedHealthBar != null)
                 Destroy(spawnedHealthBar.gameObject);

@@ -103,12 +103,29 @@ namespace SupKonQuest
             DrawLeaderboard();
             DrawUnitStats();
             DrawBuildingInfo();
+            DrawAttackModeIndicator();
 
             if (sunkNotifTimer > 0f && sunkPassengers != null && sunkPassengers.Count > 0)
                 DrawSunkNotification();
 
             if (showEndScreen)
                 DrawEndScreen();
+        }
+
+        private void DrawAttackModeIndicator()
+        {
+            if (InputManager.Instance == null || !InputManager.Instance.IsAttackMoveMode) return;
+
+            const float w = 220f;
+            const float h = 30f;
+            float x = (Screen.width - w) * 0.5f;
+            float y = Screen.height * 0.5f - 60f;
+
+            GUI.color = new Color(1f, 0.2f, 0.2f, 0.9f);
+            GUI.DrawTexture(new Rect(x - 6, y - 4, w + 12, h + 8), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(x, y, w, h), "  ATTAQUE [clic pour cibler]", titleStyle);
+            GUI.color = Color.white;
         }
 
         private void DrawTopBar()
@@ -228,10 +245,11 @@ namespace SupKonQuest
         private void DrawUnitStats()
         {
             UnitStats u = InputManager.Instance?.SelectedUnitStats;
-            if (u == null) return;
+            if (u == null || u.currentHealth <= 0) return;
 
+            bool isLocalUnit = u.ownerId == (InputManager.Instance?.localPlayerId ?? -1);
             const float w = 260f;
-            const float h = 170f;
+            float h = isLocalUnit ? 224f : 188f;
             float x = (Screen.width - w) * 0.5f;
             float y = Screen.height - h - 10f;
 
@@ -264,6 +282,37 @@ namespace SupKonQuest
             GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_type")} : {dmgType}{(u.isAOE ? "  [AOE]" : "")}", rowStyle);
             y += 18f;
 
+            UnitAttack atkComp   = u.GetComponent<UnitAttack>();
+            UnitStats unitTarget = atkComp?.CurrentTarget;
+            Camp      campTarget = atkComp?.CurrentCampTarget;
+            string targetLabel;
+            if (unitTarget != null && unitTarget.currentHealth > 0)
+            {
+                PlayerData tOwner = GameManager.Instance?.GetPlayerById(unitTarget.ownerId);
+                string tName      = UnitDefaults.GetName(unitTarget.unitType);
+                string tOwnerName = tOwner != null ? tOwner.playerName : L("hud_neutral");
+                targetLabel = $"{tName} ({tOwnerName})";
+                GUI.color = new Color(1f, 0.4f, 0.4f);
+            }
+            else if (campTarget != null)
+            {
+                string campName = campTarget.campType == CampType.Port   ? L("building_port")
+                                : campTarget.campType == CampType.Castle ? L("building_castle")
+                                :                                          L("building_camp");
+                string tOwnerName = campTarget.isNeutral || campTarget.owner == null
+                                  ? L("hud_neutral") : campTarget.owner.playerName;
+                targetLabel = $"{campName} ({tOwnerName})";
+                GUI.color = new Color(1f, 0.4f, 0.4f);
+            }
+            else
+            {
+                targetLabel = L("hud_target_none");
+                GUI.color = new Color(0.6f, 0.6f, 0.6f);
+            }
+            GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_target")} : {targetLabel}", rowStyle);
+            GUI.color = Color.white;
+            y += 18f;
+
             bool inRegion = RegionManager.Instance != null && RegionManager.Instance.IsInOwnedRegion(u.transform.position, u.ownerId);
             if (inRegion)
             {
@@ -271,6 +320,22 @@ namespace SupKonQuest
                 GUI.Label(new Rect(x, y, w, 18f), $"  {L("hud_region_bonus")}", rowStyle);
                 GUI.color = Color.white;
                 y += 18f;
+            }
+
+            if (isLocalUnit)
+            {
+                y += 4f;
+                GUI.color = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+                GUI.DrawTexture(new Rect(x, y, w, 1f), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                y += 5f;
+
+                GUI.color = new Color(0.6f, 0.85f, 1f);
+                GUI.Label(new Rect(x, y, w * 0.5f, 17f), "  Clic droit → Déplacer", rowStyle);
+                GUI.color = new Color(1f, 0.75f, 0.3f);
+                GUI.Label(new Rect(x + w * 0.5f, y, w * 0.5f, 17f), $"[{L("tuto_k_attack_key")}] → Mode attaque", rowStyle);
+                GUI.color = Color.white;
+                y += 17f;
             }
 
             TransportShip ship = u.GetComponent<TransportShip>();
@@ -386,7 +451,20 @@ namespace SupKonQuest
             string msg = localPlayerWon ? L("victory") : L("defeat");
             endStyle.normal.textColor = localPlayerWon ? new Color(1f, 0.9f, 0.1f) : new Color(1f, 0.25f, 0.25f);
 
-            GUI.Label(new Rect(x, y, w, h), msg, endStyle);
+            if (GUI.Button(new Rect(x, y, w, h), msg, endStyle))
+            {
+                Time.timeScale = 1f;
+                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            }
+
+            GUIStyle hint = new GUIStyle(GUI.skin.label)
+            {
+                fontSize  = 16,
+                fontStyle = FontStyle.Italic,
+                alignment = TextAnchor.MiddleCenter,
+                normal    = { textColor = new Color(1f, 1f, 1f, 0.6f) }
+            };
+            GUI.Label(new Rect(x, y + h, w, 28f), "— Cliquez pour revenir au menu —", hint);
         }
 
         private static string L(string key) => LocalizationManager.Get(key);

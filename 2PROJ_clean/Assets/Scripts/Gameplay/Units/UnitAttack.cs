@@ -6,20 +6,21 @@ namespace SupKonQuest
     [RequireComponent(typeof(UnitStats))]
     public class UnitAttack : MonoBehaviour
     {
-        [Header("Layers")]
-        [SerializeField] private LayerMask unitLayerMask;
-        [SerializeField] private LayerMask campLayerMask;
-
         private NavMeshAgent agent;
-        private UnitStats stats;
-        private float attackCooldown;
+        private UnitStats    stats;
+        private float        attackCooldown;
 
-        private UnitStats     currentUnitTarget;
-        private Camp          currentCampTarget;
+        private UnitStats      currentUnitTarget;
+        private Camp           currentCampTarget;
         private BuildingHealth currentBuildingTarget;
-        private bool manualCampTarget;
+
+        // Une fois la portée atteinte, l'unité s'arrête et ne relance plus de déplacement.
+        // Seul un ClearTargets() (clic droit) réinitialise ce flag.
+        private bool hasReachedRange;
 
         public bool IsAttacking { get; private set; }
+        public UnitStats CurrentTarget     => currentUnitTarget;
+        public Camp      CurrentCampTarget => currentCampTarget;
 
         private void Awake()
         {
@@ -31,112 +32,103 @@ namespace SupKonQuest
         {
             if (stats == null) return;
 
-            IsAttacking = false;
             attackCooldown -= Time.deltaTime;
-
-            if (currentUnitTarget == null || currentUnitTarget.currentHealth <= 0)
-                currentUnitTarget = FindClosestEnemyUnit();
+            IsAttacking = false;
 
             if (currentUnitTarget != null)
             {
+                if (currentUnitTarget.currentHealth <= 0) { currentUnitTarget = null; return; }
                 HandleUnitTarget();
                 return;
             }
 
-            if (!manualCampTarget && (currentCampTarget == null || !IsEnemyCamp(currentCampTarget)))
-                currentCampTarget = FindClosestEnemyCamp();
-
-            if (currentCampTarget != null) { HandleCampTarget(); return; }
-
-            if (currentBuildingTarget == null || currentBuildingTarget.currentHP <= 0)
-                currentBuildingTarget = FindClosestEnemyBuilding();
+            if (currentCampTarget != null)
+            {
+                if (!IsEnemyCamp(currentCampTarget)) { currentCampTarget = null; return; }
+                HandleCampTarget();
+                return;
+            }
 
             if (currentBuildingTarget != null)
+            {
+                if (currentBuildingTarget.currentHP <= 0) { currentBuildingTarget = null; return; }
                 HandleBuildingTarget();
+            }
         }
+
+        // ── Commandes publiques ──────────────────────────────────────────────────
+
+        public void SetUnitTarget(UnitStats target)
+        {
+            currentUnitTarget     = target;
+            currentCampTarget     = null;
+            currentBuildingTarget = null;
+            hasReachedRange       = false;
+        }
+
+        public void SetCampTarget(Camp camp)
+        {
+            currentCampTarget     = camp;
+            currentUnitTarget     = null;
+            currentBuildingTarget = null;
+            hasReachedRange       = false;
+        }
+
+        public void SetBuildingTarget(BuildingHealth building)
+        {
+            currentBuildingTarget = building;
+            currentUnitTarget     = null;
+            currentCampTarget     = null;
+            hasReachedRange       = false;
+        }
+
+        public void ClearTargets()
+        {
+            currentUnitTarget     = null;
+            currentCampTarget     = null;
+            currentBuildingTarget = null;
+            hasReachedRange       = false;
+        }
+
+        // Appelé quand l'unité reçoit un coup : contre-attaque si pas de cible en cours.
+        public void TriggerCounterAttack(UnitStats attacker)
+        {
+            if (attacker == null || attacker.currentHealth <= 0) return;
+            if (currentUnitTarget != null) return; // déjà une cible, on ne change pas
+            SetUnitTarget(attacker);
+        }
+
+        // ── Logique de combat ────────────────────────────────────────────────────
 
         private void HandleUnitTarget()
         {
-            bool playerMoving = GetComponent<UnitMovement>()?.HasPlayerMoveOrder ?? false;
             float dist = Vector3.Distance(transform.position, currentUnitTarget.transform.position);
 
             if (dist <= stats.attackRange)
             {
-                if (!playerMoving) StopMoving();
+                hasReachedRange = true;
+                StopMoving();
                 FaceTarget(currentUnitTarget.transform);
+                IsAttacking = true;
                 if (attackCooldown <= 0f)
                 {
-                    IsAttacking = true;
-                    PerformAttackOnUnit(currentUnitTarget);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+                    PerformAttackOnUnit(currentUnitTarget);
                 }
             }
-            else if (dist <= stats.detectRange)
+            else if (!hasReachedRange && agent != null && agent.isOnNavMesh)
             {
-                if (!playerMoving) MoveToward(currentUnitTarget.transform.position);
+                // Pas encore atteint la portée : on approche sans dépasser la range
+                agent.stoppingDistance = stats.attackRange * 0.9f;
+                agent.isStopped = false;
+                if (Vector3.Distance(agent.destination, currentUnitTarget.transform.position) > 0.5f)
+                    agent.SetDestination(currentUnitTarget.transform.position);
             }
-            else
-            {
-                currentUnitTarget = null;
-            }
-        }
-
-        private UnitStats FindClosestEnemyUnit()
-        {
-            Collider[] hits = Physics.OverlapSphere(transform.position, stats.detectRange, unitLayerMask);
-            UnitStats closest = null;
-            float closestDist = float.MaxValue;
-
-            foreach (Collider hit in hits)
-            {
-                if (hit.gameObject == gameObject) continue;
-                UnitStats other = hit.GetComponent<UnitStats>();
-                if (other == null || other.ownerId == stats.ownerId || other.currentHealth <= 0) continue;
-                float dist = Vector3.Distance(transform.position, other.transform.position);
-                if (dist < closestDist) { closestDist = dist; closest = other; }
-            }
-            return closest;
-        }
-
-        private void PerformAttackOnUnit(UnitStats target)
-        {
-            if (target == null) return;
-
-            AudioManager.Instance?.PlayAttack();
-
-            int damage = stats.attackDamage;
-            if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
-                damage *= 2;
-
-            damage = Mathf.RoundToInt(damage * GetRegionDamageMultiplier());
-
-            if (stats.isAOE)
-                PerformAOEAttack(target.transform.position, damage);
-            else
-                target.TakeDamage(damage);
-        }
-
-        private void PerformAOEAttack(Vector3 impactPoint, int baseDamage)
-        {
-            Collider[] hits = Physics.OverlapSphere(impactPoint, stats.aoeRadius, unitLayerMask);
-            foreach (Collider hit in hits)
-            {
-                UnitStats other = hit.GetComponent<UnitStats>();
-                if (other == null || other.ownerId == stats.ownerId || other.currentHealth <= 0) continue;
-                float dist = Vector3.Distance(impactPoint, other.transform.position);
-                other.TakeAOEDamage(baseDamage, dist, stats.aoeRadius);
-            }
+            // hasReachedRange = true et cible hors portée → l'unité reste sur place
         }
 
         private void HandleCampTarget()
         {
-            if (currentCampTarget == null || !IsEnemyCamp(currentCampTarget))
-            {
-                currentCampTarget = null;
-                manualCampTarget  = false;
-                return;
-            }
-
             bool playerMoving = GetComponent<UnitMovement>()?.HasPlayerMoveOrder ?? false;
             float dist = Vector3.Distance(transform.position, currentCampTarget.transform.position);
 
@@ -144,99 +136,67 @@ namespace SupKonQuest
             {
                 if (!playerMoving) StopMoving();
                 FaceTarget(currentCampTarget.transform);
+                IsAttacking = true;
                 if (attackCooldown <= 0f)
                 {
-                    IsAttacking = true;
-                    int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
-                    currentCampTarget.TakeDamage(damage, stats);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+                    currentCampTarget.TakeDamage(Mathf.RoundToInt(stats.attackDamage * RegionMultiplier()), stats);
                 }
             }
-            else
+            else if (!playerMoving)
             {
-                if (!playerMoving && (manualCampTarget || dist <= stats.detectRange))
-                    MoveToward(currentCampTarget.transform.position);
-                else if (!manualCampTarget)
-                    currentCampTarget = null;
+                MoveAgent(currentCampTarget.transform.position);
             }
-        }
-
-        public void SetCampTarget(Camp camp)
-        {
-            currentCampTarget = camp;
-            currentUnitTarget = null;
-            manualCampTarget  = camp != null;
-        }
-
-        public void ClearTargets()
-        {
-            currentUnitTarget    = null;
-            currentCampTarget    = null;
-            currentBuildingTarget = null;
-            manualCampTarget     = false;
-        }
-
-        private Camp FindClosestEnemyCamp()
-        {
-            Collider[] hits = Physics.OverlapSphere(transform.position, stats.detectRange, campLayerMask);
-            Camp closest = null;
-            float closestDist = float.MaxValue;
-
-            foreach (Collider hit in hits)
-            {
-                Camp camp = hit.GetComponent<Camp>();
-                if (camp == null || !IsEnemyCamp(camp)) continue;
-                float dist = Vector3.Distance(transform.position, camp.transform.position);
-                if (dist < closestDist) { closestDist = dist; closest = camp; }
-            }
-            return closest;
         }
 
         private void HandleBuildingTarget()
         {
-            if (currentBuildingTarget == null || currentBuildingTarget.currentHP <= 0)
-            {
-                currentBuildingTarget = null;
-                return;
-            }
-
             float dist = Vector3.Distance(transform.position, currentBuildingTarget.transform.position);
 
             if (dist <= stats.attackRange)
             {
                 StopMoving();
                 FaceTarget(currentBuildingTarget.transform);
+                IsAttacking = true;
                 if (attackCooldown <= 0f)
                 {
-                    IsAttacking = true;
-                    int damage = Mathf.RoundToInt(stats.attackDamage * GetRegionDamageMultiplier());
-                    currentBuildingTarget.TakeDamage(damage);
                     attackCooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed * stats.attackSpeedMultiplier);
+                    currentBuildingTarget.TakeDamage(Mathf.RoundToInt(stats.attackDamage * RegionMultiplier()));
                 }
-            }
-            else if (dist <= stats.detectRange)
-            {
-                MoveToward(currentBuildingTarget.transform.position);
             }
             else
             {
-                currentBuildingTarget = null;
+                MoveAgent(currentBuildingTarget.transform.position);
             }
         }
 
-        private BuildingHealth FindClosestEnemyBuilding()
+        private void PerformAttackOnUnit(UnitStats target)
         {
-            BuildingHealth closest  = null;
-            float closestDist = stats.detectRange;
+            AudioManager.Instance?.PlayAttack();
 
-            foreach (BuildingHealth bh in BuildingHealth.All)
+            int damage = stats.attackDamage;
+            if (stats.unitType == UnitType.AntiArmor && target.unitType == UnitType.Heavy)
+                damage *= 2;
+            damage = Mathf.RoundToInt(damage * RegionMultiplier());
+
+            if (stats.isAOE)
             {
-                if (bh == null || bh.ownerId == stats.ownerId || bh.ownerId < 0) continue;
-                float dist = Vector3.Distance(transform.position, bh.transform.position);
-                if (dist < closestDist) { closestDist = dist; closest = bh; }
+                Collider[] hits = Physics.OverlapSphere(target.transform.position, stats.aoeRadius);
+                foreach (Collider c in hits)
+                {
+                    UnitStats other = c.GetComponentInParent<UnitStats>();
+                    if (other == null || other.ownerId == stats.ownerId || other.currentHealth <= 0) continue;
+                    float d = Vector3.Distance(target.transform.position, other.transform.position);
+                    other.TakeAOEDamageFrom(Mathf.RoundToInt(damage), d, stats.aoeRadius, stats);
+                }
             }
-            return closest;
+            else
+            {
+                target.TakeDamageFrom(damage, stats);
+            }
         }
+
+        // ── Utilitaires ─────────────────────────────────────────────────────────
 
         private bool IsEnemyCamp(Camp camp)
         {
@@ -245,20 +205,18 @@ namespace SupKonQuest
             return camp.owner != null && camp.owner.playerId != stats.ownerId;
         }
 
-        private float GetRegionDamageMultiplier()
+        private float RegionMultiplier()
         {
             if (RegionManager.Instance == null) return 1f;
             return RegionManager.Instance.IsInOwnedRegion(transform.position, stats.ownerId) ? 1.2f : 1f;
         }
 
-        private void MoveToward(Vector3 destination)
+        private void MoveAgent(Vector3 destination)
         {
-            if (agent != null && agent.isOnNavMesh)
-            {
-                agent.stoppingDistance = stats.attackRange * 0.9f;
-                agent.isStopped = false;
-                agent.SetDestination(destination);
-            }
+            if (agent == null || !agent.isOnNavMesh) return;
+            agent.stoppingDistance = stats.attackRange * 0.9f;
+            agent.isStopped = false;
+            agent.SetDestination(destination);
         }
 
         private void StopMoving()
@@ -283,8 +241,6 @@ namespace SupKonQuest
             if (stats == null) return;
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, stats.attackRange);
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, stats.detectRange);
         }
     }
 }

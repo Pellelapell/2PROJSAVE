@@ -155,6 +155,25 @@ namespace SupKonQuest
             UnitVisuals visuals = unitObj.GetComponent<UnitVisuals>();
             if (visuals != null) visuals.ApplyRaceVisuals();
 
+            if (isNaval)
+            {
+                // Root intact (scale 1, rotation 0) → collider et NavMesh non affectés
+                // Seul le mesh enfant est scalé et orienté
+                Transform model = FindVisualModel(unitObj.transform);
+                if (model != null)
+                {
+                    // Supprimer les colliders du mesh enfant (évite double détection)
+                    foreach (Collider c in model.GetComponentsInChildren<Collider>())
+                        Destroy(c);
+
+                    model.localScale    = Vector3.one * 190f;
+                    model.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+                }
+
+                // Scaler le collider de la racine pour correspondre à la taille visuelle
+                ScaleUpRootColliders(unitObj, 190f);
+            }
+
             if (stats != null && stats.hasActivable && unitObj.GetComponent<UnitSpell>() == null)
                 unitObj.AddComponent<UnitSpell>();
 
@@ -166,7 +185,7 @@ namespace SupKonQuest
             }
             else
             {
-                NavMeshAgent agent = unitObj.GetComponent<NavMeshAgent>();
+                NavMeshAgent agent = unitObj.GetComponentInChildren<NavMeshAgent>();
                 if (agent != null)
                 {
                     agent.enabled = false;
@@ -179,6 +198,7 @@ namespace SupKonQuest
                     agent.speed = speed;
                 }
             }
+
         }
 
         private static Vector3 FindValidSpawnPosition(Vector3 origin, bool naval)
@@ -208,6 +228,49 @@ namespace SupKonQuest
             foreach (var e in availableUnits)
                 if (e.unitType == type) return e.prefab;
             return null;
+        }
+
+        // Trouve le premier enfant visuel (mesh du modèle), ignore les helpers Unity
+        private static Transform FindVisualModel(Transform root)
+        {
+            Transform named = root.Find("Model");
+            if (named != null) return named;
+            foreach (Transform child in root)
+            {
+                if (child.name == "SelectionCircle" || child.name == "RangeIndicator") continue;
+                if (child.GetComponentInChildren<Renderer>() != null) return child;
+            }
+            return null;
+        }
+
+        // Scale les colliders de la RACINE uniquement (pas les enfants)
+        private static void ScaleUpRootColliders(GameObject obj, float factor)
+        {
+            foreach (Collider col in obj.GetComponents<Collider>())
+            {
+                if (col is BoxCollider bc)      { bc.size *= factor; bc.center *= factor; }
+                else if (col is SphereCollider sc) sc.radius *= factor;
+                else if (col is CapsuleCollider cc){ cc.radius *= factor; cc.height *= factor; }
+            }
+        }
+
+        private static void ScaleDownColliders(GameObject obj, float factor)
+        {
+            foreach (Collider col in obj.GetComponentsInChildren<Collider>())
+            {
+                if (col is BoxCollider bc)
+                {
+                    bc.size   /= factor;
+                    bc.center /= factor;
+                }
+                else if (col is SphereCollider sc)
+                    sc.radius /= factor;
+                else if (col is CapsuleCollider cc)
+                {
+                    cc.radius /= factor;
+                    cc.height /= factor;
+                }
+            }
         }
     }
 }

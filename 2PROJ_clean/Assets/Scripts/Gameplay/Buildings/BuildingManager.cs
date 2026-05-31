@@ -38,6 +38,7 @@ namespace SupKonQuest
             public PlayerData owner;
             public BuildingType type;
             public float timeLeft;
+            public bool started;   // false = ouvrier en route, true = construction en cours
         }
 
         private readonly List<Site> queue = new List<Site>();
@@ -52,6 +53,7 @@ namespace SupKonQuest
         {
             for (int i = queue.Count - 1; i >= 0; i--)
             {
+                if (!queue[i].started) continue;   // attendre que l'ouvrier arrive
                 queue[i].timeLeft -= Time.deltaTime;
                 if (queue[i].timeLeft <= 0f)
                 {
@@ -61,33 +63,33 @@ namespace SupKonQuest
             }
         }
 
-        public bool CanBuild(HexTile tile, BuildingType type, PlayerData owner)
+        // Appelé par BuilderHUD quand l'ouvrier est immobile sur le site
+        public void BeginConstruction(HexTile tile)
         {
-            if (tile == null || tile.isOccupied) return false;
-            if (tile.terrain == HexTerrain.Water)    return false;
-            if (tile.terrain == HexTerrain.Mountain) return false;
-            if (type == BuildingType.Port && !HasWaterNeighbor(tile)) return false;
-            if (!IsTileReachable(tile, owner)) return false;
-            return owner.CanAfford(GoldCost(type), WoodCost(type));
+            foreach (Site s in queue)
+                if (s.tile == tile && !s.started)
+                { s.started = true; return; }
         }
 
-        private static bool IsTileReachable(HexTile tile, PlayerData owner)
+        public bool CanBuild(HexTile tile, BuildingType type, PlayerData owner)
         {
-            int walkableMask = 1 << NavMesh.GetAreaFromName("Walkable");
-            if (walkableMask <= 0) return true;
+            return GetTypeBlockReason(type, owner) == null && GetTileBlockReason(tile, type, owner) == null;
+        }
 
-            if (!NavMesh.SamplePosition(tile.transform.position, out NavMeshHit targetHit, 5f, walkableMask))
-                return false;
+        public string GetTypeBlockReason(BuildingType type, PlayerData owner)
+        {
+            if (type == BuildingType.Castle && owner.ownedCamps.Count < 3) return "Château : 3 camps requis";
+            if (!owner.CanAfford(GoldCost(type), WoodCost(type)))          return L("builder_lack");
+            return null;
+        }
 
-            NavMeshPath path = new NavMeshPath();
-            foreach (Camp camp in owner.ownedCamps)
-            {
-                if (!NavMesh.SamplePosition(camp.transform.position, out NavMeshHit startHit, 5f, walkableMask))
-                    continue;
-                NavMesh.CalculatePath(startHit.position, targetHit.position, walkableMask, path);
-                if (path.status == NavMeshPathStatus.PathComplete) return true;
-            }
-            return false;
+        public string GetTileBlockReason(HexTile tile, BuildingType type, PlayerData owner)
+        {
+            if (tile == null || tile.isOccupied)                           return "Case occupée";
+            if (tile.terrain == HexTerrain.Water)                          return "Case aquatique";
+            if (tile.terrain == HexTerrain.Mountain)                       return "Case montagneuse";
+            if (type == BuildingType.Port && !HasWaterNeighbor(tile))      return "Port : adjacent à l'eau requis";
+            return null;
         }
 
         public bool TryBuild(HexTile tile, BuildingType type, PlayerData owner)
@@ -96,8 +98,8 @@ namespace SupKonQuest
             if (!owner.SpendResources(GoldCost(type), WoodCost(type))) return false;
 
             tile.isOccupied = true;
-            queue.Add(new Site { tile = tile, owner = owner, type = type, timeLeft = BuildTime(type) });
-            Debug.Log($"[Build] {type} démarrée par {owner.playerName} ({BuildTime(type)}s)");
+            queue.Add(new Site { tile = tile, owner = owner, type = type, timeLeft = BuildTime(type), started = false });
+            Debug.Log($"[Build] {type} réservée par {owner.playerName} — en attente de l'ouvrier");
             return true;
         }
 
@@ -107,8 +109,15 @@ namespace SupKonQuest
         {
             foreach (Site s in queue)
                 if (s.tile == tile)
-                    return 1f - s.timeLeft / BuildTime(s.type);
+                    return s.started ? 1f - s.timeLeft / BuildTime(s.type) : 0f;
             return -1f;
+        }
+
+        public bool IsStarted(HexTile tile)
+        {
+            foreach (Site s in queue)
+                if (s.tile == tile) return s.started;
+            return false;
         }
 
         public bool IsUnderConstruction(HexTile tile)
@@ -165,6 +174,9 @@ namespace SupKonQuest
                         camp.campType  = site.type == BuildingType.Port   ? CampType.Port
                                        : site.type == BuildingType.Castle ? CampType.Castle
                                        :                                    CampType.Normal;
+                        // HP selon le type (Start() lit GetMaxHP mais campType est fixé ici après Start)
+                        camp.maxHP     = camp.GetMaxHP();
+                        camp.currentHP = camp.maxHP;
                         camp.isNeutral = false;
                         camp.SetOwner(site.owner);
                         if (camp.spawnPoint != null)
@@ -173,12 +185,16 @@ namespace SupKonQuest
                     break;
 
                 case BuildingType.Sawmill:
+                    // Supprimer le Camp component si le prefab en a un (évite double barre de vie)
+                    Camp orphan = obj.GetComponent<Camp>();
+                    if (orphan != null) Destroy(orphan);
+
                     Sawmill saw = obj.GetComponent<Sawmill>();
                     if (saw != null) { saw.owner = site.owner; saw.woodPerTick = sawmillWoodPerTick; }
                     BuildingHealth bh = obj.GetComponent<BuildingHealth>() ?? obj.AddComponent<BuildingHealth>();
                     bh.ownerId   = site.owner.playerId;
-                    bh.maxHP     = 150;
-                    bh.currentHP = 150;
+                    bh.maxHP     = 100;
+                    bh.currentHP = 100;
                     break;
             }
         }
@@ -226,6 +242,8 @@ namespace SupKonQuest
                 }
             }
         }
+
+        private static string L(string key) => LocalizationManager.Get(key);
 
         private bool InOwnedTerritory(HexTile tile, PlayerData owner)
         {

@@ -21,32 +21,31 @@ public class UnitVisuals : MonoBehaviour
         var skin = def.GetUnitSkin(stats.unitType);
         if (!skin.HasValue) return;
 
+        Renderer placeholder = GetComponent<Renderer>();
+        if (placeholder != null) placeholder.enabled = false;
+
+        Vector3 scale = skin.Value.GetScale();
+
         if (skin.Value.modelPrefab == null)
         {
             if (skin.Value.mesh == null) return;
 
-            Renderer placeholder = GetComponent<Renderer>();
-            if (placeholder != null) placeholder.enabled = false;
+            GameObject meshModel = new GameObject("Model");
+            meshModel.transform.SetParent(transform, false);
+            meshModel.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            meshModel.transform.localScale = scale;
 
-            GameObject model = new GameObject("Model");
-            model.transform.SetParent(transform, false);
-            model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-            model.transform.localScale = Vector3.one;
-
-            MeshFilter mf = model.AddComponent<MeshFilter>();
+            MeshFilter mf = meshModel.AddComponent<MeshFilter>();
             mf.sharedMesh = skin.Value.mesh;
 
-            MeshRenderer mr = model.AddComponent<MeshRenderer>();
+            MeshRenderer mr = meshModel.AddComponent<MeshRenderer>();
             if (skin.Value.material != null) mr.material = skin.Value.material;
             return;
         }
 
-        Renderer placeholder = GetComponent<Renderer>();
-        if (placeholder != null) placeholder.enabled = false;
-
         GameObject model = Instantiate(skin.Value.modelPrefab, transform, false);
         model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-        model.transform.localScale = Vector3.one;
+        model.transform.localScale = scale;
 
         Animator wrapperAnim = model.GetComponent<Animator>();
         if (wrapperAnim != null && model.transform.childCount > 0)

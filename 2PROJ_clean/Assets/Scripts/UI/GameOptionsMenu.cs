@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SupKonQuest
 {
@@ -16,6 +17,7 @@ namespace SupKonQuest
         private GUIStyle titleStyle;
         private GUIStyle labelStyle;
         private GUIStyle btnStyle;
+        private GUIStyle menuBtnStyle;
         private GUIStyle quitBtnStyle;
         private bool stylesReady;
 
@@ -51,7 +53,7 @@ namespace SupKonQuest
             GUI.color = Color.white;
 
             float pw = 420f;
-            float ph = 260f;
+            float ph = 320f;
             float px = (Screen.width  - pw) * 0.5f;
             float py = (Screen.height - ph) * 0.5f;
 
@@ -96,12 +98,28 @@ namespace SupKonQuest
                 Time.timeScale = 1f;
             }
 
-            GUI.color = new Color(1f, 0.35f, 0.35f);
-            if (GUI.Button(new Rect(bx + bw + gap, y, bw, 44f), L("quit"), quitBtnStyle))
+            GUI.color = new Color(0.3f, 0.7f, 1f);
+            if (GUI.Button(new Rect(bx + bw + gap, y, bw, 44f), L("main_menu"), menuBtnStyle))
             {
                 PlayerPrefs.Save();
                 Time.timeScale = 1f;
+                SceneManager.LoadScene("MainMenu");
+            }
+            GUI.color = Color.white;
+            y += 56f;
+
+            float qw = 200f;
+            float qx = (Screen.width - qw) * 0.5f;
+            GUI.color = new Color(1f, 0.35f, 0.35f);
+            if (GUI.Button(new Rect(qx, y, qw, 36f), L("quit_game"), quitBtnStyle))
+            {
+                PlayerPrefs.Save();
+                Time.timeScale = 1f;
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+#else
                 Application.Quit();
+#endif
             }
             GUI.color = Color.white;
         }
@@ -138,9 +156,16 @@ namespace SupKonQuest
                 normal    = { textColor = Color.white }
             };
 
-            quitBtnStyle = new GUIStyle(GUI.skin.button)
+            menuBtnStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize  = 15,
+                fontStyle = FontStyle.Bold,
+                normal    = { textColor = Color.white }
+            };
+
+            quitBtnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize  = 13,
                 fontStyle = FontStyle.Bold,
                 normal    = { textColor = Color.white }
             };
