@@ -10,6 +10,10 @@ namespace SupKonQuest
         [Header("Layers")]
         public LayerMask unitLayerMask;
 
+        [Header("Animation (optionnel)")]
+        [Tooltip("Contrôleur d'animation à utiliser. Laissez vide pour prendre celui du Démon Lourd automatiquement.")]
+        public RuntimeAnimatorController fallbackController;
+
         [Header("Défense")]
         [Tooltip("Distance max depuis la position d'origine (leash). 0 = automatique (3× attackRange)")]
         public float leashRange = 0f;
@@ -42,8 +46,11 @@ namespace SupKonQuest
 
         private void Start()
         {
-            if (stats != null && stats.ownerId != 0) { enabled = false; return; }
-            if (stats != null) stats.ownerId = 0;
+            if (stats != null && stats.ownerId != 0 && stats.ownerId != GameConstants.NEUTRAL_ID)
+            { enabled = false; return; }
+            if (stats != null) stats.ownerId = GameConstants.NEUTRAL_ID;
+
+            ShrinkColliders();
 
             var ua = GetComponent<UnitAttack>();
             if (ua != null) ua.enabled = false;
@@ -71,6 +78,36 @@ namespace SupKonQuest
         {
             yield return null;
             animator = GetComponentInChildren<Animator>();
+
+            RuntimeAnimatorController ctrl = GetFallbackController();
+            if (ctrl == null)
+            {
+                Debug.LogWarning($"[NeutralUnitAI] {name} : aucun animator controller trouvé. " +
+                    "Assignez 'Fallback Controller' dans l'Inspector ou configurez animatorController " +
+                    "dans RaceDefinition Démon > Heavy.", this);
+                yield break;
+            }
+
+            if (animator == null)
+            {
+                animator = gameObject.AddComponent<Animator>();
+                animator.applyRootMotion = false;
+            }
+            // Toujours forcer le controller (le prefab peut en avoir un mauvais)
+            animator.runtimeAnimatorController = ctrl;
+        }
+
+        private RuntimeAnimatorController GetFallbackController()
+        {
+            if (fallbackController != null) return fallbackController;
+
+            RaceDefinition def = RaceRegistry.Get(Race.Demon);
+            if (def == null) return null;
+            UnitType lookupType = stats != null ? stats.unitType : UnitType.Heavy;
+            var skin = def.GetUnitSkin(lookupType);
+            if (!skin.HasValue || skin.Value.animatorController == null)
+                skin = def.GetUnitSkin(UnitType.Heavy);
+            return skin.HasValue ? skin.Value.animatorController : null;
         }
 
         private void InitAgentOnNavMesh()
@@ -86,9 +123,11 @@ namespace SupKonQuest
             homePosition = transform.position;
 
             float speed = stats != null ? stats.moveSpeed * 0.7f : 2f;
-            agent.speed            = speed;
-            agent.angularSpeed     = 360f;
-            agent.stoppingDistance = stats != null ? stats.attackRange * 0.85f : 0.5f;
+            agent.speed                  = speed;
+            agent.angularSpeed           = 360f;
+            agent.stoppingDistance       = stats != null ? stats.attackRange * 0.85f : 0.5f;
+            agent.radius                 = 0.3f;   // petit rayon pour ne pas bloquer les attaquants
+            agent.obstacleAvoidanceType  = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
 
             initialized = true;
         }
@@ -181,7 +220,7 @@ namespace SupKonQuest
         {
             if (attackCooldown > 0f) return;
             if (stats.isAOE) PerformAOEAttack(target.transform.position);
-            else             target.TakeDamage(stats.attackDamage);
+            else             target.TakeDamageFrom(stats.attackDamage, stats);
             float cooldown = 1f / Mathf.Max(0.01f, stats.attackSpeed);
             attackCooldown  = cooldown;
             attackAnimTimer = Mathf.Min(cooldown * 0.6f, 0.8f);
@@ -193,7 +232,7 @@ namespace SupKonQuest
             foreach (Collider hit in hits)
             {
                 UnitStats other = hit.GetComponent<UnitStats>();
-                if (other == null || other.ownerId == 0 || other.currentHealth <= 0) continue;
+                if (other == null || other.ownerId == GameConstants.NEUTRAL_ID || other.currentHealth <= 0) continue;
                 float dist = Vector3.Distance(impactPoint, other.transform.position);
                 other.TakeAOEDamage(stats.attackDamage, dist, stats.aoeRadius);
             }
@@ -207,7 +246,7 @@ namespace SupKonQuest
             foreach (Collider hit in hits)
             {
                 UnitStats other = hit.GetComponent<UnitStats>();
-                if (other == null || other.ownerId == 0 || other.currentHealth <= 0) continue;
+                if (other == null || other.ownerId == GameConstants.NEUTRAL_ID || other.currentHealth <= 0) continue;
                 float dist = Vector3.Distance(transform.position, other.transform.position);
                 if (dist < closestDist) { closestDist = dist; closest = other; }
             }
@@ -223,11 +262,27 @@ namespace SupKonQuest
             foreach (Collider hit in hits)
             {
                 UnitStats other = hit.GetComponent<UnitStats>();
-                if (other == null || other.ownerId == 0 || other.currentHealth <= 0) continue;
+                if (other == null || other.ownerId == GameConstants.NEUTRAL_ID || other.currentHealth <= 0) continue;
                 float dist = Vector3.Distance(guardedCamp.transform.position, other.transform.position);
                 if (dist < closestDist) { closestDist = dist; closest = other; }
             }
             return closest;
+        }
+
+        private void ShrinkColliders()
+        {
+            foreach (Collider col in GetComponentsInChildren<Collider>())
+            {
+                if (col is CapsuleCollider cc)
+                {
+                    cc.radius = Mathf.Min(cc.radius, 0.35f);
+                    cc.height = Mathf.Min(cc.height, 1.8f);
+                }
+                else if (col is SphereCollider sc)
+                    sc.radius = Mathf.Min(sc.radius, 0.35f);
+                else if (col is BoxCollider bc)
+                    bc.size = Vector3.Min(bc.size, Vector3.one * 0.7f);
+            }
         }
 
         private Camp FindNearestNeutralCamp()

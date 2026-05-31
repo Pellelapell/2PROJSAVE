@@ -20,13 +20,19 @@ namespace SupKonQuest
         public bool IsLocked { get; set; }
 
         public bool HasPlayerMoveOrder { get; private set; }
+        public bool HasAttackMoveOrder { get; private set; }
 
+        private GameObject rangeIndicator;
         private static Material selectionCircleMat;
+        private static Material rangeIndicatorMat;
 
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
             stats  = GetComponent<UnitStats>();
+
+            if (IsNavalUnit() && agent != null)
+                agent.updateRotation = false;
 
             if (selectionCircle == null)
                 selectionCircle = CreateSelectionCircle();
@@ -61,17 +67,37 @@ namespace SupKonQuest
             return go;
         }
 
+        private void Start()
+        {
+            CreateRangeIndicator();
+        }
+
         private void Update()
         {
             if (HasPlayerMoveOrder && !IsMoving && !hasPending)
                 HasPlayerMoveOrder = false;
 
-            if (!hasPending) return;
-            if (!agent.isOnNavMesh) return;
+            if (HasAttackMoveOrder && !IsMoving && !hasPending)
+                HasAttackMoveOrder = false;
 
-            agent.isStopped = false;
-            agent.SetDestination(pendingDestination);
-            hasPending = false;
+            if (hasPending && agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
+                agent.SetDestination(pendingDestination);
+                hasPending = false;
+            }
+
+            RotateNavalUnit();
+        }
+
+        private void RotateNavalUnit()
+        {
+            if (!IsNavalUnit() || agent == null || agent.velocity.sqrMagnitude < 0.01f) return;
+            Vector3 dir = agent.velocity;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.001f) return;
+            Quaternion target = Quaternion.LookRotation(dir.normalized);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, 90f * Time.deltaTime);
         }
 
         public void InitOnNavMesh(float speed)
@@ -87,6 +113,8 @@ namespace SupKonQuest
             agent.enabled  = true;
             agent.speed    = speed;
             agent.areaMask = areaMask;
+            if (IsNavalUnit())
+                agent.updateRotation = false;
 
             if (hasPending && agent.isOnNavMesh)
             {
@@ -100,6 +128,15 @@ namespace SupKonQuest
         {
             if (IsLocked) return;
             HasPlayerMoveOrder = true;
+            HasAttackMoveOrder = false;
+            MoveToForced(destination);
+        }
+
+        public void AttackMoveTo(Vector3 destination)
+        {
+            if (IsLocked) return;
+            HasAttackMoveOrder = true;
+            HasPlayerMoveOrder = false;
             MoveToForced(destination);
         }
 
@@ -132,6 +169,38 @@ namespace SupKonQuest
         {
             if (selectionCircle != null)
                 selectionCircle.SetActive(selected);
+            if (rangeIndicator != null)
+                rangeIndicator.SetActive(selected);
+        }
+
+        private void CreateRangeIndicator()
+        {
+            UnitStats s = GetComponent<UnitStats>();
+            float range = s != null ? s.attackRange : 0f;
+            if (range <= 0f) return;
+
+            if (rangeIndicatorMat == null)
+            {
+                Shader sh = Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Lit");
+                rangeIndicatorMat = new Material(sh);
+                rangeIndicatorMat.color = new Color(1f, 1f, 1f, 0.18f);
+                rangeIndicatorMat.SetFloat("_Mode", 3);
+                rangeIndicatorMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                rangeIndicatorMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                rangeIndicatorMat.SetInt("_ZWrite", 0);
+                rangeIndicatorMat.EnableKeyword("_ALPHABLEND_ON");
+                rangeIndicatorMat.renderQueue = 3000;
+            }
+
+            rangeIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            rangeIndicator.name = "RangeIndicator";
+            rangeIndicator.transform.SetParent(transform);
+            rangeIndicator.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+            float d = range * 2f;
+            rangeIndicator.transform.localScale = new Vector3(d, 0.004f, d);
+            rangeIndicator.GetComponent<Renderer>().sharedMaterial = rangeIndicatorMat;
+            Destroy(rangeIndicator.GetComponent<Collider>());
+            rangeIndicator.SetActive(false);
         }
 
         private int ComputeAreaMask(int waterAreaIndex)

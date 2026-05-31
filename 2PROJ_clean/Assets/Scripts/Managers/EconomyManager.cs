@@ -32,6 +32,8 @@ namespace SupKonQuest
 
         private void GiveIncome()
         {
+            if (gameManager.activePlayers == null) return;
+
             Sawmill[] sawmills = FindObjectsByType<Sawmill>(FindObjectsSortMode.None);
 
             foreach (PlayerData player in gameManager.activePlayers)

@@ -33,26 +33,29 @@ namespace SupKonQuest
         {
             if (mainCam == null) return;
 
-            Vector3 screenPos = mainCam.WorldToScreenPoint(transform.position + Vector3.up * 1.8f);
+            Vector3 screenPos = mainCam.WorldToScreenPoint(transform.position + Vector3.up * 2.8f);
             if (screenPos.z < 0f) return;
 
-            const float barW = 50f;
-            const float barH = 6f;
+            const float barW = 80f;
+            const float barH = 12f;
             float x = screenPos.x - barW * 0.5f;
             float y = Screen.height - screenPos.y - barH * 0.5f;
 
             Color prev = GUI.color;
 
-            GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-            GUI.DrawTexture(new Rect(x, y, barW, barH), Texture2D.whiteTexture);
+            GUI.color = new Color(0.05f, 0.05f, 0.05f, 0.92f);
+            GUI.DrawTexture(new Rect(x - 1, y - 1, barW + 2, barH + 2), Texture2D.whiteTexture);
 
             float ratio = maxHP > 0 ? (float)currentHP / maxHP : 1f;
-            Color fill  = Color.Lerp(Color.red, Color.green, ratio);
-            GUI.color   = new Color(fill.r, fill.g, fill.b, 0.9f);
+            Color fill  = Color.Lerp(new Color(0.9f, 0.1f, 0.1f), new Color(0.1f, 0.9f, 0.2f), ratio);
+            GUI.color   = new Color(fill.r, fill.g, fill.b, 0.95f);
             GUI.DrawTexture(new Rect(x, y, barW * ratio, barH), Texture2D.whiteTexture);
 
-            GUI.color = new Color(1f, 1f, 1f, 0.4f);
-            GUI.Box(new Rect(x - 1, y - 1, barW + 2, barH + 2), GUIContent.none);
+            GUI.color = Color.white;
+            GUIStyle hpStyle = new GUIStyle(GUI.skin.label)
+            { fontSize = 9, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+              normal = { textColor = Color.white } };
+            GUI.Label(new Rect(x, y, barW, barH), $"{currentHP}/{maxHP}", hpStyle);
 
             GUI.color = prev;
         }

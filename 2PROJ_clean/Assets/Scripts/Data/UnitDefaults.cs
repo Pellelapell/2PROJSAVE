@@ -19,11 +19,11 @@ namespace SupKonQuest
 
         private static readonly Dictionary<UnitType, Def> Data = new Dictionary<UnitType, Def>
         {
-            [UnitType.Infantry]  = new Def { hp=80,  damage=10, price=50,  attackSpeed=1.00f, range=1.5f, moveSpeed=4.0f, buildTime=4f,  damageType=DamageType.Physical, displayName="Infanterie" },
+            [UnitType.Infantry]  = new Def { hp=80,  damage=10, price=50,  attackSpeed=1.00f, range=2.0f, moveSpeed=4.0f, buildTime=4f,  damageType=DamageType.Physical, displayName="Infanterie" },
             [UnitType.Support]   = new Def { hp=60,  damage=6,  price=45,  attackSpeed=0.80f, range=2.0f, moveSpeed=4.0f, buildTime=3f,  damageType=DamageType.Physical, hasActivable=true, spellDuration=5f,  spellCooldown=15f, displayName="Soutien" },
             [UnitType.Heal]      = new Def { hp=55,  damage=0,  price=55,  attackSpeed=0.50f, range=4.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Healing,  hasActivable=true, spellDuration=6f,  spellCooldown=12f, displayName="Soigneur" },
             [UnitType.Range]     = new Def { hp=45,  damage=14, price=65,  attackSpeed=0.75f, range=5.5f, moveSpeed=3.5f, buildTime=4f,  damageType=DamageType.Physical, displayName="Archer" },
-            [UnitType.Heavy]     = new Def { hp=150, damage=12, price=85,  attackSpeed=0.65f, range=1.5f, moveSpeed=2.0f, buildTime=6f,  damageType=DamageType.Physical, displayName="Lourd" },
+            [UnitType.Heavy]     = new Def { hp=150, damage=12, price=85,  attackSpeed=0.65f, range=2.0f, moveSpeed=2.0f, buildTime=6f,  damageType=DamageType.Physical, displayName="Lourd" },
             [UnitType.AntiArmor] = new Def { hp=55,  damage=18, price=75,  attackSpeed=0.55f, range=3.5f, moveSpeed=3.0f, buildTime=5f,  damageType=DamageType.Piercing, displayName="Anti-Armure" },
             [UnitType.Mortar]    = new Def { hp=55,  damage=30, price=100, attackSpeed=0.30f, range=8.0f, moveSpeed=2.0f, buildTime=7f,  damageType=DamageType.Siege,    isAOE=true, aoeRadius=2.5f, aoeFalloff=0.5f, displayName="Mortier" },
             [UnitType.Transport] = new Def { hp=100, damage=0,  price=90,  attackSpeed=0f,    range=0f,   moveSpeed=3.5f, buildTime=10f, damageType=DamageType.Physical, displayName="Transport" },

@@ -4,7 +4,7 @@ using SupKonQuest;
 
 public class MainMenu : MonoBehaviour
 {
-    private enum MenuScreen { Title, Selection, Options }
+    private enum MenuScreen { Title, Selection, Options, Tutorial }
     private MenuScreen current = MenuScreen.Title;
 
     private int selectedMap  = 0;
@@ -146,6 +146,7 @@ public class MainMenu : MonoBehaviour
             case MenuScreen.Title:     DrawTitleScreen();     break;
             case MenuScreen.Selection: DrawSelectionScreen(); break;
             case MenuScreen.Options:   DrawOptionsScreen();   break;
+            case MenuScreen.Tutorial:  DrawTutorialScreen();  break;
         }
     }
 
@@ -202,11 +203,11 @@ public class MainMenu : MonoBehaviour
 
         float btnW = 320f;
         float btnH = 64f;
-        float gap  = 20f;
-        
+        float gap  = 16f;
+
         float remainingH = sh - (sh * 0.05f + titleAreaH);
-        float buttonsTotalH = (btnH * 3) + (gap * 2) + 40f;
-        
+        float buttonsTotalH = (btnH * 4) + (gap * 3) + 40f;
+
 
         float startY = (sh * 0.05f + titleAreaH) + (remainingH - buttonsTotalH) * 0.4f;
         float btnX = (sw - btnW) * 0.5f;
@@ -244,6 +245,14 @@ public class MainMenu : MonoBehaviour
         {
             AudioManager.Instance?.PlayClick();
             current = MenuScreen.Options;
+        }
+        currentY += btnH + gap;
+
+        Rect tutorialRect = new Rect(btnX, currentY, btnW, btnH);
+        if (GUI.Button(tutorialRect, "?  " + L("tutorial") + "  ?", optionsBtnStyle))
+        {
+            AudioManager.Instance?.PlayClick();
+            current = MenuScreen.Tutorial;
         }
         currentY += btnH + gap;
 
@@ -427,6 +436,151 @@ public class MainMenu : MonoBehaviour
         {
             AudioManager.Instance?.PlayClick();
             StartGame();
+        }
+    }
+
+    private void DrawTutorialScreen()
+    {
+        float sw = Screen.width;
+        float sh = Screen.height;
+
+        GUI.color = new Color(0f, 0f, 0f, 0.70f);
+        GUI.DrawTexture(new Rect(0, 0, sw, 110f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        GUI.color = new Color(0.9f, 0.7f, 0.2f, 0.9f);
+        GUI.DrawTexture(new Rect(sw * 0.02f, 108f, sw * 0.96f, 2f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        DrawMedievalTitle(L("tutorial"), 0, -5f, sw, 90f);
+        GUI.Label(new Rect(0, 80f, sw, 25f), L("tuto_subtitle"), subtitleStyle);
+
+        float panelW = 820f;
+        float panelH = Mathf.Min(600f, sh - 120f);
+        float panelX = (sw - panelW) / 2f;
+        float panelY = 125f;
+
+        GUI.Box(new Rect(panelX, panelY, panelW, panelH), "", panelStyle);
+        DrawOrnateFrame(panelX, panelY, panelW, panelH);
+
+        float col1X = panelX + 30f;
+        float col2X = panelX + panelW / 2f + 10f;
+        float colW  = panelW / 2f - 40f;
+        float y = panelY + 20f;
+
+        GUIStyle keyStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize  = 13,
+            fontStyle = FontStyle.Bold,
+            normal    = { textColor = new Color(1f, 0.9f, 0.4f) }
+        };
+        GUIStyle descStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 13,
+            normal   = { textColor = new Color(0.85f, 0.85f, 0.85f) }
+        };
+
+        // --- Colonne gauche : Contrôles ---
+        GUI.Label(new Rect(col1X, y, colW, 22f), "⚔  " + L("tuto_controls"), headerStyle);
+        y += 28f;
+
+        (string k, string desc)[] controls =
+        {
+            (L("tuto_k_lclick"),       L("tuto_d_select")),
+            (L("tuto_k_shift_lclick"), L("tuto_d_multisel")),
+            (L("tuto_k_drag"),         L("tuto_d_areasel")),
+            (L("tuto_k_rclick_gnd"),   L("tuto_d_move")),
+            (L("tuto_k_attack_key"),    L("tuto_d_atkmove")),
+            (L("tuto_k_a_lclick"),     L("tuto_d_attack")),
+            (L("tuto_k_spell_key"),    L("tuto_d_spell")),
+            ("E",                      L("tuto_d_disembark")),
+            ("Escape",                 L("tuto_d_menu")),
+        };
+
+        float keyW  = 152f;
+        float descX = col1X + keyW + 6f;
+        float descW = colW - keyW - 6f;
+        foreach (var (k, desc) in controls)
+        {
+            GUI.Label(new Rect(col1X, y, keyW,  18f), k,    keyStyle);
+            GUI.Label(new Rect(descX, y, descW, 18f), desc, descStyle);
+            y += 24f;
+        }
+
+        // --- Colonne droite : Objectif + Bonus de race ---
+        float y2 = panelY + 20f;
+
+        GUI.Label(new Rect(col2X, y2, colW, 22f), "🏰  " + L("tuto_objective"), headerStyle);
+        y2 += 28f;
+
+        string[] rules =
+        {
+            L("tuto_obj_1"), L("tuto_obj_2"), L("tuto_obj_3"),
+            L("tuto_obj_4"), L("tuto_obj_5"),
+            L("tuto_obj_6"), L("tuto_obj_7"),
+        };
+        foreach (string line in rules)
+        {
+            GUI.Label(new Rect(col2X, y2, colW, 20f), line, descStyle);
+            y2 += 20f;
+        }
+
+        y2 += 8f;
+        GUI.color = new Color(0.8f, 0.65f, 0.2f, 0.4f);
+        GUI.DrawTexture(new Rect(col2X, y2, colW, 1f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        y2 += 8f;
+
+        GUI.Label(new Rect(col2X, y2, colW, 22f), "⚜  " + L("tuto_race_bonus"), headerStyle);
+        y2 += 26f;
+
+        GUIStyle raceNameStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize  = 15,
+            fontStyle = FontStyle.Bold,
+        };
+        GUIStyle raceBonusStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 14,
+            normal   = { textColor = new Color(0.88f, 0.92f, 0.88f) }
+        };
+
+        GUI.color = new Color(0.3f, 0.5f, 1.0f);
+        GUI.Label(new Rect(col2X, y2, colW, 20f), L("race_human"), raceNameStyle);
+        GUI.color = Color.white;
+        y2 += 22f;
+        GUI.Label(new Rect(col2X + 10f, y2, colW - 10f, 20f), L("tuto_human_b"), raceBonusStyle);
+        y2 += 26f;
+
+        GUI.color = new Color(0.2f, 0.85f, 0.3f);
+        GUI.Label(new Rect(col2X, y2, colW, 20f), L("race_elf"), raceNameStyle);
+        GUI.color = Color.white;
+        y2 += 22f;
+        GUI.Label(new Rect(col2X + 10f, y2, colW - 10f, 20f), L("tuto_elf_b1"), raceBonusStyle);
+        y2 += 20f;
+        GUI.Label(new Rect(col2X + 10f, y2, colW - 10f, 20f), L("tuto_elf_b2"), raceBonusStyle);
+        y2 += 26f;
+
+        GUI.color = new Color(1.0f, 0.3f, 0.3f);
+        GUI.Label(new Rect(col2X, y2, colW, 20f), L("race_demon"), raceNameStyle);
+        GUI.color = Color.white;
+        y2 += 22f;
+        GUI.Label(new Rect(col2X + 10f, y2, colW - 10f, 20f), L("tuto_demon_b1"), raceBonusStyle);
+        y2 += 20f;
+        GUI.Label(new Rect(col2X + 10f, y2, colW - 10f, 20f), L("tuto_demon_b2"), raceBonusStyle);
+
+        float bw = 240f;
+        float bx = (sw - bw) * 0.5f;
+        float by = panelY + panelH - 70f;
+
+        GUI.color = new Color(0.8f, 0.65f, 0.2f, 0.6f);
+        GUI.DrawTexture(new Rect(panelX + 20, by - 10, panelW - 40, 1f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        if (GUI.Button(new Rect(bx, by, bw, 52f), "← " + L("back"), backBtnStyle))
+        {
+            AudioManager.Instance?.PlayClick();
+            current = MenuScreen.Title;
         }
     }
 

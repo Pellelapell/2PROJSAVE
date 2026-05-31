@@ -13,6 +13,7 @@ namespace SupKonQuest
         private UnitStats builderUnit;
         private HexTile   activeSiteTile;
         private bool      builderLocked;
+        private bool      constructionStarted;
 
         public bool HasPendingBuild => pendingType.HasValue && !justActivated;
 
@@ -24,7 +25,7 @@ namespace SupKonQuest
                 float mx  = Input.mousePosition.x;
                 float mgy = Screen.height - Input.mousePosition.y;
 
-                float bh = 28f + Types.Length * 52f + 8f + 12f;
+                float bh = 28f + Types.Length * 58f + 8f + 12f;
                 float by = Screen.height - bh - 10f;
                 if (new Rect(4f, by, 270f, bh).Contains(new Vector2(mx, mgy))) return true;
 
@@ -86,11 +87,22 @@ namespace SupKonQuest
         private void UpdateBuilderState()
         {
             if (activeSiteTile == null || builderUnit == null) return;
-
             if (builderUnit.gameObject == null) { CancelAndRelease(); return; }
+            if (BuildingManager.Instance == null) { CancelAndRelease(); return; }
 
-            if (BuildingManager.Instance == null || BuildingManager.Instance.GetProgress01(activeSiteTile) < 0f)
-                ReleaseBuilder();
+            float progress = BuildingManager.Instance.GetProgress01(activeSiteTile);
+            if (progress < 0f) { ReleaseBuilder(); return; }
+
+            // Déclenche la construction quand l'ouvrier s'immobilise sur le site
+            if (!constructionStarted)
+            {
+                UnitMovement mov = builderUnit.GetComponent<UnitMovement>();
+                if (mov != null && !mov.IsMoving)
+                {
+                    constructionStarted = true;
+                    BuildingManager.Instance.BeginConstruction(activeSiteTile);
+                }
+            }
         }
 
         private void ReleaseBuilder()
@@ -100,9 +112,10 @@ namespace SupKonQuest
                 UnitMovement mov = builderUnit.GetComponent<UnitMovement>();
                 if (mov != null) mov.IsLocked = false;
             }
-            builderUnit    = null;
-            activeSiteTile = null;
-            builderLocked  = false;
+            builderUnit          = null;
+            activeSiteTile       = null;
+            builderLocked        = false;
+            constructionStarted  = false;
         }
 
         private void CancelAndRelease()
@@ -135,6 +148,13 @@ namespace SupKonQuest
         {
             if (!pendingType.HasValue || trackedUnit == null || BuildingManager.Instance == null) return false;
 
+            // Si ce même constructeur était déjà en train de construire, annuler l'ancien chantier
+            if (activeSiteTile != null && builderUnit == trackedUnit)
+            {
+                BuildingManager.Instance.CancelBuild(activeSiteTile);
+                ReleaseBuilder();
+            }
+
             PlayerData owner = GameManager.Instance?.GetPlayerById(trackedUnit.ownerId);
             if (owner == null) { pendingType = null; return false; }
 
@@ -147,10 +167,11 @@ namespace SupKonQuest
                     mov.MoveToForced(tile.transform.position);
                     mov.IsLocked = true;
                 }
-                builderUnit    = trackedUnit;
-                activeSiteTile = tile;
-                builderLocked  = true;
-                pendingType    = null;
+                builderUnit         = trackedUnit;
+                activeSiteTile      = tile;
+                builderLocked       = true;
+                constructionStarted = false;
+                pendingType         = null;
             }
             return built;
         }
@@ -197,8 +218,8 @@ namespace SupKonQuest
 
         private void DrawBuildPanel(PlayerData owner)
         {
-            const float w     = 258f;
-            const float lineH = 52f;
+            const float w     = 280f;
+            const float lineH = 58f;
             float h = 28f + Types.Length * lineH + 8f;
             float x = 10f;
             float y = Screen.height - h - 10f;
@@ -211,11 +232,12 @@ namespace SupKonQuest
             {
                 BuildingType type = Types[i];
                 var (gold, wood) = BuildingManager.Instance.GetCost(type);
-                bool canAfford   = owner.CanAfford(gold, wood);
+                string blockReason = BuildingManager.Instance.GetTypeBlockReason(type, owner);
+                bool canBuild = blockReason == null;
 
                 GUI.Box(new Rect(x, y, w, lineH - 4f), GUIContent.none, panelStyle);
 
-                GUI.color = canAfford ? Color.white : new Color(1f, 1f, 1f, 0.4f);
+                GUI.color = canBuild ? Color.white : new Color(1f, 1f, 1f, 0.4f);
                 GUI.Label(new Rect(x + 6, y + 2f,  w - 70f, 18f), GetBuildingName(i), titleStyle);
                 GUI.Label(new Rect(x + 6, y + 19f, w - 70f, 14f), GetBuildingDesc(i), costStyle);
 
@@ -223,9 +245,9 @@ namespace SupKonQuest
                 GUI.Label(new Rect(x + 6, y + 33f, w - 70f, 14f), $"{gold}g  {wood}b", costStyle);
                 GUI.color = Color.white;
 
-                if (canAfford)
+                if (canBuild)
                 {
-                    if (GUI.Button(new Rect(x + w - 62f, y + 10f, 58f, 26f), L("builder_place"), btnStyle))
+                    if (GUI.Button(new Rect(x + w - 66f, y + 15f, 60f, 26f), L("builder_place"), btnStyle))
                     {
                         pendingType   = type;
                         justActivated = true;
@@ -233,8 +255,10 @@ namespace SupKonQuest
                 }
                 else
                 {
+                    GUIStyle reasonStyle = new GUIStyle(costStyle) { normal = { textColor = new Color(1f, 0.4f, 0.4f) }, wordWrap = true };
+                    GUI.Label(new Rect(x + 6, y + 43f, w - 12f, 14f), blockReason, reasonStyle);
                     GUI.color = new Color(1f, 1f, 1f, 0.3f);
-                    GUI.Box(new Rect(x + w - 62f, y + 10f, 58f, 26f), L("builder_lack"), disabledStyle);
+                    GUI.Box(new Rect(x + w - 66f, y + 15f, 60f, 26f), L("builder_lack"), disabledStyle);
                     GUI.color = Color.white;
                 }
 

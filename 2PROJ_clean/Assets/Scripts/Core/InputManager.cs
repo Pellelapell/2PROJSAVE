@@ -28,9 +28,13 @@ namespace SupKonQuest
 
         private readonly List<UnitMovement> selectedUnits = new List<UnitMovement>();
         private readonly Dictionary<int, List<UnitMovement>> unitGroups = new Dictionary<int, List<UnitMovement>>();
+        private readonly List<UnitStats> highlightedTargets = new List<UnitStats>();
+        private readonly List<Camp>      highlightedCamps   = new List<Camp>();
 
         private bool isDragging;
         private Vector2 dragStartScreen;
+
+        public bool IsAttackMoveMode { get; private set; }
 
         private void Awake()
         {
@@ -48,11 +52,65 @@ namespace SupKonQuest
 
         private void Update()
         {
+            HandleAttackMoveToggle();
             HandleMouse();
             HandleRightClick();
             HandleSpellHotkey();
             HandleGroupHotkeys();
             HandleDisembarkHotkey();
+            UpdateTargetHighlights();
+        }
+
+        private float highlightRefreshTimer;
+
+        private void UpdateTargetHighlights()
+        {
+            if (!IsAttackMoveMode)
+            {
+                if (highlightedTargets.Count > 0)
+                {
+                    foreach (UnitStats u in highlightedTargets) if (u != null) u.SetAsTarget(false);
+                    highlightedTargets.Clear();
+                }
+                if (highlightedCamps.Count > 0)
+                {
+                    foreach (Camp c in highlightedCamps) if (c != null) c.SetAsTarget(false);
+                    highlightedCamps.Clear();
+                }
+                return;
+            }
+
+            highlightRefreshTimer -= Time.deltaTime;
+            if (highlightRefreshTimer > 0f) return;
+            highlightRefreshTimer = 0.2f;
+
+            foreach (UnitStats u in highlightedTargets) if (u != null) u.SetAsTarget(false);
+            highlightedTargets.Clear();
+            foreach (Camp c in highlightedCamps) if (c != null) c.SetAsTarget(false);
+            highlightedCamps.Clear();
+
+            // Unités ennemies
+            UnitStats[] allUnits = FindObjectsByType<UnitStats>(FindObjectsSortMode.None);
+            foreach (UnitStats other in allUnits)
+            {
+                if (other == null || other.currentHealth <= 0 || other.ownerId == localPlayerId) continue;
+                other.SetAsTarget(true);
+                highlightedTargets.Add(other);
+            }
+
+            // Camps ennemis / neutres
+            Camp[] allCamps = FindObjectsByType<Camp>(FindObjectsSortMode.None);
+            foreach (Camp camp in allCamps)
+            {
+                if (camp.owner != null && camp.owner.playerId == localPlayerId) continue;
+                camp.SetAsTarget(true);
+                highlightedCamps.Add(camp);
+            }
+        }
+
+        private void HandleAttackMoveToggle()
+        {
+            IsAttackMoveMode = Input.GetKey(KeyCode.Q) && selectedUnits.Count > 0;
         }
 
         private void HandleMouse()
@@ -80,6 +138,51 @@ namespace SupKonQuest
             if (BuilderHUD.Instance != null && BuilderHUD.Instance.IsMouseOverPanel) return;
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+
+            if (IsAttackMoveMode && selectedUnits.Count > 0)
+            {
+                // Tout ce que le rayon touche, sans filtre de layer
+                RaycastHit[] atkHits = Physics.RaycastAll(ray, 1000f);
+                System.Array.Sort(atkHits, (a, b) => a.distance.CompareTo(b.distance));
+
+                UnitStats firstUnit = null;
+                Camp      firstCamp = null;
+
+                foreach (RaycastHit h in atkHits)
+                {
+                    if (firstUnit == null)
+                    {
+                        UnitStats t = h.collider.GetComponentInParent<UnitStats>();
+                        if (t != null && t.ownerId != localPlayerId && t.currentHealth > 0)
+                            firstUnit = t;
+                    }
+                    if (firstCamp == null)
+                    {
+                        Camp c = h.collider.GetComponentInParent<Camp>();
+                        if (c != null && (c.isNeutral || c.owner == null || c.owner.playerId != localPlayerId))
+                            firstCamp = c;
+                    }
+                    if (firstUnit != null && firstCamp != null) break;
+                }
+
+                // Priorité au camp : les gardes neutres bloquaient le bâtiment
+                if (firstCamp != null)
+                {
+                    foreach (UnitMovement u in selectedUnits)
+                    {
+                        u.MoveTo(firstCamp.transform.position);
+                        u.GetComponent<UnitAttack>()?.SetCampTarget(firstCamp);
+                    }
+                    return;
+                }
+                if (firstUnit != null)
+                {
+                    foreach (UnitMovement u in selectedUnits)
+                        u.GetComponent<UnitAttack>()?.SetUnitTarget(firstUnit);
+                    return;
+                }
+                return;
+            }
 
             if (campUIManager != null && campUIManager.IsPickingSpawnPoint)
             {
@@ -120,8 +223,16 @@ namespace SupKonQuest
                         if (!Input.GetKey(KeyCode.LeftShift)) ClearSelection();
                         SelectUnit(unit);
                         campUIManager?.HideUI();
-    
                         RefreshSpellUI();
+                        return;
+                    }
+
+                    if (stats != null)
+                    {
+                        ClearSelection();
+                        SelectedUnitStats = stats;
+                        campUIManager?.HideUI();
+                        spellUI?.HidePanel();
                         return;
                     }
                 }
@@ -188,10 +299,11 @@ namespace SupKonQuest
 
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-            if (Physics.Raycast(ray, out RaycastHit hitUnit, 1000f, unitLayerMask))
+            // Transport embark (propre transport uniquement)
+            if (Physics.Raycast(ray, out RaycastHit hitTransport, 1000f, unitLayerMask))
             {
-                TransportShip transport = hitUnit.collider.GetComponentInParent<TransportShip>();
-                UnitStats transportStats = hitUnit.collider.GetComponentInParent<UnitStats>();
+                TransportShip transport = hitTransport.collider.GetComponentInParent<TransportShip>();
+                UnitStats transportStats = hitTransport.collider.GetComponentInParent<UnitStats>();
                 if (transport != null && transportStats != null && transportStats.ownerId == localPlayerId)
                 {
                     foreach (UnitMovement u in selectedUnits)
@@ -203,15 +315,9 @@ namespace SupKonQuest
                     ClearSelection();
                     return;
                 }
-
-                UnitStats target = hitUnit.collider.GetComponentInParent<UnitStats>();
-                if (target != null && target.ownerId != localPlayerId)
-                {
-                    foreach (UnitMovement u in selectedUnits) u.MoveTo(hitUnit.point);
-                    return;
-                }
             }
 
+            // Camp ennemi/neutre → déplacement + capture
             if (Physics.Raycast(ray, out RaycastHit hitCamp, 1000f, campLayerMask))
             {
                 Camp camp = hitCamp.collider.GetComponentInParent<Camp>();
@@ -227,6 +333,7 @@ namespace SupKonQuest
                 }
             }
 
+            // Déplacement au sol (le clic passe à travers les unités et camps)
             int ignoreMask = unitLayerMask | campLayerMask;
             if (Physics.Raycast(ray, out RaycastHit hitGround, 1000f, ~ignoreMask))
             {
@@ -239,7 +346,7 @@ namespace SupKonQuest
 
         private void HandleSpellHotkey()
         {
-            if (!Input.GetKeyDown(KeyCode.Q)) return;
+            if (!Input.GetKeyDown(KeyCode.A)) return;
             if (selectedUnits.Count != 1) return;
 
             UnitSpell spell = selectedUnits[0].GetComponent<UnitSpell>();
@@ -387,6 +494,11 @@ namespace SupKonQuest
             SelectedCampBuilding = null;
             SelectedHealthBuilding = null;
             BuilderHUD.Instance?.Hide();
+
+            foreach (UnitStats u in highlightedTargets) if (u != null) u.SetAsTarget(false);
+            highlightedTargets.Clear();
+            foreach (Camp c in highlightedCamps) if (c != null) c.SetAsTarget(false);
+            highlightedCamps.Clear();
         }
 
         private static Rect GetScreenRect(Vector2 a, Vector2 b) =>
