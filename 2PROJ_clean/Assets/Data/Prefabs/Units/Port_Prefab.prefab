@@ -56,8 +56,6 @@ MonoBehaviour:
   spawnPoint: {fileID: 2246156444666041100}
   maxHP: 300
   currentHP: 300
-  neutralMesh: {fileID: 0}
-  neutralMaterial: {fileID: 0}
 --- !u!114 &5388071035605871899
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -203,7 +201,7 @@ Transform:
   m_GameObject: {fileID: 5678384916393859633}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.517, y: -0.303, z: -0.129}
+  m_LocalPosition: {x: 0.1, y: 1.547, z: -0.129}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
