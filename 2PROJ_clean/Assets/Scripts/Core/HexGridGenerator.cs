@@ -48,7 +48,7 @@ public class HexGridGenerator : MonoBehaviour
 
     [Header("Bordure")]
     [Tooltip("Nombre de tuiles de bordure inaccessibles autour de la map")]
-    [Range(1, 8)]
+    [Range(1, 12)]
     public int borderWidth = 4;
 
     [Header("Camps")]

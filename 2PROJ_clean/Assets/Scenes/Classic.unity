@@ -1809,7 +1809,7 @@ MonoBehaviour:
   smoothingPasses: 2
   cornerMargin: 2
   mapType: 0
-  borderWidth: 8
+  borderWidth: 12
   normalCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   neutralCampPrefab: {fileID: 3044618288830488966, guid: 86146fb016c06e541ae5919665dba882, type: 3}
   campsPerCorner: 2
