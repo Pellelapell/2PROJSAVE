@@ -1,0 +1,28 @@
+
+newmtl bois
+Ka 0.0 0.0 0.0
+Kd 0.45 0.28 0.10
+Ks 0.0 0.0 0.0
+d 1.0
+illum 1
+
+newmtl feuille2.1
+Ka 0.0 0.0 0.0
+Kd 0.15 0.55 0.12
+Ks 0.0 0.0 0.0
+d 1.0
+illum 1
+
+newmtl herbe
+Ka 0.0 0.0 0.0
+Kd 0.20 0.50 0.10
+Ks 0.0 0.0 0.0
+d 1.0
+illum 1
+
+newmtl terreofbois
+Ka 0.0 0.0 0.0
+Kd 0.35 0.22 0.08
+Ks 0.0 0.0 0.0
+d 1.0
+illum 1
