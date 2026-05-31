@@ -122,7 +122,10 @@ namespace SupKonQuest
             agent.speed    = speed;
             agent.areaMask = areaMask;
             if (IsNavalUnit())
+            {
                 agent.updateRotation = false;
+                agent.baseOffset     = 1.2f;
+            }
 
             if (hasPending && agent.isOnNavMesh)
             {
