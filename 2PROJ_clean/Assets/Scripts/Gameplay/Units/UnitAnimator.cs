@@ -27,8 +27,6 @@ namespace SupKonQuest
 
             if (animator == null)
                 animator = GetComponentInChildren<Animator>();
-
-
         }
 
         private void Update()
