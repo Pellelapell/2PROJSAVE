@@ -26,6 +26,9 @@ public class MainMenu : MonoBehaviour
     private float musicVolume = 1f;
     private float sfxVolume   = 1f;
 
+    private const float ReferenceWidth  = 1920f;
+    private const float ReferenceHeight = 1080f;
+
     private Texture2D backgroundTexture;
 
     private GUIStyle titleStyle;
@@ -602,7 +605,7 @@ public class MainMenu : MonoBehaviour
         GUI.Label(new Rect(0, 80f, sw, 25f), "Ajustez vos sens", subtitleStyle);
 
         float panelW = 500f;
-        float panelH = Mathf.Min(300f, sh - 140f);
+        float panelH = Mathf.Min(400f, sh - 140f);
         float panelX = (sw - panelW) / 2f;
         float panelY = 125f;
 
@@ -640,10 +643,35 @@ public class MainMenu : MonoBehaviour
         }
 
 
+        y += 30f;
+        GUI.color = new Color(0.4f, 0.6f, 0.9f, 0.3f);
+        GUI.DrawTexture(new Rect(contentX, y, contentW, 1f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+        y += 14f;
+
+        GUI.Label(new Rect(panelX, y, panelW, 24f), "⬛ Interface", headerStyle);
+        y += 30f;
+
+        float currentHudScale = PlayerPrefs.GetFloat("HUDScale", 1f);
+        GUI.Label(new Rect(contentX, y, contentW, 24f),
+            $"Taille HUD : {Mathf.RoundToInt(currentHudScale * 100f)}%  " +
+            $"(écran : {Screen.width}×{Screen.height})", labelStyle);
+        y += 34f;
+
+        if (GUI.Button(new Rect(contentX, y, contentW, 40f), "Adapter automatiquement à la résolution", backBtnStyle))
+        {
+            AudioManager.Instance?.PlayClick();
+            float scaleX = Screen.width  / ReferenceWidth;
+            float scaleY = Screen.height / ReferenceHeight;
+            float scale  = Mathf.Clamp(Mathf.Min(scaleX, scaleY), 0.5f, 3f);
+            PlayerPrefs.SetFloat("HUDScale", scale);
+            PlayerPrefs.Save();
+        }
+
         float bw = 240f;
         float bx = (sw - bw) * 0.5f;
         float by = panelY + panelH - 70f;
-        
+
         GUI.color = new Color(0.4f, 0.6f, 0.9f, 0.3f);
         GUI.DrawTexture(new Rect(panelX + 20, by - 10, panelW - 40, 1f), Texture2D.whiteTexture);
         GUI.color = Color.white;

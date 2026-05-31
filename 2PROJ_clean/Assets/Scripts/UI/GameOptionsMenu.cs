@@ -12,7 +12,6 @@ namespace SupKonQuest
 
         private float musicVolume;
         private float sfxVolume;
-        private float hudScale;
 
         private GUIStyle panelStyle;
         private GUIStyle titleStyle;
@@ -28,7 +27,6 @@ namespace SupKonQuest
         {
             musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
             sfxVolume   = PlayerPrefs.GetFloat("SFXVolume",   1f);
-            hudScale    = PlayerPrefs.GetFloat("HUDScale",    1f);
         }
 
         private void Update()
@@ -55,7 +53,7 @@ namespace SupKonQuest
             GUI.color = Color.white;
 
             float pw = 420f;
-            float ph = 390f;
+            float ph = 320f;
             float px = (Screen.width  - pw) * 0.5f;
             float py = (Screen.height - ph) * 0.5f;
 
@@ -84,16 +82,6 @@ namespace SupKonQuest
                 sfxVolume = newSFX;
                 AudioManager.Instance?.SetSFXVolume(sfxVolume);
                 PlayerPrefs.SetFloat("SFXVolume", sfxVolume);
-            }
-            y += 32f;
-
-            GUI.Label(new Rect(px, y, pw, 22f), $"Taille HUD : {Mathf.RoundToInt(hudScale * 100f)}%", labelStyle);
-            y += 26f;
-            float newHud = GUI.HorizontalSlider(new Rect(px, y, pw, 18f), hudScale, 0.5f, 2f);
-            if (!Mathf.Approximately(newHud, hudScale))
-            {
-                hudScale = newHud;
-                PlayerPrefs.SetFloat("HUDScale", hudScale);
             }
             y += 40f;
 
